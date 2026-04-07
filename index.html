@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnlyReptil - v5.0 Firebase</title>
+    <style>
+        :root {
+            --primario: #4caf50; --fondo: #262626; --tarjeta: #333333; 
+            --texto: #e0e0e0; --alerta: #ff9800; --peligro: #ef5350; --bio: #81d4fa;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--fondo); color: var(--texto); margin: 0; padding-bottom: 80px; }
+        header { background: #1a1a1a; color: var(--primario); padding: 1.2rem; text-align: center; border-bottom: 1px solid var(--primario); font-weight: bold; }
+        .container { padding: 15px; max-width: 500px; margin: auto; }
+
+        /* Indicador de conexión */
+        #estado-conexion { text-align: center; font-size: 0.7rem; padding: 4px; margin-bottom: 8px; border-radius: 6px; }
+        #estado-conexion.conectado { background: #1b3a1b; color: var(--primario); }
+        #estado-conexion.cargando { background: #3a3a1b; color: var(--alerta); }
+        #estado-conexion.error { background: #3a1b1b; color: var(--peligro); }
+
+        /* Stock Quick View */
+        .stock-bar { display: flex; justify-content: space-around; background: #1a1a1a; padding: 10px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #444; }
+        .stock-item { text-align: center; font-size: 0.75rem; }
+        .stock-num { display: block; color: var(--primario); font-weight: bold; font-size: 1.1rem; }
+
+        /* Balance */
+        .card-balance { background: var(--tarjeta); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-top: 4px solid var(--primario); text-align: center; }
+        .balance-amount { font-size: 1.4rem; font-weight: bold; color: var(--primario); }
+
+        /* Acciones */
+        .grid-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+        .btn-action { background: #404040; padding: 18px 10px; border-radius: 12px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-puesta  { border: 2px solid var(--bio); color: var(--bio); }
+        .btn-nacer   { border: 2px solid var(--primario); color: var(--primario); }
+        .btn-venta   { border: 2px solid #ffffff; color: #ffffff; }
+        .btn-gasto   { border: 2px solid var(--peligro); color: var(--peligro); }
+
+        /* Secciones */
+        .seccion-app { display: none; flex-direction: column; background: var(--tarjeta); padding: 20px; border-radius: 15px; border-top: 4px solid var(--primario); margin-top: 10px; }
+        .titulo-centrado { text-align: center; width: 100%; font-weight: bold; margin-bottom: 15px; }
+        
+        .form-group { width: 100%; margin-bottom: 12px; text-align: left; }
+        label { display: block; margin-bottom: 4px; font-size: 0.8rem; font-weight: bold; color: var(--primario); }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; box-sizing: border-box; background: #404040; color: white; border: 1px solid #555; text-align: center; font-size: 1rem; }
+        
+        .btn-save { background: var(--primario); color: #1a1a1a; border: none; font-weight: bold; width: 100%; padding: 15px; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .btn-save:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .btn-cancelar { background: transparent; color: #aaa; border: 1px solid #555; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.8rem; }
+
+        /* Historiales y Tabs */
+        .tab-container { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 10px 5px; background: #444; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.75rem; }
+        .tab.active { background: var(--primario); color: #000; font-weight: bold; }
+        .tab.bio-active { background: var(--bio); color: #000; font-weight: bold; }
+        
+        .lista-hist { display: none; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; }
+        .lista-hist.active { display: flex; }
+        .item-hist { background: #444; padding: 12px; border-radius: 8px; border-left: 4px solid var(--primario); position: relative; font-size: 0.85rem; margin-bottom: 5px; }
+        .item-bio { border-left-color: var(--bio); }
+        .item-gasto { border-left-color: var(--peligro); }
+        .msg-vacio { color: #666; text-align: center; padding: 20px; font-size: 0.85rem; }
+
+        nav { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid var(--primario); z-index: 100; }
+        .nav-item { text-align: center; font-size: 0.75rem; color: #aaa; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<header>ONLYREPTIL</header>
+
+<div class="container">
+    <div id="estado-conexion" class="cargando">⏳ Conectando con la nube...</div>
+
+    <div class="stock-bar">
+        <div class="stock-item">SULCATAS<span class="stock-num" id="st-sulcata">0</span></div>
+        <div class="stock-item">RADIATAS<span class="stock-num" id="st-radiata">0</span></div>
+        <div class="stock-item">OTRAS<span class="stock-num" id="st-otros">0</span></div>
+    </div>
+
+    <div class="card-balance">
+        <div class="balance-amount" id="balance-texto">0,00€</div>
+        <div id="balance-sub" style="font-size: 0.8rem; color: #aaa;">Estado de cuentas</div>
+    </div>
+
+    <div id="pantalla-inicio">
+        <div class="grid-actions">
+            <div class="btn-action btn-puesta"  onclick="irA('form-puesta')">🥚 PUESTA</div>
+            <div class="btn-action btn-nacer"   onclick="irA('form-nacimiento')">🐢 NACIMIENTO</div>
+            <div class="btn-action btn-venta"   onclick="irA('form-ingreso')">＋ VENTA</div>
+            <div class="btn-action btn-gasto"   onclick="irA('form-gasto')">－ GASTO</div>
+        </div>
+    </div>
+
+    <!-- FORM PUESTA -->
+    <div id="form-puesta" class="seccion-app" style="border-top-color: var(--bio);">
+        <div class="titulo-centrado" style="color:var(--bio);">🥚 NUEVA PUESTA</div>
+        <div class="form-group"><label>Especie</label>
+            <select id="p-especie">
+                <option>Sulcata</option><option>Radiata</option>
+                <option>Rusa</option><option>Pardalis</option><option>Carbonaria</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Nº de Huevos</label><input type="number" id="p-huevos" value="1" min="1"></div>
+        <div class="form-group"><label>Ubicación Incubadora</label><input type="text" id="p-loc" placeholder="Ej: Fila 2, Caja B"></div>
+        <button class="btn-save" id="btn-guardar-puesta" onclick="guardarPuesta()">REGISTRAR PUESTA</button>
+        <button class="btn-cancelar" onclick="irA('pantalla-inicio')">CANCELAR</button>
+    </div>
+
+    <!-- FORM NACIMIENTO -->
+    <div id="form-nacimiento" class="seccion-app">
+        <div class="titulo-centrado">🐢 ECLOSIÓN / NACIMIENTO</div>
+        <div class="form-group"><label>Especie</label>
+            <select id="n-especie">
+                <option value="Sulcata">Sulcata</option><option value="Radiata">Radiata</option>
+                <option value="Rusa">Rusa</option><option value="Pardalis">Pardalis</option><option value="Carbonaria">Carbonaria</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Cantidad</label><input type="number" id="n-cant" value="1" min="1"></div>
+        <button class="btn-save" id="btn-guardar-nacimiento" onclick="guardarNacimiento()">SUMAR AL STOCK</button>
+        <button class="btn-cancelar" onclick="irA('pantalla-inicio')">CANCELAR</button>
+    </div>
+
+    <!-- FORM GASTO -->
+    <div id="form-gasto" class="seccion-app" style="border-top-color: var(--peligro);">
+        <div class="titulo-centrado" style="color:var(--peligro);">－ NUEVO GASTO</div>
+        <div class="form-group"><label>Concepto</label><input type="text" id="g-concepto" placeholder="Ej: Pienso, veterinario..."></div>
+        <div class="form-group"><label>Importe (€)</label><input type="number" id="g-monto" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label>Socio</label><select id="g-socio"><option value="Martin">Martín</option><option value="Patry">Patry</option></select></div>
+        <button class="btn-save" id="btn-guardar-gasto" onclick="guardarMovimiento('gasto')">GUARDAR GASTO</button>
+        <button class="btn-cancelar" onclick="irA('pantalla-inicio')">CANCELAR</button>
+    </div>
+
+    <!-- FORM INGRESO/VENTA -->
+    <div id="form-ingreso" class="seccion-app">
+        <div class="titulo-centrado">＋ NUEVA VENTA</div>
+        <div class="form-group"><label>Cliente</label><select id="i-cliente"><option>Particular</option><option>Tienda</option></select></div>
+        <div class="form-group"><label>Especie</label>
+            <select id="i-especie">
+                <option>Sulcata</option><option>Radiata</option>
+                <option>Rusa</option><option>Pardalis</option><option>Carbonaria</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Cantidad</label><input type="number" id="i-cant" value="1" min="1"></div>
+        <div class="form-group"><label>Total (€)</label><input type="number" id="i-monto" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label>Socio</label><select id="i-socio"><option value="Martin">Martín</option><option value="Patry">Patry</option></select></div>
+        <button class="btn-save" id="btn-guardar-ingreso" onclick="guardarMovimiento('ingreso')">REGISTRAR VENTA</button>
+        <button class="btn-cancelar" onclick="irA('pantalla-inicio')">CANCELAR</button>
+    </div>
+
+    <!-- PANTALLA ÉXITO -->
+    <div id="pantalla-exito" class="seccion-app" style="text-align:center;">
+        <div style="font-size:60px; margin: 20px 0;">✅</div>
+        <h2 id="exito-titulo">¡HECHO!</h2>
+        <p id="exito-detalle"></p>
+        <button class="btn-save" onclick="irA('pantalla-inicio')">VOLVER AL INICIO</button>
+        <p id="link-caja" onclick="irA('pantalla-caja')" style="text-decoration:underline; cursor:pointer; font-size:0.85rem; margin-top:20px; color:var(--primario); display:none;">Ver Historial de Caja</p>
+        <p id="link-bio" onclick="irA('pantalla-bio')" style="text-decoration:underline; cursor:pointer; font-size:0.85rem; margin-top:20px; color:var(--bio); display:none;">Ver Historial Biológico</p>
+    </div>
+
+    <!-- PANTALLA CAJA -->
+    <div id="pantalla-caja" class="seccion-app">
+        <div class="titulo-centrado">💰 HISTORIAL DE CAJA</div>
+        <div class="tab-container">
+            <div class="tab active" id="t-a" onclick="verTab('a')">TODOS</div>
+            <div class="tab" id="t-g" onclick="verTab('g')">GASTOS</div>
+            <div class="tab" id="t-i" onclick="verTab('i')">VENTAS</div>
+        </div>
+        <div id="l-a" class="lista-hist active"></div>
+        <div id="l-g" class="lista-hist"></div>
+        <div id="l-i" class="lista-hist"></div>
+    </div>
+
+    <!-- PANTALLA BIO -->
+    <div id="pantalla-bio" class="seccion-app" style="border-top-color: var(--bio);">
+        <div class="titulo-centrado">🥚 INCUBADORA & VIDA</div>
+        <div class="tab-container">
+            <div class="tab bio-active" id="tb-a" onclick="verTabBio('a')">TODO</div>
+            <div class="tab" id="tb-p" onclick="verTabBio('p')">PUESTAS</div>
+            <div class="tab" id="tb-n" onclick="verTabBio('n')">NACIDOS</div>
+        </div>
+        <div id="lb-a" class="lista-hist active"></div>
+        <div id="lb-p" class="lista-hist"></div>
+        <div id="lb-n" class="lista-hist"></div>
+    </div>
+</div>
+
+<nav>
+    <div class="nav-item" onclick="irA('pantalla-inicio')">🏠<br>Inicio</div>
+    <div class="nav-item" onclick="irA('pantalla-bio')">🥚<br>Vida</div>
+    <div class="nav-item" onclick="irA('pantalla-caja')">💰<br>Caja</div>
+</nav>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ── CONFIGURACIÓN FIREBASE ──
+    const firebaseConfig = {
+        apiKey: "AIzaSyB1X8b7u1-Xm6FTlV5JxdNvBjfUPrBQuNg",
+        authDomain: "onlyreptil.firebaseapp.com",
+        projectId: "onlyreptil",
+        storageBucket: "onlyreptil.firebasestorage.app",
+        messagingSenderId: "588712119670",
+        appId: "1:588712119670:web:33b3fdf6bc27e4b8b2be57"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ── ESTADO LOCAL (espejo de Firestore) ──
+    let historico = [];
+    let histBio = [];
+    let inventario = { "Sulcata": 0, "Radiata": 0, "Rusa": 0, "Pardalis": 0, "Carbonaria": 0 };
+
+    // ── NAVEGACIÓN ──
+    window.irA = function(id) {
+        const secciones = ['pantalla-inicio','form-gasto','form-ingreso','form-nacimiento','form-puesta','pantalla-caja','pantalla-exito','pantalla-bio'];
+        secciones.forEach(s => { const el = document.getElementById(s); if(el) el.style.display = 'none'; });
+        const target = document.getElementById(id);
+        if(target) target.style.display = (id === 'pantalla-inicio') ? 'block' : 'flex';
+    }
+
+    function setEstado(estado, msg) {
+        const el = document.getElementById('estado-conexion');
+        el.className = estado;
+        el.innerText = msg;
+    }
+
+    function setBotones(disabled) {
+        ['btn-guardar-puesta','btn-guardar-nacimiento','btn-guardar-gasto','btn-guardar-ingreso'].forEach(id => {
+            const btn = document.getElementById(id);
+            if(btn) btn.disabled = disabled;
+        });
+    }
+
+    // ── ESCUCHA EN TIEMPO REAL: CAJA ──
+    const qCaja = query(collection(db, "caja"), orderBy("timestamp", "asc"));
+    onSnapshot(qCaja, (snapshot) => {
+        historico = [];
+        inventario = { "Sulcata": 0, "Radiata": 0, "Rusa": 0, "Pardalis": 0, "Carbonaria": 0 };
+        snapshot.forEach(doc => {
+            const d = doc.data();
+            historico.push(d);
+            if(d.tipo === 'ingreso' && d.especie && d.cant) {
+                inventario[d.especie] = (inventario[d.especie] || 0) - parseInt(d.cant);
+            }
+        });
+        // El stock real viene del historial biológico, la venta descuenta
+        recalcularStock();
+        actualizarUI();
+        setEstado('conectado', '🟢 Conectado · datos en tiempo real');
+        setBotones(false);
+    }, (error) => {
+        setEstado('error', '🔴 Error de conexión — ' + error.message);
+    });
+
+    // ── ESCUCHA EN TIEMPO REAL: BIO ──
+    const qBio = query(collection(db, "bio"), orderBy("timestamp", "asc"));
+    onSnapshot(qBio, (snapshot) => {
+        histBio = [];
+        let stockBio = { "Sulcata": 0, "Radiata": 0, "Rusa": 0, "Pardalis": 0, "Carbonaria": 0 };
+        snapshot.forEach(doc => {
+            const d = doc.data();
+            histBio.push(d);
+            if(d.tipo === 'nacimiento') stockBio[d.especie] = (stockBio[d.especie] || 0) + parseInt(d.cant);
+        });
+        window._stockBio = stockBio;
+        recalcularStock();
+        renderBio();
+    });
+
+    function recalcularStock() {
+        const bio = window._stockBio || {};
+        const ventas = inventario; // contiene las restas de ventas
+        document.getElementById('st-sulcata').innerText  = Math.max(0, (bio["Sulcata"]  || 0) + (ventas["Sulcata"]  || 0));
+        document.getElementById('st-radiata').innerText  = Math.max(0, (bio["Radiata"]  || 0) + (ventas["Radiata"]  || 0));
+        const otras = ['Rusa','Pardalis','Carbonaria'].reduce((s,e) => s + Math.max(0,(bio[e]||0)+(ventas[e]||0)),0);
+        document.getElementById('st-otros').innerText = otras;
+    }
+
+    // ── GUARDAR PUESTA ──
+    window.guardarPuesta = async function() {
+        const h = document.getElementById('p-huevos').value;
+        const e = document.getElementById('p-especie').value;
+        const l = document.getElementById('p-loc').value || "No especificada";
+        setBotones(true);
+        try {
+            await addDoc(collection(db, "bio"), { tipo:'puesta', especie:e, cant:h, detalle:l, fecha:new Date().toLocaleDateString('es-ES'), timestamp: Date.now() });
+            finalizar('BIO', `${h} huevos de ${e} en ${l}`);
+        } catch(err) { alert("Error al guardar: " + err.message); setBotones(false); }
+    }
+
+    // ── GUARDAR NACIMIENTO ──
+    window.guardarNacimiento = async function() {
+        const c = document.getElementById('n-cant').value;
+        const e = document.getElementById('n-especie').value;
+        setBotones(true);
+        try {
+            await addDoc(collection(db, "bio"), { tipo:'nacimiento', especie:e, cant:c, detalle:'Eclosión', fecha:new Date().toLocaleDateString('es-ES'), timestamp: Date.now() });
+            finalizar('BIO', `${c} nuevas ${e} nacidas`);
+        } catch(err) { alert("Error al guardar: " + err.message); setBotones(false); }
+    }
+
+    // ── GUARDAR MOVIMIENTO (GASTO/INGRESO) ──
+    window.guardarMovimiento = async function(tipo) {
+        const pref = (tipo === 'gasto') ? 'g-' : 'i-';
+        const monto = parseFloat(document.getElementById(pref+'monto').value);
+        const socio = document.getElementById(pref+'socio').value;
+        if(!monto || monto <= 0) return alert("Introduce un importe válido");
+
+        let datos = { tipo, socio, monto, fecha: new Date().toLocaleDateString('es-ES'), timestamp: Date.now() };
+        if(tipo === 'ingreso') {
+            datos.especie  = document.getElementById('i-especie').value;
+            datos.cant     = parseInt(document.getElementById('i-cant').value);
+            datos.cliente  = document.getElementById('i-cliente').value;
+            datos.detalle  = `Venta ${datos.cant}x ${datos.especie} (${datos.cliente})`;
+        } else {
+            datos.detalle = document.getElementById('g-concepto').value || "Sin concepto";
+        }
+
+        setBotones(true);
+        try {
+            await addDoc(collection(db, "caja"), datos);
+            finalizar('DINERO', `${monto.toFixed(2)}€ registrados`);
+        } catch(err) { alert("Error al guardar: " + err.message); setBotones(false); }
+    }
+
+    // ── UI ──
+    function finalizar(tipo, msg) {
+        document.getElementById('exito-titulo').innerText = "REGISTRADO";
+        document.getElementById('exito-detalle').innerText = msg;
+        document.getElementById('link-caja').style.display = (tipo === 'DINERO') ? 'block' : 'none';
+        document.getElementById('link-bio').style.display  = (tipo === 'BIO')    ? 'block' : 'none';
+        window.irA('pantalla-exito');
+    }
+    window.finalizar = finalizar;
+
+    function actualizarUI() {
+        let apM = 0, apP = 0;
+        historico.forEach(h => {
+            if(h.tipo === 'gasto') { if(h.socio === 'Martin') apM += h.monto; else apP += h.monto; }
+            else { if(h.socio === 'Martin') apM -= h.monto; else apP -= h.monto; }
+        });
+        const diff = Math.abs(apM - apP) / 2;
+        const deudor = apM > apP ? 'Martín' : 'Patry';
+        const acreedor = apM > apP ? 'Patry' : 'Martín';
+        document.getElementById('balance-texto').innerText = diff.toFixed(2) + "€";
+        document.getElementById('balance-sub').innerText = diff > 0 ? `${deudor} debe a ${acreedor}` : 'Cuentas al día ✅';
+        renderCaja();
+    }
+
+    window.verTab = function(t) {
+        ['t-a','t-g','t-i'].forEach(id => document.getElementById(id).classList.remove('active'));
+        ['l-a','l-g','l-i'].forEach(id => document.getElementById(id).classList.remove('active'));
+        document.getElementById('t-'+t).classList.add('active');
+        document.getElementById('l-'+t).classList.add('active');
+    }
+
+    window.verTabBio = function(t) {
+        ['tb-a','tb-p','tb-n'].forEach(id => document.getElementById(id).classList.remove('bio-active'));
+        ['lb-a','lb-p','lb-n'].forEach(id => document.getElementById(id).classList.remove('active'));
+        document.getElementById('tb-'+t).classList.add('bio-active');
+        document.getElementById('lb-'+t).classList.add('active');
+    }
+
+    function renderCaja() {
+        const la = document.getElementById('l-a'), lg = document.getElementById('l-g'), li = document.getElementById('l-i');
+        la.innerHTML = lg.innerHTML = li.innerHTML = "";
+        if(historico.length === 0) { la.innerHTML = '<p class="msg-vacio">Sin movimientos aún</p>'; return; }
+        historico.slice().reverse().forEach(h => {
+            const esGasto = h.tipo === 'gasto';
+            const color = esGasto ? 'var(--peligro)' : 'var(--primario)';
+            const signo = esGasto ? '−' : '+';
+            const html = `<div class="item-hist ${esGasto ? 'item-gasto' : ''}" style="border-left-color:${color}">
+                <strong style="color:${color}">${signo} ${h.monto.toFixed(2)}€</strong> · ${h.detalle}<br>
+                <small style="color:#aaa">${h.socio} · ${h.fecha}</small>
+            </div>`;
+            la.innerHTML += html;
+            if(esGasto) lg.innerHTML += html; else li.innerHTML += html;
+        });
+    }
+
+    function renderBio() {
+        const lba = document.getElementById('lb-a'), lbp = document.getElementById('lb-p'), lbn = document.getElementById('lb-n');
+        lba.innerHTML = lbp.innerHTML = lbn.innerHTML = "";
+        if(histBio.length === 0) { lba.innerHTML = '<p class="msg-vacio">Sin registros biológicos aún</p>'; return; }
+        histBio.slice().reverse().forEach(b => {
+            const esPuesta = b.tipo === 'puesta';
+            const emoji = esPuesta ? '🥚' : '🐢';
+            const color = esPuesta ? 'var(--bio)' : 'var(--primario)';
+            const html = `<div class="item-hist item-bio" style="border-left-color:${color}">
+                <strong style="color:${color}">${emoji} ${b.tipo.toUpperCase()}</strong>: ${b.cant}x ${b.especie}<br>
+                <small style="color:#aaa">${b.fecha} · ${b.detalle}</small>
+            </div>`;
+            lba.innerHTML += html;
+            if(esPuesta) lbp.innerHTML += html; else lbn.innerHTML += html;
+        });
+    }
+</script>
+</body>
+</html>
