@@ -1108,8 +1108,10 @@
             await signInWithEmailAndPassword(auth, USUARIOS_EMAIL[usuarioSeleccionado], password);
             usuarioActual = { nombre: usuarioSeleccionado, rol: 'admin' };
             sessionStorage.setItem('onlyreptil_user', JSON.stringify(usuarioActual));
-            document.getElementById('login-password').value = '';
-            entrarApp();
+            // Recargamos la página: las consultas a Firestore de la app se lanzan nada más
+            // cargar, antes de que exista sesión — con la base de datos ahora restringida,
+            // esas consultas fallan si no se relanzan DESPUÉS de haber iniciado sesión.
+            location.reload();
         } catch (err) {
             errorEl.textContent = 'Email o contraseña incorrectos';
         }
