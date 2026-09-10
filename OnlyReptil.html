@@ -1493,7 +1493,7 @@
 
     function recalcularStock() {
         const nacimientos = window._stockBio  || {};  // total nacidos por especie
-        const puestas     = window._huevosBio || {};  // total huevos puestos
+        const puestas     = window._huevosBio || {};  // huevos pendientes YA calculados puesta a puesta (no restar de nuevo)
         const bajasMuerte = window._bajasMuerte || {}; // total fallecidos por especie
 
         // Unir nombres: lista configurada + cualquier especie con datos reales
@@ -1508,8 +1508,8 @@
                 nombre,
                 color:   getColorEspecie(nombre),
                 nombreCientifico: (espLista && espLista.nombreCientifico) || '',
-                // 🥚 Huevos pendientes de eclosionar = puestos - nacidos
-                huevos:  Math.max(0, (puestas[nombre] || 0) - (nacimientos[nombre] || 0)),
+                // 🥚 Huevos pendientes de eclosionar (ya viene calculado puesta a puesta, no se resta de nuevo aquí)
+                huevos:  puestas[nombre] || 0,
                 // 🐢 Disponibles = nacidos - vendidos - fallecidos
                 nacidos: Math.max(0, (nacimientos[nombre] || 0) + (inventario[nombre] || 0) - (bajasMuerte[nombre] || 0))
             };
