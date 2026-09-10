@@ -1487,6 +1487,23 @@
         const nombresConfig_set = new Set(nombresConfig);
         const nombres = [...nombresConfig, ...[...nombresConDatos].filter(n => !nombresConfig_set.has(n))];
 
+        // ── PANEL TEMPORAL DE DIAGNÓSTICO (quitar cuando ya no haga falta) ──
+        // Muestra los números en bruto de cada especie: nacidas totales, vendidas
+        // (según caja) y fallecidas, para ver dónde se pierde un dato sin adivinar.
+        if (usuarioActual && usuarioActual.rol === 'admin') {
+            let panel = document.getElementById('debug-stock-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'debug-stock-panel';
+                panel.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;z-index:9999;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:8px;border-radius:8px;border:2px solid #0f0;max-height:40vh;overflow:auto;';
+                document.body.appendChild(panel);
+            }
+            panel.innerHTML = '<b>🔧 DIAGNÓSTICO TEMPORAL — quitar luego</b><br>' + nombres.map(nombre =>
+                `${nombre}: nacidas=${nacimientos[nombre] || 0} · inventario(caja)=${inventario[nombre] || 0} · fallecidas=${bajasMuerte[nombre] || 0}`
+            ).join('<br>');
+        }
+        // ── FIN PANEL DIAGNÓSTICO ────────────────────────────────────────────
+
         window._stockData = nombres.map(nombre => {
             const espLista = especiesLista.find(e => e.nombre === nombre);
             return {
@@ -3896,6 +3913,12 @@
         'Carbonaria': { genero: 'Chelonoidis',  especie: 'carbonaria', nombreCompleto: 'Chelonoidis carbonaria',  apendice: 'II', anexo: 'B' },
         'Marginata':  { genero: 'Testudo',      especie: 'marginata',  nombreCompleto: 'Testudo marginata',       apendice: 'II', anexo: 'B' },
     };
+    // Requiere papeleo CITES cualquier especie de Apéndice I (hoy solo Radiata, pero
+    // si en el futuro se añade otra especie de Apéndice I, basta con marcarlo aquí arriba
+    // en MITECO_ESPECIES — no hay que tocar código en ningún otro sitio de la app).
+    function esApendiceI(especie) {
+        return !!(MITECO_ESPECIES[especie] && MITECO_ESPECIES[especie].apendice === 'I');
+    }
     const MITECO_CRIADOR = '243LA';
 
 
@@ -5204,7 +5227,7 @@
                 nacsPareja.forEach(nac => {
                     const chips = (nac.chipsAsignados && nac.chipsAsignados.length > 0) ? nac.chipsAsignados : ['—'];
                     const e = estadoExpediente(nac);
-                    const esRadiata = nac.especie === 'Radiata';
+                    const esRadiata = esApendiceI(nac.especie);
                     const nacDiv = document.createElement('div');
                     nacDiv.style.cssText = 'padding:12px 14px;background:var(--fondo);border-bottom:1px solid var(--borde);';
                     nacDiv.innerHTML = `
@@ -5356,7 +5379,7 @@
         // Devuelve un objeto con los pasos completados del expediente
         const tieneVet    = !!(nac.fechaMarcado || nac.vetFirmado);
         const tieneCSV    = !!(nac.csvExportado);
-        const tieneCITES  = nac.especie === 'Radiata' ? !!(nac.citesEnviado) : null; // null = no aplica
+        const tieneCITES  = esApendiceI(nac.especie) ? !!(nac.citesEnviado) : null; // null = no aplica
         const tieneDoc    = !!(nac.docVetUrl);
         return { tieneVet, tieneCSV, tieneCITES, tieneDoc };
     }
@@ -5366,7 +5389,7 @@
         if (!e.tieneVet) return true;
         if (!e.tieneDoc) return true;
         if (!e.tieneCSV) return true;
-        if (nac.especie === 'Radiata' && !e.tieneCITES) return true;
+        if (esApendiceI(nac.especie) && !e.tieneCITES) return true;
         return false;
     }
 
@@ -5429,7 +5452,7 @@
             grupo.nacs.forEach((nac, i) => {
                 const chips = (nac.chipsAsignados && nac.chipsAsignados.length > 0) ? nac.chipsAsignados : ['—'];
                 const e = estadoExpediente(nac);
-                const esRadiata = nac.especie === 'Radiata';
+                const esRadiata = esApendiceI(nac.especie);
 
                 const nacCard = document.createElement('div');
                 nacCard.style.cssText = `padding:12px 14px;background:var(--fondo);border-top:1px solid var(--borde);`;
@@ -5498,7 +5521,7 @@
         else alert('No se encontró el nacimiento');
     };
 
-    // ── SUBMÓDULO CITES (Radiata) ─────────────────────────────────
+    // ── SUBMÓDULO CITES (especies de Apéndice I — hoy solo Radiata) ─
 
     function renderCitesLista() {
         const lista = document.getElementById('cites-lista');
@@ -5507,7 +5530,7 @@
         lista.innerHTML = '';
 
         const radiatas = (histBio || [])
-            .filter(n => n.tipo === 'nacimiento' && n.especie === 'Radiata')
+            .filter(n => n.tipo === 'nacimiento' && esApendiceI(n.especie))
             .sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
 
         if(radiatas.length === 0) {
