@@ -899,6 +899,7 @@
     <div class="modal-box" style="border-top-color:var(--naranja);">
         <div class="modal-titulo" style="color:var(--naranja);">🩺 FORMULARIO VETERINARIO</div>
         <div style="font-size:0.72rem;color:var(--texto2);margin-bottom:12px;line-height:1.5;">Este documento se entrega al veterinario para que certifique el marcado de los animales. Imprímelo o muéstraselo en pantalla.</div>
+        <div id="vet-combinar" style="margin-bottom:10px;"></div>
         <div id="vet-contenido" style="background:var(--fondo);border-radius:8px;padding:14px;font-size:0.8rem;line-height:1.9;color:var(--texto);border:1px solid var(--borde);max-height:55vh;overflow-y:auto;"></div>
         <button class="btn-save" style="background:var(--naranja);color:#0a0a0a;margin-top:12px;" onclick="imprimirFormVet()">🖨️ IMPRIMIR / GUARDAR PDF</button>
         <button class="btn-cancelar" onclick="cerrarModalVet()">CERRAR</button>
@@ -1354,13 +1355,51 @@
     });
 
     onSnapshot(query(collection(db,"bio"),orderBy("timestamp","asc")), snap => {
-        histBio=[]; let sb={}, hb={};
-        snap.forEach(d=>{ const data={id:d.id,...d.data()}; histBio.push(data);
-            const c = parseInt(data.cant) || 0;
-            if(data.tipo==='nacimiento' && data.especie) sb[data.especie]=(sb[data.especie]||0)+c;
-            // Solo contar huevos de puestas NO cerradas (puestas cerradas con huevos perdidos no deben aparecer en el dashboard)
-            if(data.tipo==='puesta' && data.especie && !data.cerrada) hb[data.especie]=(hb[data.especie]||0)+c;
+        histBio=[];
+        const docs = [];
+        snap.forEach(d=>{ const data={id:d.id,...d.data()}; histBio.push(data); docs.push(data); });
+
+        // Total nacidos por especie (para el stock DISPONIBLE): cuenta TODOS los nacimientos,
+        // estén cerradas o no sus puestas de origen — una vez nacida, la cría sigue en stock.
+        let sb = {};
+        docs.forEach(data => {
+            if (data.tipo === 'nacimiento' && data.especie) {
+                const c = parseInt(data.cant) || 0;
+                sb[data.especie] = (sb[data.especie] || 0) + c;
+            }
         });
+
+        // Nacidos por puesta de origen, para poder calcular huevos PENDIENTES puesta a puesta
+        // (enlace real nacimiento→puesta vía idPuestaOrigen; idPuesta como texto es el fallback
+        // para nacimientos antiguos guardados antes de que existiera ese campo).
+        const nacidosPorPuestaId = {};
+        const nacidosPorIdPuestaTexto = {};
+        docs.forEach(data => {
+            if (data.tipo !== 'nacimiento') return;
+            const c = parseInt(data.cant) || 0;
+            if (data.idPuestaOrigen) {
+                nacidosPorPuestaId[data.idPuestaOrigen] = (nacidosPorPuestaId[data.idPuestaOrigen] || 0) + c;
+            } else if (data.idPuesta) {
+                nacidosPorIdPuestaTexto[data.idPuesta] = (nacidosPorIdPuestaTexto[data.idPuesta] || 0) + c;
+            }
+        });
+
+        // Huevos pendientes = para cada puesta ABIERTA, SUS PROPIOS huevos menos SUS PROPIOS nacidos.
+        // (Antes se restaban del total de huevos abiertos TODOS los nacimientos históricos, incluidos
+        // los de puestas ya cerradas de otras parejas — eso hacía que el contador de pendientes
+        // bajara de más y, en la práctica, también podía dejar crías recién nacidas "invisibles"
+        // en el resto de pantallas que dependen de este mismo cálculo.)
+        let hb = {};
+        docs.forEach(data => {
+            if (data.tipo !== 'puesta' || !data.especie || data.cerrada) return;
+            const totalHuevos = parseInt(data.cant) || 0;
+            const clavePuestaTexto = data.idPuesta || data.detalle;
+            const nacidosDeEstaPuesta = (nacidosPorPuestaId[data.id] || 0) +
+                (clavePuestaTexto ? (nacidosPorIdPuestaTexto[clavePuestaTexto] || 0) : 0);
+            const pendientes = Math.max(0, totalHuevos - nacidosDeEstaPuesta);
+            hb[data.especie] = (hb[data.especie] || 0) + pendientes;
+        });
+
         window._stockBio=sb; window._huevosBio=hb;
         if(window._inventario) inventario = window._inventario;
         recalcularStock(); renderBio(); actualizarEclosiones();
@@ -3214,15 +3253,114 @@
     }
 
     // ── FORMULARIO VETERINARIO ────────────────────────────────────
-    window.abrirModalVet = function(puestaId) {
-        const puesta = histBio.find(x => x.id === puestaId);
-        if (!puesta) return;
 
-        const animales = getAnimalesPorPareja(puesta.idPareja);
+    // Animales (chips) de una o varias puestas CONCRETAS (por su id de Firestore),
+    // usando el vínculo real nacimiento→puesta (idPuestaOrigen). Nunca mezcla puestas
+    // que no se hayan pedido explícitamente.
+    function getAnimalesPorPuestas(puestaIds) {
+        const ids = Array.isArray(puestaIds) ? puestaIds : [puestaIds];
+        const puestasObjs = ids.map(id => histBio.find(x => x.id === id)).filter(Boolean);
+        const nacimientos = histBio.filter(b => {
+            if (b.tipo !== 'nacimiento' || !b.chipsAsignados || !b.chipsAsignados.length) return false;
+            if (b.idPuestaOrigen) return ids.includes(b.idPuestaOrigen);
+            // Compatibilidad con nacimientos antiguos guardados sin idPuestaOrigen:
+            // se enlazan comparando el identificador de texto de la puesta (idPuesta/detalle).
+            return puestasObjs.some(p => b.idPuesta && (b.idPuesta === (p.idPuesta || p.detalle)));
+        });
+        const animales = [];
+        nacimientos.forEach(nac => {
+            nac.chipsAsignados.forEach(chip => {
+                animales.push({
+                    chip,
+                    especie:  nac.especie,
+                    fechaNac: nac.fecha,        // DD/MM/AAAA
+                    fechaNacIso: nac.timestamp ? new Date(nac.timestamp).toISOString().slice(0,10) : '',
+                    idPuesta: nac.idPuesta || '',
+                    idPuestaOrigen: nac.idPuestaOrigen || '',
+                    idPareja: nac.idPareja || '',
+                    idEspecimenMacho:  nac.idEspecimenMacho  || '',
+                    idEspecimenHembra: nac.idEspecimenHembra || '',
+                    nacId: nac.id,
+                    csvExportado: !!nac.csvExportado,
+                });
+            });
+        });
+        return animales;
+    }
+
+    // Nº de orden (1ª, 2ª, 3ª...) de una puesta dentro del historial de SU pareja,
+    // por fecha real de puesta (no por orden de introducción en la app).
+    function getOrdinalPuesta(puestaId) {
+        const puesta = histBio.find(x => x.id === puestaId && x.tipo === 'puesta');
+        if (!puesta) return null;
+        const aIso = f => f ? f.split('/').reverse().join('-') : '';
+        const puestasPareja = histBio
+            .filter(b => b.tipo === 'puesta' && b.idPareja === puesta.idPareja)
+            .slice()
+            .sort((a, b) => {
+                const fa = aIso(a.fecha), fb = aIso(b.fecha);
+                if (fa !== fb) return fa < fb ? -1 : 1;
+                return (a.timestamp || 0) - (b.timestamp || 0);
+            });
+        const idx = puestasPareja.findIndex(p => p.id === puestaId);
+        return idx === -1 ? null : idx + 1;
+    }
+
+    // Otras puestas de la MISMA pareja que todavía no tienen certificado veterinario
+    // (para poder combinarlas con la puesta actual en un solo documento).
+    function getPuestasCombinables(puestaPrincipalId) {
+        const principal = histBio.find(x => x.id === puestaPrincipalId);
+        if (!principal) return [];
+        return histBio.filter(b => {
+            if (b.tipo !== 'puesta' || b.idPareja !== principal.idPareja || b.id === puestaPrincipalId) return false;
+            return histBio.some(n => n.tipo === 'nacimiento' &&
+                (n.idPuestaOrigen ? n.idPuestaOrigen === b.id : n.idPuesta === (b.idPuesta || b.detalle)) &&
+                n.chipsAsignados && n.chipsAsignados.length > 0 &&
+                !n.docVetUrl);
+        });
+    }
+
+    window.toggleVetCombinar = function(puestaId, checked) {
+        if (!window._vetPuestaIds) window._vetPuestaIds = [];
+        if (checked) {
+            if (!window._vetPuestaIds.includes(puestaId)) window._vetPuestaIds.push(puestaId);
+        } else {
+            window._vetPuestaIds = window._vetPuestaIds.filter(id => id !== puestaId);
+        }
+        renderVetContenido();
+    }
+
+    function renderVetCombinarUI(puestaPrincipalId) {
+        const cont = document.getElementById('vet-combinar');
+        if (!cont) return;
+        const opciones = getPuestasCombinables(puestaPrincipalId);
+        if (opciones.length === 0) { cont.innerHTML = ''; return; }
+        cont.innerHTML = `<div style="font-size:0.68rem;letter-spacing:1px;color:var(--texto2);font-weight:700;margin-bottom:6px;">¿COMBINAR CON OTRA PUESTA DE ESTA PAREJA? (para ahorrar en el veterinario)</div>` +
+            opciones.map(p => `<label style="display:flex;align-items:center;gap:8px;background:var(--tarjeta2);padding:6px 10px;border-radius:8px;border:1px solid var(--borde);margin-bottom:6px;cursor:pointer;font-size:0.78rem;">
+                <input type="checkbox" onchange="toggleVetCombinar('${p.id}', this.checked)" style="width:15px;height:15px;accent-color:var(--naranja);flex-shrink:0;">
+                🥚 ${p.idPuesta || p.detalle} · ${p.fecha || '—'} · ${p.cant || '?'} huevos
+            </label>`).join('');
+    }
+
+    // Construye el contenido del certificado (una o varias puestas ya elegidas en window._vetPuestaIds)
+    function renderVetContenido() {
+        const puestaIds = window._vetPuestaIds || [];
+        const puestas = puestaIds.map(id => histBio.find(x => x.id === id)).filter(Boolean);
+        if (puestas.length === 0) return;
+        const principal = puestas[0];
+
+        const animales = getAnimalesPorPuestas(puestaIds);
         const hoy = new Date().toLocaleDateString('es-ES');
-        const especieMiteco = MITECO_ESPECIES[puesta.especie] || { genero: '', especie: puesta.especie, apendice: '', anexo: '' };
+        const especieMiteco = MITECO_ESPECIES[principal.especie] || { genero: '', especie: principal.especie, apendice: '', anexo: '' };
         const nombreCientifico = `${especieMiteco.genero} ${especieMiteco.especie.charAt(0) + especieMiteco.especie.slice(1).toLowerCase()}`;
         const nombreCientificoMay = `${especieMiteco.genero.toUpperCase()} ${especieMiteco.especie.toUpperCase()}`;
+
+        // Nombre de archivo sugerido: Cert_Veter_<PAREJA>_P<n> o _P<n1>y<n2> si se combinan 2 puestas
+        const ordinales = puestas.map(p => getOrdinalPuesta(p.id)).filter(n => n !== null).sort((a, b) => a - b);
+        const nombrePareja = principal.nombrePareja || 'PAREJA';
+        window._vetTituloDoc = ordinales.length > 0
+            ? `Cert_Veter_${nombrePareja}_P${ordinales.join('y')}`
+            : `Cert_Veter_${nombrePareja}`;
 
         let html = `
             <div style="text-align:center;margin-bottom:16px;border-bottom:2px solid #ccc;padding-bottom:12px;">
@@ -3241,16 +3379,15 @@
             <div style="margin-bottom:10px;">
                 <span style="color:var(--texto2);font-size:0.72rem;">SEGÚN DOCUMENTACIÓN APORTADA, LOS PADRES SON</span><br>
                 <div style="margin-top:4px;">
-                    · Macho <em>${nombreCientifico}</em>: <strong>${puesta.idEspecimenMacho || '—'}</strong><br>
-                    · Hembra <em>${nombreCientifico}</em>: <strong>${puesta.idEspecimenHembra || '—'}</strong>
+                    · Macho <em>${nombreCientifico}</em>: <strong>${principal.idEspecimenMacho || '—'}</strong><br>
+                    · Hembra <em>${nombreCientifico}</em>: <strong>${principal.idEspecimenHembra || '—'}</strong>
                 </div>
             </div>
 
             <div style="margin-bottom:10px;">
-                <span style="color:var(--texto2);font-size:0.72rem;">PUESTA DE ORIGEN</span><br>
-                Fecha puesta: <strong>${puesta.fecha || '—'}</strong> &nbsp;·&nbsp;
-                Nº huevos: <strong>${puesta.cant || '—'}</strong> &nbsp;·&nbsp;
-                Apéndice CITES: <strong>${especieMiteco.apendice}</strong> · Anexo CE: <strong>${especieMiteco.anexo}</strong>
+                <span style="color:var(--texto2);font-size:0.72rem;">${puestas.length > 1 ? 'PUESTAS DE ORIGEN' : 'PUESTA DE ORIGEN'}</span><br>
+                ${puestas.map((p, i) => `${puestas.length > 1 ? `<strong>Puesta ${ordinales[i] || i+1}:</strong> ` : ''}Fecha puesta: <strong>${p.fecha || '—'}</strong> &nbsp;·&nbsp; Nº huevos: <strong>${p.cant || '—'}</strong>`).join('<br>')}
+                &nbsp;·&nbsp; Apéndice CITES: <strong>${especieMiteco.apendice}</strong> · Anexo CE: <strong>${especieMiteco.anexo}</strong>
             </div>
 
             <div style="margin-bottom:14px;">
@@ -3259,8 +3396,8 @@
         if (animales.length === 0) {
             html += `<div style="color:var(--rojo);text-align:center;">Sin chips asignados aún</div>`;
         } else {
-            const fechaNac = animales[0].fechaNac;
-            html += `<div style="text-align:center;margin-bottom:8px;">Fecha de nacimiento: <strong>${fechaNac}</strong></div>`;
+            const fechasNac = [...new Set(animales.map(a => a.fechaNac).filter(Boolean))];
+            html += `<div style="text-align:center;margin-bottom:8px;">Fecha${fechasNac.length > 1 ? 's' : ''} de nacimiento: <strong>${fechasNac.join(' y ')}</strong></div>`;
             html += `<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">`;
             animales.forEach((a, i) => {
                 const chipFmt = a.chip.length === 15
@@ -3307,6 +3444,14 @@
             </div>`;
 
         document.getElementById('vet-contenido').innerHTML = html;
+    }
+
+    window.abrirModalVet = function(puestaId) {
+        const puesta = histBio.find(x => x.id === puestaId);
+        if (!puesta) return;
+        window._vetPuestaIds = [puestaId];
+        renderVetCombinarUI(puestaId);
+        renderVetContenido();
         document.getElementById('modal-vet').classList.add('active');
     }
 
@@ -3316,21 +3461,38 @@
 
     window.imprimirFormVet = function() {
         const contenido = document.getElementById('vet-contenido').innerHTML;
+        const titulo = (window._vetTituloDoc || 'Certificado Veterinario · OnlyReptil').replace(/[<>&"]/g, '');
         const ventana = window.open('', '_blank');
         ventana.document.write(`<!DOCTYPE html><html><head>
             <meta charset="UTF-8">
-            <title>Certificado Veterinario · OnlyReptil</title>
+            <title>${titulo}</title>
             <style>
-                body { font-family: Arial, sans-serif; padding: 30px; font-size: 13px; color: #000; line-height: 1.8; max-width: 700px; margin: 0 auto; }
+                @page { size: A4; margin: 14mm; }
+                body { font-family: Arial, sans-serif; padding: 20px; font-size: 13px; color: #000; line-height: 1.75; max-width: 700px; margin: 0 auto; }
                 strong { font-weight: bold; }
                 em { font-style: italic; }
                 div { margin-bottom: 2px; }
                 table { width: 100%; border-collapse: collapse; }
                 td { border: 1px solid #999; padding: 6px 8px; text-align: center; width: 33%; }
             </style>
-        </head><body>${contenido}</body></html>`);
+        </head><body><div id="print-root">${contenido}</div>
+        <script>
+            (function() {
+                var root = document.getElementById('print-root');
+                // Alto útil de una hoja A4 con margen de 14mm, en píxeles a 96dpi
+                var alturaUtil = (297 - 2 * 14) * 96 / 25.4;
+                var alturaContenido = root.scrollHeight;
+                if (alturaContenido > alturaUtil) {
+                    // Reduce el zoom lo justo para que quepa en una sola página (mínimo 55%,
+                    // para no dejar el texto ilegible si hubiera muchísimos chips)
+                    var escala = Math.max(0.55, alturaUtil / alturaContenido);
+                    document.body.style.zoom = escala;
+                }
+                window.print();
+            })();
+        <\/script>
+        </body></html>`);
         ventana.document.close();
-        ventana.print();
     }
     // ─────────────────────────────────────────────────────────────
 
@@ -3751,30 +3913,6 @@
     };
     const MITECO_CRIADOR = '243LA';
 
-    // Animal = cada chip asignado en un nacimiento de esta pareja
-    // Construimos la lista: un animal por chip, con datos del nacimiento origen
-    function getAnimalesPorPareja(idPareja) {
-        const nacimientos = histBio.filter(b =>
-            b.tipo === 'nacimiento' && b.idPareja === idPareja &&
-            b.chipsAsignados && b.chipsAsignados.length > 0
-        );
-        const animales = [];
-        nacimientos.forEach(nac => {
-            nac.chipsAsignados.forEach(chip => {
-                animales.push({
-                    chip,
-                    especie:  nac.especie,
-                    fechaNac: nac.fecha,        // DD/MM/AAAA
-                    fechaNacIso: nac.timestamp ? new Date(nac.timestamp).toISOString().slice(0,10) : '',
-                    idPuesta: nac.idPuesta || '',
-                    idPareja: nac.idPareja || '',
-                    idEspecimenMacho:  nac.idEspecimenMacho  || '',
-                    idEspecimenHembra: nac.idEspecimenHembra || '',
-                });
-            });
-        });
-        return animales;
-    }
 
     window.abrirModalCSV = function(puestaId) {
         const puesta = histBio.find(x => x.id === puestaId);
@@ -3790,29 +3928,31 @@
         poblarSelectFecha('csv-fecha');
         setFechaHoy('csv-fecha');
 
-        // Animales de esta pareja con chip
-        const animales = getAnimalesPorPareja(puesta.idPareja);
+        // Animales de ESTA puesta concreta (no de toda la historia de la pareja — ver auditoría 10/09/2026)
+        const animales = getAnimalesPorPuestas(puestaId);
 
         const lista = document.getElementById('csv-animales-lista');
         const warning = document.getElementById('csv-warning');
 
         if (animales.length === 0) {
-            lista.innerHTML = '<div style="font-size:0.8rem;color:var(--texto2);">Sin animales chipados en esta pareja. Registra un nacimiento con chips primero.</div>';
+            lista.innerHTML = '<div style="font-size:0.8rem;color:var(--texto2);">Sin animales chipados en esta puesta. Registra un nacimiento con chips primero.</div>';
             warning.style.display = 'none';
         } else {
+            const hayYaExportados = animales.some(a => a.csvExportado);
             lista.innerHTML = animales.map((a, i) => {
                 const chipFmt = a.chip.length === 15
                     ? a.chip.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
                     : a.chip;
-                return `<label style="display:flex;align-items:center;gap:10px;background:var(--tarjeta2);padding:8px 10px;border-radius:8px;border:1px solid var(--borde);cursor:pointer;">
-                    <input type="checkbox" id="csv-anim-${i}" data-idx="${i}" checked style="width:16px;height:16px;accent-color:var(--verde);">
+                return `<label style="display:flex;align-items:center;gap:10px;background:var(--tarjeta2);padding:8px 10px;border-radius:8px;border:1px solid var(--borde);cursor:pointer;${a.csvExportado ? 'opacity:0.55;' : ''}">
+                    <input type="checkbox" id="csv-anim-${i}" data-idx="${i}" ${a.csvExportado ? '' : 'checked'} style="width:16px;height:16px;accent-color:var(--verde);">
                     <div>
-                        <div style="font-size:0.82rem;font-weight:700;color:var(--texto);">💉 ${chipFmt}</div>
+                        <div style="font-size:0.82rem;font-weight:700;color:var(--texto);">💉 ${chipFmt}${a.csvExportado ? ' <span style="font-size:0.68rem;font-weight:400;color:var(--naranja);">· YA EXPORTADO</span>' : ''}</div>
                         <div style="font-size:0.72rem;color:var(--texto2);">${a.especie} · Nac: ${a.fechaNac}</div>
                     </div>
                 </label>`;
             }).join('');
-            warning.style.display = 'none';
+            warning.style.display = hayYaExportados ? 'block' : 'none';
+            warning.textContent = '⚠️ Algunos chips de esta puesta ya se exportaron antes a MITECO — vienen desmarcados para no reportarlos dos veces. Márcalos tú solo si de verdad quieres reenviarlos.';
         }
 
         // Guardar animales en memoria para exportar
@@ -3824,7 +3964,7 @@
         document.getElementById('modal-csv').classList.remove('active');
     }
 
-    window.exportarCSV = function() {
+    window.exportarCSV = async function() {
         const animales = window._csvAnimales || [];
         if (!animales.length) return alert('No hay animales con chip para exportar.');
 
@@ -3916,6 +4056,22 @@
         a.download = nombre;
         a.click();
         URL.revokeObjectURL(url);
+
+        // Marcar como "CSV exportado" los nacimientos cuyos chips se han incluido POR COMPLETO
+        // en este envío (si solo se ha exportado una parte, se deja pendiente para no dar por
+        // hecho que ya se ha comunicado todo a MITECO).
+        try {
+            const nacIds = [...new Set(seleccionados.map(a => a.nacId).filter(Boolean))];
+            for (const nacId of nacIds) {
+                const totalDeEseNac = animales.filter(a => a.nacId === nacId).length;
+                const incluidosDeEseNac = seleccionados.filter(a => a.nacId === nacId).length;
+                if (incluidosDeEseNac >= totalDeEseNac) {
+                    await updateDoc(doc(db, 'bio', nacId), { csvExportado: true, fechaCSVExportado: fechaMarcado });
+                }
+            }
+            registrarAuditoria('nuevo', 'miteco', `CSV MITECO exportado: ${seleccionados.length} animal(es) · ${puesta ? (puesta.idPuesta || puesta.detalle) : ''}`);
+        } catch(e) { console.warn('No se pudo marcar el nacimiento como exportado en MITECO:', e); }
+
         cerrarModalCSV();
     }
     // ─────────────────────────────────────────────────────────────
