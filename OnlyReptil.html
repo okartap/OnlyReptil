@@ -1500,7 +1500,15 @@
             }
             panel.innerHTML = '<b>🔧 DIAGNÓSTICO TEMPORAL — quitar luego</b><br>' + nombres.map(nombre =>
                 `${nombre}: nacidas=${nacimientos[nombre] || 0} · inventario(caja)=${inventario[nombre] || 0} · fallecidas=${bajasMuerte[nombre] || 0}`
-            ).join('<br>');
+            ).join('<br>')
+            + '<br><br><b>📋 Detalle ingresos "Sulcata" en caja (los que restan del inventario):</b><br>'
+            + (() => {
+                const entradas = (historico || []).filter(h => h.tipo === 'ingreso' && h.especie === 'Sulcata');
+                if (entradas.length === 0) return '(ninguno)';
+                return entradas.map(h =>
+                    `${h.fecha || '?'} · cant=${h.cant} · ${h.cliente || '—'} · ${h.detalle || ''} · ${fmt(h.monto)}`
+                ).join('<br>') + `<br><b>TOTAL entradas: ${entradas.length} · suma cant: ${entradas.reduce((s,h)=>s+(parseInt(h.cant)||0),0)}</b>`;
+            })();
         }
         // ── FIN PANEL DIAGNÓSTICO ────────────────────────────────────────────
 
