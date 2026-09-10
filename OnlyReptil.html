@@ -231,26 +231,10 @@
             <button class="login-user-btn" id="login-btn-patry" onclick="seleccionarUsuario('Patry')">PATRICIO</button>
             <button class="login-user-btn" id="login-btn-martin" onclick="seleccionarUsuario('Martin')">MARTÍN</button>
         </div>
-        <div class="login-pin-label">INTRODUCE TU PIN</div>
-        <div class="login-pin-dots">
-            <div class="pin-dot" id="dot-0"></div>
-            <div class="pin-dot" id="dot-1"></div>
-            <div class="pin-dot" id="dot-2"></div>
-            <div class="pin-dot" id="dot-3"></div>
-        </div>
-        <div class="login-teclado">
-            <button class="pin-key" onclick="pinPulsar('1')">1</button>
-            <button class="pin-key" onclick="pinPulsar('2')">2</button>
-            <button class="pin-key" onclick="pinPulsar('3')">3</button>
-            <button class="pin-key" onclick="pinPulsar('4')">4</button>
-            <button class="pin-key" onclick="pinPulsar('5')">5</button>
-            <button class="pin-key" onclick="pinPulsar('6')">6</button>
-            <button class="pin-key" onclick="pinPulsar('7')">7</button>
-            <button class="pin-key" onclick="pinPulsar('8')">8</button>
-            <button class="pin-key" onclick="pinPulsar('9')">9</button>
-            <button class="pin-key borrar" onclick="pinBorrar()">⌫</button>
-            <button class="pin-key" onclick="pinPulsar('0')">0</button>
-            <button class="pin-key" style="opacity:0;pointer-events:none;"></button>
+        <div id="login-auth-form" style="display:none;width:100%;max-width:280px;margin:10px auto 0;">
+            <input type="email" id="login-email" readonly style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--borde);background:transparent;color:var(--texto2);margin-bottom:8px;text-align:center;font-family:Rajdhani,sans-serif;">
+            <input type="password" id="login-password" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--borde);background:transparent;color:var(--texto);margin-bottom:10px;text-align:center;font-family:Rajdhani,sans-serif;" onkeydown="if(event.key==='Enter')iniciarSesion()">
+            <button class="btn-save" style="width:100%;" onclick="iniciarSesion()">ENTRAR</button>
         </div>
         <div class="login-error" id="login-error"></div>
     </div>
@@ -1093,52 +1077,41 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>
-    var USUARIOS = {
-        'Patry':  { pin: '0403', rol: 'admin' },
-        'Martin': { pin: '2181', rol: 'admin' }
+    // Login real de Firebase (email+contraseña) para los dos usuarios. Ya no hay PIN.
+    var USUARIOS_EMAIL = {
+        'Patry':  'okartap@gmail.com',
+        'Martin': 'martini923@hotmail.com'
     };
     var usuarioActual = null;
-    var pinIntroducido = '';
     var usuarioSeleccionado = null;
 
     function seleccionarUsuario(nombre) {
         usuarioSeleccionado = nombre;
-        pinIntroducido = '';
-        actualizarDots();
         document.getElementById('login-error').textContent = '';
         document.getElementById('login-btn-patry').classList.toggle('selected', nombre === 'Patry');
         document.getElementById('login-btn-martin').classList.toggle('selected', nombre === 'Martin');
+        document.getElementById('login-auth-form').style.display = 'block';
+        document.getElementById('login-email').value = USUARIOS_EMAIL[nombre];
+        document.getElementById('login-password').value = '';
+        setTimeout(() => document.getElementById('login-password').focus(), 50);
     }
 
-    function pinPulsar(digito) {
-        if (!usuarioSeleccionado) { document.getElementById('login-error').textContent = 'Selecciona un usuario primero'; return; }
-        if (pinIntroducido.length >= 4) return;
-        pinIntroducido += digito;
-        actualizarDots();
-        if (pinIntroducido.length === 4) setTimeout(validarPin, 200);
-    }
-
-    function pinBorrar() {
-        pinIntroducido = pinIntroducido.slice(0, -1);
-        actualizarDots();
-        document.getElementById('login-error').textContent = '';
-    }
-
-    function actualizarDots() {
-        for (var i = 0; i < 4; i++)
-            document.getElementById('dot-' + i).classList.toggle('filled', i < pinIntroducido.length);
-    }
-
-    function validarPin() {
-        var user = USUARIOS[usuarioSeleccionado];
-        if (user && pinIntroducido === user.pin) {
-            usuarioActual = { nombre: usuarioSeleccionado, rol: user.rol };
+    async function iniciarSesion() {
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+        errorEl.textContent = '';
+        if (!usuarioSeleccionado) { errorEl.textContent = 'Selecciona un usuario primero'; return; }
+        if (!password) { errorEl.textContent = 'Introduce tu contraseña'; return; }
+        try {
+            const auth = window.__firebaseAuth;
+            const { signInWithEmailAndPassword } = window.__firebaseAuthFns;
+            await signInWithEmailAndPassword(auth, USUARIOS_EMAIL[usuarioSeleccionado], password);
+            usuarioActual = { nombre: usuarioSeleccionado, rol: 'admin' };
             sessionStorage.setItem('onlyreptil_user', JSON.stringify(usuarioActual));
+            document.getElementById('login-password').value = '';
             entrarApp();
-        } else {
-            document.getElementById('login-error').textContent = 'PIN incorrecto';
-            pinIntroducido = '';
-            actualizarDots();
+        } catch (err) {
+            errorEl.textContent = 'Email o contraseña incorrectos';
         }
     }
 
@@ -1162,7 +1135,10 @@
 
     function cerrarSesion() {
         if (!confirm('¿Cerrar sesión?')) return;
-        usuarioActual = null; usuarioSeleccionado = null; pinIntroducido = '';
+        if (window.__firebaseAuth && window.__firebaseAuth.currentUser && window.__firebaseAuthFns) {
+            window.__firebaseAuthFns.signOut(window.__firebaseAuth).catch(() => {});
+        }
+        usuarioActual = null; usuarioSeleccionado = null;
         sessionStorage.removeItem('onlyreptil_user');
         document.getElementById('pantalla-login').style.display = 'flex';
         document.getElementById('app-header').style.display = 'none';
@@ -1170,7 +1146,8 @@
         document.getElementById('app-nav').style.display = 'none';
         document.getElementById('login-btn-patry').classList.remove('selected');
         document.getElementById('login-btn-martin').classList.remove('selected');
-        actualizarDots();
+        document.getElementById('login-auth-form').style.display = 'none';
+        document.getElementById('login-password').value = '';
         document.getElementById('login-error').textContent = '';
     }
 
@@ -1190,6 +1167,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, setDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 
     const firebaseConfig = {
@@ -1204,6 +1182,11 @@
     const app     = initializeApp(firebaseConfig);
     const db      = getFirestore(app);
     const storage = getStorage(app);
+    // Login real de Patry (Firebase Authentication). Se expone en window porque
+    // el script del PIN (más arriba) no es un módulo y no puede usar "import".
+    const authApp = getAuth(app);
+    window.__firebaseAuth = authApp;
+    window.__firebaseAuthFns = { signInWithEmailAndPassword, signOut };
     let historico = [], histBio = [], clientes = [];
     let inventario = { Sulcata:0, Radiata:0, Rusa:0, Pardalis:0, Carbonaria:0 };
     const SECCIONES = ['pantalla-inicio','form-gasto','form-ingreso','form-nacimiento','form-puesta','pantalla-caja','pantalla-exito','pantalla-pyn','pantalla-clientes','pantalla-especies','pantalla-electricidad','pantalla-chips','pantalla-parentales','pantalla-auditoria','pantalla-miteco','pantalla-cesion'];
