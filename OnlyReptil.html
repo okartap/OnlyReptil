@@ -1343,6 +1343,16 @@
         actualizarUI(); setEstado('conectado','🟢 CONECTADO · TIEMPO REAL'); setBotones(false);
     }, err=>setEstado('error','🔴 ERROR · '+err.message));
 
+    onSnapshot(collection(db, 'bajas'), snap => {
+        const bm = {};
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.motivo === 'muerte' && data.especie) bm[data.especie] = (bm[data.especie] || 0) + 1;
+        });
+        window._bajasMuerte = bm;
+        if (window._stockBio) recalcularStock();
+    });
+
     onSnapshot(query(collection(db,"bio"),orderBy("timestamp","asc")), snap => {
         histBio=[]; let sb={}, hb={};
         snap.forEach(d=>{ const data={id:d.id,...d.data()}; histBio.push(data);
@@ -1369,7 +1379,6 @@
     // Lista en memoria, se actualiza con onSnapshot
     let especiesLista = [...ESPECIES_DEFAULT];
 
-    function getEspecies() { return especiesLista; }
     function getColorEspecie(nombre) {
         const esp = especiesLista.find(e => e.nombre === nombre);
         return esp ? esp.color : '#4caf50';
@@ -1446,6 +1455,7 @@
     function recalcularStock() {
         const nacimientos = window._stockBio  || {};  // total nacidos por especie
         const puestas     = window._huevosBio || {};  // total huevos puestos
+        const bajasMuerte = window._bajasMuerte || {}; // total fallecidos por especie
 
         // Unir nombres: lista configurada + cualquier especie con datos reales
         const nombresConfig = getNombresEspecies();
@@ -1461,8 +1471,8 @@
                 nombreCientifico: (espLista && espLista.nombreCientifico) || '',
                 // 🥚 Huevos pendientes de eclosionar = puestos - nacidos
                 huevos:  Math.max(0, (puestas[nombre] || 0) - (nacimientos[nombre] || 0)),
-                // 🐢 Disponibles = nacidos - vendidos
-                nacidos: Math.max(0, (nacimientos[nombre] || 0) + (inventario[nombre] || 0))
+                // 🐢 Disponibles = nacidos - vendidos - fallecidos
+                nacidos: Math.max(0, (nacimientos[nombre] || 0) + (inventario[nombre] || 0) - (bajasMuerte[nombre] || 0))
             };
         });
         renderStockBar();
@@ -1519,8 +1529,6 @@
             </div>`;
         }).join('') || '<p class="msg-vacio">Sin datos aún</p>';
     }
-
-    function cargarParejasPorEspecie() { cargarTodasParejas(); } // compatibilidad
 
     function cargarTodasParejas() {
         const selPareja = document.getElementById('p-pareja');
@@ -1817,28 +1825,6 @@
         actualizarRepartoSocios(total);
     }
 
-    function actualizarTotalValoracion() {
-        const stockData = window._stockData || [];
-        let total = 0;
-        stockData.forEach(e => {
-            const precio = parseFloat(getPreciosEspecie()[e.nombre] || 0);
-            total += e.nacidos * precio;
-        });
-        // Actualizar detalle
-        const detalleRows = document.querySelectorAll('#valoracion-detalle div');
-        stockData.forEach((e, i) => {
-            const precio = parseFloat(getPreciosEspecie()[e.nombre] || 0);
-            const valor = e.nacidos * precio;
-            if (detalleRows[i]) {
-                const spans = detalleRows[i].querySelectorAll('span');
-                if (spans[1]) spans[1].textContent = `${e.nacidos} cría${e.nacidos!==1?'s':''} × ${precio.toFixed(0)}€`;
-                if (spans[2]) spans[2].textContent = fmtVal(valor);
-            }
-        });
-        const totalEl = document.getElementById('valoracion-total');
-        if (totalEl) totalEl.textContent = fmtVal(total);
-    }
-
     window.editarNombreCientifico = async function(nombre) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede editar el nombre científico.');
         const esp = especiesLista.find(e => e.nombre === nombre);
@@ -2005,13 +1991,10 @@
                 h.tipo === 'ingreso' &&
                 enRango(h.fechaIso || h.fecha, desde, hasta)
             );
-            // Agrupar por cliente (campo detalle)
+            // Agrupar por cliente real (campo cliente)
             const porCliente = {};
             ventas.forEach(v => {
-                const key = v.detalle || 'Sin detalle';
-                // Intentar extraer nombre cliente del detalle
-                const cliente = v.especie ? `${v.especie}` : key;
-                const clave = v.detalle || 'Sin detalle';
+                const clave = v.cliente || 'Sin cliente';
                 if (!porCliente[clave]) porCliente[clave] = { total: 0, movs: [] };
                 porCliente[clave].total += v.monto || 0;
                 porCliente[clave].movs.push(v);
@@ -2164,7 +2147,7 @@
         document.getElementById('saldo-importe').value = b.diff.toFixed(2);
         document.getElementById('saldo-preview').style.display = 'none';
         document.getElementById('modal-saldo').classList.add('active');
-        document.getElementById('saldo-importe').addEventListener('input', previsualizarSaldo);
+        document.getElementById('saldo-importe').oninput = previsualizarSaldo;
         previsualizarSaldo();
     }
 
@@ -2191,6 +2174,7 @@
         if (!importe || importe <= 0) return alert('Introduce un importe válido');
         if (importe > b.diff + 0.01) return alert(`El importe no puede superar la deuda actual (${fmt(b.diff)})`);
         const hoy = new Date().toLocaleDateString('es-ES');
+        const hoyIso = new Date().toISOString().slice(0,10);
         const ts  = Date.now();
         const concepto = `Saldo entre socios`;
         try {
@@ -2204,7 +2188,7 @@
                 cant: 0,
                 cliente: '',
                 fecha: hoy,
-                fechaIso: '',
+                fechaIso: hoyIso,
                 timestamp: ts
             });
             // Apunte 2: Ingreso del acreedor (1ms después para mantener orden)
@@ -2217,7 +2201,7 @@
                 cant: 0,
                 cliente: '',
                 fecha: hoy,
-                fechaIso: '',
+                fechaIso: hoyIso,
                 timestamp: ts + 1
             });
             cerrarModalSaldo();
@@ -2233,8 +2217,6 @@
         document.getElementById('l-'+t).classList.add('active');
         if (t === 'r') renderInformes();
     }
-    window.verTabBio=function(t){} // mantenida por compatibilidad, ya no hace nada
-
     function renderCaja(){ const la=document.getElementById('l-a'),lg=document.getElementById('l-g'),li=document.getElementById('l-i'); if(!la) return; la.innerHTML=lg.innerHTML=li.innerHTML=""; if(historico.length===0){la.innerHTML='<p class="msg-vacio">Sin movimientos aún</p>';return;} historico.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(h=>{ const fechaIso=h.fechaIso||''; const esGasto=h.tipo==='gasto',color=esGasto?'var(--rojo)':'var(--verde)',signo=esGasto?'−':'+'; const html=`<div class="item-hist ${esGasto?'item-gasto':''}" style="border-left-color:${color}"><div class="item-monto" style="color:${color}">${signo} ${fmt(h.monto)}</div><div class="item-detalle">${h.detalle}</div><div class="item-meta">${h.socio} · ${h.fecha}</div><div class="item-acciones"><button class="btn-item btn-editar" onclick="abrirEditar('${h.id}','${h.detalle.replace(/'/g,"\\'")}',${h.monto},'${h.socio}','${fechaIso}')">✏️ EDITAR</button><button class="btn-item btn-borrar" onclick="eliminarRegistro('${h.id}')">🗑️ ELIMINAR</button></div></div>`; la.innerHTML+=html; if(esGasto) lg.innerHTML+=html; else li.innerHTML+=html; }); }
 
     window._pynFiltro = 'pendientes';
@@ -3665,7 +3647,7 @@
         document.getElementById('modal-baja').classList.remove('active');
     }
 
-    window.confirmarBaja = function() {
+    window.confirmarBaja = async function() {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede registrar bajas.');
         const chip    = document.getElementById('baja-chip').value;
         const especie = document.getElementById('baja-especie').value;
@@ -3675,8 +3657,8 @@
 
         // Fecha baja
         const fechaBajaIso = getFechaIso('baja-fecha');
-        const [yb, mb, db] = fechaBajaIso.split('-');
-        const fechaBaja = `${db}/${mb}/${yb}`;
+        const [yb, mb, diaBaja] = fechaBajaIso.split('-');
+        const fechaBaja = `${diaBaja}/${mb}/${yb}`;
 
         const m = MITECO_ESPECIES[especie] || { genero: especie.toUpperCase(), especie: especie.toUpperCase(), apendice: 'II', anexo: 'B' };
         const chipFmt = chip.length === 15
@@ -3700,6 +3682,25 @@
 
         const compradorNombre = document.getElementById('baja-comprador-nombre').value || '';
         const compradorDni    = document.getElementById('baja-comprador-dni').value || '';
+
+        // Registrar la baja en Firebase para que el stock disponible se recalcule.
+        // Las bajas por venta/cesión NO se guardan aquí porque ya se descuentan a través
+        // del ingreso de caja (para no restar el mismo ejemplar dos veces).
+        if (motivo !== 'venta') {
+            document.getElementById('baja-btn-confirmar').disabled = true;
+            try {
+                await addDoc(collection(db, 'bajas'), {
+                    chip, especie, motivo, motivoTexto,
+                    fecha: fechaBaja, fechaIso: fechaBajaIso,
+                    timestamp: isoATimestamp(fechaBajaIso),
+                    registradoPor: usuarioActual.nombre
+                });
+            } catch (err) {
+                alert('Error al guardar la baja: ' + err.message);
+                document.getElementById('baja-btn-confirmar').disabled = false;
+                return;
+            }
+        }
 
         const fila = [
             MITECO_CRIADOR, '', m.genero, m.especie, '',
@@ -5134,16 +5135,6 @@
                 if (!texto && texto !== 0) return;
                 page.drawText(String(texto), { x, y, size, font: bold ? fontB : font, color: rgb(0,0,0) });
             }
-            // Centra texto en una celda entre xIzq y xDer
-            function txtC(xIzq, xDer, y, texto, bold=false, size=8) {
-                const str = String(texto || '');
-                if (!str) return;
-                const f = bold ? fontB : font;
-                const w = f.widthOfTextAtSize(str, size);
-                const x = xIzq + Math.max(0, (xDer - xIzq - w) / 2);
-                page.drawText(str, { x, y, size, font: f, color: rgb(0,0,0) });
-            }
-
             // ── CABECERA: nombre, 243LA (plantilla oficial en blanco) ──
             txt(100, H - 141.8 - 10, 'MARTIN MORENO GONZALEZ', true,  10);
             txt(198, H - 154.4 - 10, '243LA',                  true,  10);
