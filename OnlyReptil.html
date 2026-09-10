@@ -335,9 +335,12 @@
                 <option value="Otros">📋 Otros</option>
                 <option value="Electricidad">⚡ Electricidad</option>
                 <option value="Veterinario">🦺 Veterinario</option>
+                <option value="Compra de animales">🐢 Compra de animales</option>
             </select>
         </div>
         <div class="form-group" id="grupo-gasto-otros"><label>Detalle</label><input type="text" id="g-concepto" placeholder="Ej: Pienso, terrario..."></div>
+        <div class="form-group" id="grupo-gasto-compra" style="display:none;"><label>Especie comprada</label><select id="g-especie"></select></div>
+        <div class="form-group" id="grupo-gasto-compra-cant" style="display:none;"><label>Cantidad comprada</label><input type="number" id="g-cant" value="1" min="1"></div>
         <div class="form-group"><label>Importe (€)</label><input type="number" id="g-monto" placeholder="0.00" step="0.01"></div>
         <div class="form-group"><label>Fecha</label><div class="fecha-row"><select class="fecha-sel" id="g-fecha-d"></select><select class="fecha-sel" id="g-fecha-m"></select><select class="fecha-sel" id="g-fecha-y"></select></div></div>
         <div class="form-group"><label>Socio</label><select id="g-socio"><option value="Martin">Martín</option><option value="Patry">Patry</option></select></div>
@@ -1107,7 +1110,7 @@
             const { signInWithEmailAndPassword } = window.__firebaseAuthFns;
             await signInWithEmailAndPassword(auth, USUARIOS_EMAIL[usuarioSeleccionado], password);
             usuarioActual = { nombre: usuarioSeleccionado, rol: 'admin' };
-            sessionStorage.setItem('onlyreptil_user', JSON.stringify(usuarioActual));
+            localStorage.setItem('onlyreptil_user', JSON.stringify(usuarioActual));
             // Recargamos la página: las consultas a Firestore de la app se lanzan nada más
             // cargar, antes de que exista sesión — con la base de datos ahora restringida,
             // esas consultas fallan si no se relanzan DESPUÉS de haber iniciado sesión.
@@ -1141,7 +1144,8 @@
             window.__firebaseAuthFns.signOut(window.__firebaseAuth).catch(() => {});
         }
         usuarioActual = null; usuarioSeleccionado = null;
-        sessionStorage.removeItem('onlyreptil_user');
+        localStorage.removeItem('onlyreptil_user');
+        sessionStorage.removeItem('onlyreptil_auth_resync');
         document.getElementById('pantalla-login').style.display = 'flex';
         document.getElementById('app-header').style.display = 'none';
         document.getElementById('app-container').style.display = 'none';
@@ -1153,14 +1157,15 @@
         document.getElementById('login-error').textContent = '';
     }
 
-    // Recuperar sesión al recargar
+    // Recuperar sesión al reabrir la app (almacén permanente: no se borra al cerrar el navegador,
+    // a diferencia de sessionStorage que se usaba antes y obligaba a iniciar sesión cada vez)
     (function() {
-        var saved = sessionStorage.getItem('onlyreptil_user');
+        var saved = localStorage.getItem('onlyreptil_user');
         if (saved) {
             try {
                 usuarioActual = JSON.parse(saved);
                 document.addEventListener('DOMContentLoaded', entrarApp);
-            } catch(e) { sessionStorage.removeItem('onlyreptil_user'); }
+            } catch(e) { localStorage.removeItem('onlyreptil_user'); }
         }
     })();
 </script>
@@ -1169,7 +1174,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, setDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 
     const firebaseConfig = {
@@ -1189,6 +1194,19 @@
     const authApp = getAuth(app);
     window.__firebaseAuth = authApp;
     window.__firebaseAuthFns = { signInWithEmailAndPassword, signOut };
+    // Red de seguridad: si el navegador tenía guardada una sesión (para no pedir la
+    // contraseña cada vez) pero Firebase, al confirmar de verdad el estado de acceso,
+    // dice que no hay nadie conectado (sesión caducada, cuenta deshabilitada, etc.),
+    // forzamos una recarga limpia hacia la pantalla de login en vez de dejar la app
+    // a medias con datos que no se pueden leer. Solo se hace una vez por visita.
+    onAuthStateChanged(authApp, (user) => {
+        const habiaSesionGuardada = !!localStorage.getItem('onlyreptil_user');
+        if (habiaSesionGuardada && !user && !sessionStorage.getItem('onlyreptil_auth_resync')) {
+            sessionStorage.setItem('onlyreptil_auth_resync', '1');
+            localStorage.removeItem('onlyreptil_user');
+            location.reload();
+        }
+    });
     let historico = [], histBio = [], clientes = [];
     let inventario = { Sulcata:0, Radiata:0, Rusa:0, Pardalis:0, Carbonaria:0 };
     const SECCIONES = ['pantalla-inicio','form-gasto','form-ingreso','form-nacimiento','form-puesta','pantalla-caja','pantalla-exito','pantalla-pyn','pantalla-clientes','pantalla-especies','pantalla-electricidad','pantalla-chips','pantalla-parentales','pantalla-auditoria','pantalla-miteco','pantalla-cesion'];
@@ -1210,7 +1228,7 @@
         const t = document.getElementById(id);
         if(t) t.style.display = id === 'pantalla-inicio' ? 'block' : 'flex';
         if(id === 'form-ingreso') { cargarSelectClientes(); setFechaHoy('i-fecha'); }
-        if(id === 'form-gasto') { setFechaHoy('g-fecha'); const cat=document.getElementById('g-categoria'); if(cat) cat.value='Otros'; const otros=document.getElementById('grupo-gasto-otros'); if(otros) otros.style.display='block'; const conc=document.getElementById('g-concepto'); if(conc) conc.value=''; }
+        if(id === 'form-gasto') { setFechaHoy('g-fecha'); const cat=document.getElementById('g-categoria'); if(cat) cat.value='Otros'; const otros=document.getElementById('grupo-gasto-otros'); if(otros) otros.style.display='block'; const conc=document.getElementById('g-concepto'); if(conc) conc.value=''; const gc=document.getElementById('grupo-gasto-compra'); if(gc) gc.style.display='none'; const gcc=document.getElementById('grupo-gasto-compra-cant'); if(gcc) gcc.style.display='none'; }
         if(id === 'pantalla-electricidad') { setFechaHoy('elec-fecha'); renderUltimaLectura(); resetFormLuz(); }
         if(id === 'pantalla-chips') { renderChips(); }
         if(id === 'pantalla-parentales') { sincronizarSelectParentalEspecie(); sincronizarFiltroEspecie(); renderParentales(); const fab=document.getElementById('btn-fab-parental'); if(fab) fab.style.display=(usuarioActual&&usuarioActual.rol==='admin')?'flex':'none'; }
@@ -1319,11 +1337,14 @@
     }
     window.toggleOtrosIngreso=function(){ const v=document.getElementById('i-especie').value; document.getElementById('grupo-otros-concepto').style.display=v==='Otros'?'block':'none'; }
     window.toggleGastoOtros=function(){ const v=document.getElementById('g-categoria').value; const el=document.getElementById('grupo-gasto-otros'); if(el) el.style.display=v==='Otros'?'block':'none'; // Si cambia a Electricidad/Veterinario, limpiar texto libre
-    if(v!=='Otros'){ const c=document.getElementById('g-concepto'); if(c) c.value=''; } }
+    if(v!=='Otros'){ const c=document.getElementById('g-concepto'); if(c) c.value=''; }
+    const esCompra = v==='Compra de animales';
+    const gc=document.getElementById('grupo-gasto-compra'); if(gc) gc.style.display=esCompra?'block':'none';
+    const gcc=document.getElementById('grupo-gasto-compra-cant'); if(gcc) gcc.style.display=esCompra?'block':'none'; }
 
     onSnapshot(query(collection(db,"caja"),orderBy("timestamp","asc")), snap => {
         historico=[]; inventario={};
-        snap.forEach(d=>{ const data={id:d.id,...d.data()}; historico.push(data); if(data.tipo==='ingreso'&&data.especie&&data.cant){ inventario[data.especie]=(inventario[data.especie]||0)-parseInt(data.cant); } });
+        snap.forEach(d=>{ const data={id:d.id,...d.data()}; historico.push(data); if(data.tipo==='ingreso'&&data.especie&&data.cant){ inventario[data.especie]=(inventario[data.especie]||0)-parseInt(data.cant); } if(data.tipo==='gasto'&&data.especie&&data.cant){ inventario[data.especie]=(inventario[data.especie]||0)+parseInt(data.cant); } });
         window._inventario = inventario;
         if(window._stockBio) recalcularStock();
         actualizarUI(); setEstado('conectado','🟢 CONECTADO · TIEMPO REAL'); setBotones(false);
@@ -1424,7 +1445,7 @@
             return; // el onSnapshot volverá a dispararse tras el seed
         }
         const arr = [];
-        snap.forEach(d => arr.push({ nombre: d.id, color: d.data().color, orden: d.data().orden !== undefined ? d.data().orden : 99, nombreCientifico: d.data().nombreCientifico || '' }));
+        snap.forEach(d => arr.push({ nombre: d.id, color: d.data().color, orden: d.data().orden !== undefined ? d.data().orden : 99, nombreCientifico: d.data().nombreCientifico || '', stockInicial: d.data().stockInicial || 0 }));
         arr.sort((a, b) => a.orden - b.orden);
         especiesLista = arr;
         recalcularStock();
@@ -1435,7 +1456,7 @@
     // Sync all species selects in the app
     function sincronizarSelectsEspecies() {
         const nombres = getNombresEspecies();
-        ['n-especie'].forEach(id => { // p-especie es ahora campo hidden, se rellena desde la pareja
+        ['n-especie', 'g-especie'].forEach(id => { // p-especie es ahora campo hidden, se rellena desde la pareja
             const sel = document.getElementById(id);
             if (!sel) return;
             const val = sel.value;
@@ -1487,41 +1508,18 @@
         const nombresConfig_set = new Set(nombresConfig);
         const nombres = [...nombresConfig, ...[...nombresConDatos].filter(n => !nombresConfig_set.has(n))];
 
-        // ── PANEL TEMPORAL DE DIAGNÓSTICO (quitar cuando ya no haga falta) ──
-        // Muestra los números en bruto de cada especie: nacidas totales, vendidas
-        // (según caja) y fallecidas, para ver dónde se pierde un dato sin adivinar.
-        if (usuarioActual && usuarioActual.rol === 'admin') {
-            let panel = document.getElementById('debug-stock-panel');
-            if (!panel) {
-                panel = document.createElement('div');
-                panel.id = 'debug-stock-panel';
-                panel.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;z-index:9999;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:8px;border-radius:8px;border:2px solid #0f0;max-height:40vh;overflow:auto;';
-                document.body.appendChild(panel);
-            }
-            panel.innerHTML = '<b>🔧 DIAGNÓSTICO TEMPORAL — quitar luego</b><br>' + nombres.map(nombre =>
-                `${nombre}: nacidas=${nacimientos[nombre] || 0} · inventario(caja)=${inventario[nombre] || 0} · fallecidas=${bajasMuerte[nombre] || 0}`
-            ).join('<br>')
-            + '<br><br><b>📋 Detalle ingresos "Sulcata" en caja (los que restan del inventario):</b><br>'
-            + (() => {
-                const entradas = (historico || []).filter(h => h.tipo === 'ingreso' && h.especie === 'Sulcata');
-                if (entradas.length === 0) return '(ninguno)';
-                return entradas.map(h =>
-                    `${h.fecha || '?'} · cant=${h.cant} · ${h.cliente || '—'} · ${h.detalle || ''} · ${fmt(h.monto)}`
-                ).join('<br>') + `<br><b>TOTAL entradas: ${entradas.length} · suma cant: ${entradas.reduce((s,h)=>s+(parseInt(h.cant)||0),0)}</b>`;
-            })();
-        }
-        // ── FIN PANEL DIAGNÓSTICO ────────────────────────────────────────────
-
         window._stockData = nombres.map(nombre => {
             const espLista = especiesLista.find(e => e.nombre === nombre);
+            const inicial = (espLista && espLista.stockInicial) || 0;
             return {
                 nombre,
                 color:   getColorEspecie(nombre),
                 nombreCientifico: (espLista && espLista.nombreCientifico) || '',
+                stockInicial: inicial,
                 // 🥚 Huevos pendientes de eclosionar (ya viene calculado puesta a puesta, no se resta de nuevo aquí)
                 huevos:  puestas[nombre] || 0,
-                // 🐢 Disponibles = nacidos - vendidos - fallecidos
-                nacidos: Math.max(0, (nacimientos[nombre] || 0) + (inventario[nombre] || 0) - (bajasMuerte[nombre] || 0))
+                // 🐢 Disponibles = existencias iniciales + nacidos en la app + comprados - vendidos - fallecidos
+                nacidos: Math.max(0, inicial + (nacimientos[nombre] || 0) + (inventario[nombre] || 0) - (bajasMuerte[nombre] || 0))
             };
         });
         renderStockBar();
@@ -1566,6 +1564,11 @@
                 <div class="especie-datos" style="margin-top:4px;align-items:center;">
                     <span class="especie-dato" style="color:var(--texto2);font-style:italic;">${e.nombreCientifico || '— sin nombre científico —'}</span>
                     <button onclick="editarNombreCientifico('${e.nombre}')"
+                        style="margin-left:8px;background:none;border:1px solid var(--borde);border-radius:6px;color:var(--texto2);font-size:0.7rem;padding:2px 8px;cursor:pointer;font-family:Rajdhani,sans-serif;">✏️</button>
+                </div>
+                <div class="especie-datos" style="margin-top:4px;align-items:center;">
+                    <span class="especie-dato" style="color:var(--texto2);">📦 Stock inicial: <strong>${e.stockInicial || 0}</strong></span>
+                    <button onclick="editarStockInicial('${e.nombre}')"
                         style="margin-left:8px;background:none;border:1px solid var(--borde);border-radius:6px;color:var(--texto2);font-size:0.7rem;padding:2px 8px;cursor:pointer;font-family:Rajdhani,sans-serif;">✏️</button>
                 </div>
                 <div class="especie-datos" style="margin-top:4px;align-items:center;">
@@ -1765,7 +1768,7 @@
         return new Date(iso + 'T12:00:00').getTime();
     }
 
-    window.guardarMovimiento=async function(tipo){ const pref=tipo==='gasto'?'g-':'i-',monto=parseFloat(document.getElementById(pref+'monto').value),socio=document.getElementById(pref+'socio').value; if(!monto||monto<=0) return alert("Introduce un importe válido"); const fechaIso=getFechaIso(pref+'fecha'); const fechaEs=isoAEs(fechaIso); let datos={tipo,socio,monto,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}; if(tipo==='ingreso'){const especie=document.getElementById('i-especie').value,cant=parseInt(document.getElementById('i-cant').value),cliente=document.getElementById('i-cliente').value||"Sin cliente",concepto=especie==='Otros'?(document.getElementById('i-otros-concepto').value||'Otros'):especie; datos.especie=especie;datos.cant=cant;datos.cliente=cliente;datos.detalle=`${concepto} x${cant} · ${cliente}`;}else{const cat=document.getElementById('g-categoria').value; datos.categoria=cat; datos.detalle=cat==='Otros'?(document.getElementById('g-concepto').value||'Otros'):cat;} setBotones(true); try{await addDoc(collection(db,"caja"),datos);registrarAuditoria('nuevo','caja',`${datos.tipo==='ingreso'?'Ingreso':'Gasto'}: ${fmt(monto)} · ${datos.detalle}`);finalizar('DINERO',`${fmt(monto)} registrados`);}catch(err){alert("Error: "+err.message);setBotones(false);} }
+    window.guardarMovimiento=async function(tipo){ const pref=tipo==='gasto'?'g-':'i-',monto=parseFloat(document.getElementById(pref+'monto').value),socio=document.getElementById(pref+'socio').value; if(!monto||monto<=0) return alert("Introduce un importe válido"); const fechaIso=getFechaIso(pref+'fecha'); const fechaEs=isoAEs(fechaIso); let datos={tipo,socio,monto,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}; if(tipo==='ingreso'){const especie=document.getElementById('i-especie').value,cant=parseInt(document.getElementById('i-cant').value),cliente=document.getElementById('i-cliente').value||"Sin cliente",concepto=especie==='Otros'?(document.getElementById('i-otros-concepto').value||'Otros'):especie; datos.especie=especie;datos.cant=cant;datos.cliente=cliente;datos.detalle=`${concepto} x${cant} · ${cliente}`;}else{const cat=document.getElementById('g-categoria').value; datos.categoria=cat; if(cat==='Compra de animales'){ const especie=document.getElementById('g-especie').value, cant=parseInt(document.getElementById('g-cant').value)||0; if(!especie||cant<=0) return alert('Elige especie y cantidad válidas'); datos.especie=especie; datos.cant=cant; datos.detalle=`Compra ${especie} x${cant}`; } else { datos.detalle=cat==='Otros'?(document.getElementById('g-concepto').value||'Otros'):cat; } } setBotones(true); try{await addDoc(collection(db,"caja"),datos);registrarAuditoria('nuevo','caja',`${datos.tipo==='ingreso'?'Ingreso':'Gasto'}: ${fmt(monto)} · ${datos.detalle}`);finalizar('DINERO',`${fmt(monto)} registrados`);}catch(err){alert("Error: "+err.message);setBotones(false);} }
 
     window.eliminarRegistro=async function(id){ if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede eliminar movimientos de caja.'); if(!confirm("¿Eliminar este registro?")) return; const reg=historico.find(h=>h.id===id); await deleteDoc(doc(db,"caja",id)); if(reg) registrarAuditoria("borrado","caja",`${reg.tipo==="ingreso"?"Ingreso":"Gasto"}: ${fmt(reg.monto)} · ${reg.detalle}`); }
     window.abrirEditar=function(id,detalle,monto,socio,fechaIso){ document.getElementById('edit-id').value=id; document.getElementById('edit-detalle').value=detalle; document.getElementById('edit-monto').value=monto; document.getElementById('edit-socio').value=socio; setFechaFromIso('edit-fecha', fechaIso||''); document.getElementById('modal-editar').classList.add('active'); }
@@ -1889,6 +1892,21 @@
                 const sd = window._stockData.find(e => e.nombre === nombre);
                 if (sd) sd.nombreCientifico = valor;
             }
+            renderEspecies();
+        } catch(err) { alert('Error al guardar: ' + err.message); }
+    }
+
+    window.editarStockInicial = async function(nombre) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede editar el stock inicial.');
+        const esp = especiesLista.find(e => e.nombre === nombre);
+        const actual = (esp && esp.stockInicial) || 0;
+        const nuevo = prompt('Existencias iniciales de ' + nombre + ' (animales que ya teníais antes de empezar a usar la app):', actual);
+        if (nuevo === null) return;
+        const valor = parseInt(nuevo) || 0;
+        try {
+            await setDoc(doc(db, 'especies', nombre), { stockInicial: valor }, { merge: true });
+            if (esp) esp.stockInicial = valor;
+            recalcularStock();
             renderEspecies();
         } catch(err) { alert('Error al guardar: ' + err.message); }
     }
