@@ -1072,6 +1072,8 @@
 
         <input type="hidden" id="baja-motivo">
 
+        <div id="baja-aviso-parental" style="display:none;background:rgba(255,193,7,0.12);border:1px solid rgba(255,193,7,0.35);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.76rem;color:var(--texto2);line-height:1.6;"></div>
+
         <div id="baja-datos-venta" style="display:none;">
             <div class="form-group"><label>Nombre comprador</label><input type="text" id="baja-comprador-nombre" placeholder="Nombre completo"></div>
             <div class="form-group"><label>DNI comprador</label><input type="text" id="baja-comprador-dni" placeholder="12345678A"></div>
@@ -2076,9 +2078,11 @@
         if (!contenido) return;
 
         if (_informeTab === 'clientes') {
-            // Ventas por cliente: ingresos con socio != Martin (ventas de animales)
+            // Ventas por cliente (ventas de animales; se excluyen los ajustes de "Saldo entre socios",
+            // que no son ventas sino transferencias internas de dinero entre Patry y Martín)
             const ventas = historico.filter(h =>
                 h.tipo === 'ingreso' &&
+                h.detalle !== 'Saldo entre socios' &&
                 enRango(h.fechaIso || h.fecha, desde, hasta)
             );
             // Agrupar por cliente real (campo cliente)
@@ -2151,8 +2155,11 @@
             exportar.style.display = 'block';
 
         } else if (_informeTab === 'ingresos') {
+            // Se excluyen los ajustes de "Saldo entre socios" (no son ventas, son
+            // transferencias internas de dinero entre Patry y Martín)
             const ingresos = historico.filter(h =>
                 h.tipo === 'ingreso' &&
+                h.detalle !== 'Saldo entre socios' &&
                 enRango(h.fechaIso || h.fecha, desde, hasta)
             );
             if (ingresos.length === 0) {
@@ -3801,6 +3808,7 @@
         document.getElementById('baja-comprador-nombre').value = '';
         document.getElementById('baja-comprador-dni').value = '';
         document.getElementById('baja-btn-confirmar').disabled = true;
+        document.getElementById('baja-aviso-parental').style.display = 'none';
         resetBotonesMotivo();
         poblarSelectFecha('baja-fecha');
         setFechaHoy('baja-fecha');
@@ -3819,6 +3827,7 @@
         document.getElementById('baja-comprador-nombre').value = '';
         document.getElementById('baja-comprador-dni').value = '';
         document.getElementById('baja-btn-confirmar').disabled = true;
+        document.getElementById('baja-aviso-parental').style.display = 'none';
         resetBotonesMotivo();
 
         if (chips.length === 1) {
@@ -3863,6 +3872,19 @@
         btnActivo.style.cssText = 'flex:1;padding:10px;border-radius:8px;border:2px solid var(--rojo);background:rgba(239,83,80,0.15);color:var(--rojo);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;letter-spacing:0.5px;';
         document.getElementById('baja-datos-venta').style.display = motivo === 'venta' ? 'block' : 'none';
         document.getElementById('baja-btn-confirmar').disabled = false;
+
+        // Aviso para reproductores del plantel: esta baja rápida no genera ningún
+        // documento. Si se trata de una venta, se recomienda usar CESIÓN en su lugar.
+        const origen = document.getElementById('baja-origen').value;
+        const aviso  = document.getElementById('baja-aviso-parental');
+        if (origen === 'parental') {
+            aviso.innerHTML = motivo === 'venta'
+                ? '⚠️ Esta baja rápida solo registra la venta en el histórico — <strong>no genera ningún documento de cesión ni el CSV de baja MITECO</strong>. Si este reproductor tiene su documentación (CITES/chip) en regla, se recomienda usar <strong>CESIÓN → REPRODUCTOR</strong> en su lugar. Pulsa "CONFIRMAR BAJA" solo si quieres continuar sin generar documento.'
+                : 'ℹ️ Esta baja rápida solo registra el fallecimiento en el histórico y retira al reproductor del plantel — no genera ningún documento.';
+            aviso.style.display = 'block';
+        } else {
+            aviso.style.display = 'none';
+        }
     }
 
     window.cerrarModalBaja = function() {
@@ -3878,6 +3900,14 @@
         const parentalId = document.getElementById('baja-parental-id').value;
         if (!chip) return alert('Selecciona un chip.');
         if (!motivo) return alert('Selecciona el motivo de baja.');
+
+        // Si es la venta de un reproductor del plantel, pedimos confirmación explícita:
+        // este camino no genera documento de cesión ni CSV de baja MITECO, y si el animal
+        // tiene su documentación en regla lo correcto es usar CESIÓN → REPRODUCTOR.
+        if (origen === 'parental' && motivo === 'venta') {
+            const seguro = confirm('Esta baja rápida NO genera el documento de cesión ni el CSV de baja MITECO.\n\nSi este reproductor tiene su documentación (CITES/chip) en regla, se recomienda usar CESIÓN → REPRODUCTOR en su lugar.\n\n¿Quieres continuar de todas formas con esta baja rápida?');
+            if (!seguro) return;
+        }
 
         // Fecha baja
         const fechaBajaIso = getFechaIso('baja-fecha');
