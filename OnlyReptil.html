@@ -36,10 +36,10 @@
         /* ── LOGIN ── */
         #pantalla-login { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:30px 24px; background:var(--fondo); }
         .login-logo { margin-bottom:0px; }
-        .login-titulo { font-size:1.4rem; font-weight:700; letter-spacing:3px; color:var(--verde); margin-bottom:4px; }
-        .login-sub { font-size:0.75rem; color:var(--texto2); letter-spacing:1px; margin-bottom:32px; }
-        .login-usuarios { display:flex; gap:12px; width:100%; max-width:320px; margin-bottom:24px; }
-        .login-user-btn { flex:1; padding:14px 10px; border-radius:12px; border:2px solid var(--borde); background:var(--tarjeta); color:var(--texto2); font-family:'Rajdhani',sans-serif; font-weight:700; font-size:1.2rem; letter-spacing:2px; cursor:pointer; transition:all 0.15s; }
+        .login-titulo { font-size:1.6rem; font-weight:700; letter-spacing:4px; color:var(--verde); margin-bottom:6px; text-align:center; }
+        .login-sub { font-size:0.72rem; color:var(--texto2); letter-spacing:3px; margin-bottom:40px; text-align:center; }
+        .login-usuarios { display:flex; gap:12px; width:100%; max-width:280px; margin-bottom:22px; }
+        .login-user-btn { flex:1; padding:16px 8px; border-radius:12px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--texto2); font-family:'Rajdhani',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:1px; cursor:pointer; transition:all 0.15s; }
         .login-user-btn.selected { border-color:var(--verde); color:var(--verde); background:rgba(76,175,80,0.1); }
         .login-error { color:var(--rojo); font-size:0.78rem; font-weight:700; letter-spacing:1px; margin-top:14px; min-height:20px; }
 
@@ -133,12 +133,13 @@
 
         .lista-hist { display: none; flex-direction: column; gap: 6px; max-height: 45vh; overflow-y: auto; }
         .lista-hist.active { display: flex; }
-        .item-hist { background: var(--tarjeta2); padding: 11px 14px; border-radius: 10px; border: 1px solid var(--borde); border-left: 4px solid var(--verde); font-size: 0.85rem; }
-        .item-hist .item-monto  { font-weight: 700; font-size: 1rem; }
-        .item-hist .item-detalle { color: var(--texto); margin-top: 2px; }
-        .item-hist .item-meta   { color: var(--texto2); font-size: 0.75rem; margin-top: 4px; }
-        .item-bio   { border-left-color: var(--azul); }
-        .item-gasto { border-left-color: var(--rojo); }
+        .item-hist { display: flex; align-items: center; gap: 10px; background: var(--tarjeta2); padding: 10px 12px; border-radius: 9px; border: 1px solid var(--borde); font-size: 0.85rem; }
+        .item-hist .item-main { flex: 1; min-width: 0; text-align: left; }
+        .item-hist .item-monto  { font-weight: 700; font-size: 0.9rem; white-space: nowrap; flex-shrink: 0; }
+        .item-hist .item-detalle { color: var(--texto); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-hist .item-meta   { color: var(--texto2); font-size: 0.7rem; margin-top: 2px; }
+        .item-hist .item-acciones { display: flex; gap: 6px; margin-top: 0; flex-wrap: nowrap; flex-shrink: 0; }
+        .item-hist .btn-ic { flex: none; width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
         .msg-vacio  { color: var(--texto2); text-align: center; padding: 24px; font-size: 0.85rem; }
 
         .item-acciones { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
@@ -696,13 +697,13 @@
     <div class="modal-box azul">
         <div class="modal-titulo azul">🐢 REGISTRAR NACIMIENTO</div>
         <input type="hidden" id="nac-puesta-id">
-        <div id="nac-puesta-info" style="background:var(--fondo);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem;color:var(--texto2);line-height:1.6;"></div>
+        <div id="nac-puesta-info" style="background:var(--fondo);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem;color:var(--texto2);line-height:1.6;text-align:center;"></div>
         <div class="form-group"><label>Cantidad nacida</label><input type="number" id="nac-cant" value="1" min="1" oninput="actualizarChipsNacimiento()" onchange="actualizarChipsNacimiento()"></div>
         <div class="form-group"><label>Fecha de Eclosión</label><div class="fecha-row"><select class="fecha-sel" id="nac-fecha-d"></select><select class="fecha-sel" id="nac-fecha-m"></select><select class="fecha-sel" id="nac-fecha-y"></select></div></div>
         <!-- Asignación de chips -->
         <div id="nac-chips-box" style="background:var(--fondo);border-radius:8px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--borde);">
-            <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:8px;">💉 ASIGNACIÓN DE CHIPS</div>
-            <div id="nac-chips-libres-info" style="font-size:0.8rem;color:var(--texto2);margin-bottom:8px;"></div>
+            <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:8px;text-align:center;">💉 ASIGNACIÓN DE CHIPS</div>
+            <div id="nac-chips-libres-info" style="font-size:0.8rem;color:var(--texto2);margin-bottom:8px;text-align:center;"></div>
             <div id="nac-chips-lista" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;"></div>
         </div>
         <button class="btn-save" style="background:var(--azul);color:#0a0a0a;" onclick="guardarNacimientoPuesta()">REGISTRAR ECLOSIÓN</button>
@@ -1187,6 +1188,7 @@
 </nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
     // Login real de Firebase (email+contraseña) para los dos usuarios. Ya no hay PIN.
     var USUARIOS_EMAIL = {
@@ -2103,9 +2105,13 @@
                     style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--borde);background:var(--fondo);color:var(--texto2);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer;letter-spacing:1px;">
                     🐢 INGRESOS/ESPECIE
                 </button>
+                <button id="inf-tab-evo" onclick="switchInforme('evolucion')"
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--borde);background:var(--fondo);color:var(--texto2);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer;letter-spacing:1px;">
+                    📈 EVOLUCIÓN
+                </button>
             </div>
-            <!-- Filtro fechas -->
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+            <!-- Filtro fechas (no aplica a la vista Evolución, que siempre muestra todos los años) -->
+            <div id="inf-filtro-fechas" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
                 <span style="font-size:0.75rem;color:var(--texto2);font-weight:700;">DESDE</span>
                 <input type="date" id="inf-desde" style="background:var(--tarjeta);border:1px solid var(--borde);border-radius:6px;color:var(--texto);padding:4px 8px;font-size:0.8rem;font-family:Rajdhani,sans-serif;">
                 <span style="font-size:0.75rem;color:var(--texto2);font-weight:700;">HASTA</span>
@@ -2131,13 +2137,15 @@
 
     window.switchInforme = function(tab) {
         _informeTab = tab;
-        const tabs = { clientes: 'inf-tab-cli', gastos: 'inf-tab-gas', ingresos: 'inf-tab-ing' };
+        const tabs = { clientes: 'inf-tab-cli', gastos: 'inf-tab-gas', ingresos: 'inf-tab-ing', evolucion: 'inf-tab-evo' };
         Object.entries(tabs).forEach(([k, id]) => {
             const btn = document.getElementById(id);
             if (!btn) return;
             btn.style.background = k === tab ? 'var(--azul)' : 'var(--fondo)';
             btn.style.color = k === tab ? '#000' : 'var(--texto2)';
         });
+        const filtroFechas = document.getElementById('inf-filtro-fechas');
+        if (filtroFechas) filtroFechas.style.display = tab === 'evolucion' ? 'none' : 'flex';
         calcularInforme();
     }
 
@@ -2295,6 +2303,146 @@
             });
             contenido.innerHTML = html;
             exportar.style.display = 'block';
+
+        } else if (_informeTab === 'evolucion') {
+            // Evolución dentro de un año natural: NO se agrupa por mes ni por año, se dibuja el
+            // acumulado movimiento a movimiento (cada ingreso/gasto real, en su fecha exacta), reiniciando
+            // a cero al empezar cada año. Selector de año arriba, preparado para cuando haya más de uno.
+            const anios = aniosDisponiblesEvolucion();
+            if (anios.length === 0) {
+                contenido.innerHTML = '<p class="msg-vacio">Sin movimientos registrados todavía</p>';
+                exportar.style.display = 'none';
+                return;
+            }
+            if (!_evoAnioSeleccionado || !anios.includes(_evoAnioSeleccionado)) {
+                _evoAnioSeleccionado = anios[anios.length - 1];
+            }
+            const opcionesAnio = anios.map(a => `<option value="${a}" ${a === _evoAnioSeleccionado ? 'selected' : ''}>${a}</option>`).join('');
+            contenido.innerHTML = `
+                <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:12px;">
+                    <span style="font-size:0.72rem;color:var(--texto2);font-weight:700;letter-spacing:1px;">AÑO</span>
+                    <select id="evo-anio-select" onchange="cambiarAnioEvolucion(this.value)" style="padding:7px 10px;border-radius:8px;background:var(--tarjeta);color:var(--texto);border:1px solid var(--borde);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.85rem;">
+                        ${opcionesAnio}
+                    </select>
+                </div>
+                <div style="background:var(--tarjeta);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--borde);">
+                    <div style="position:relative;height:240px;">
+                        <canvas id="grafica-evolucion"></canvas>
+                    </div>
+                </div>
+                <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:8px;text-align:center;">RESULTADO ${_evoAnioSeleccionado}</div>
+                <div id="evo-totales" style="display:flex;gap:8px;flex-wrap:wrap;"></div>`;
+            exportar.style.display = 'none';
+            dibujarGraficaEvolucion(_evoAnioSeleccionado);
+        }
+    }
+
+    // Años (naturales) con al menos un movimiento real en el histórico de caja.
+    function aniosDisponiblesEvolucion() {
+        const set = new Set();
+        historico.forEach(h => {
+            let anio = '';
+            if (h.fechaIso && h.fechaIso.includes('-')) anio = h.fechaIso.slice(0, 4);
+            else if (h.fecha && h.fecha.includes('/')) anio = h.fecha.split('/').pop();
+            if (anio) set.add(anio);
+        });
+        return Array.from(set).sort();
+    }
+
+    // Serie acumulada movimiento a movimiento de un año: empieza en 0/0/0 y, por cada ingreso o gasto
+    // real (se excluyen los ajustes de "Saldo entre socios", que no son ventas ni gastos), solo sube la
+    // línea correspondiente — la otra se mantiene igual — y el resultado se recalcula siempre como
+    // ingresos acumulados − gastos acumulados. Ejemplo: ingreso de 300€ → ingresos 0→300, resultado 0→300,
+    // gastos sigue en 0; gasto de 200€ después → ingresos sigue en 300, gastos 0→200, resultado 300→100.
+    function datosEvolucionAnio(anio) {
+        const movs = historico.filter(h => {
+            let a = '';
+            if (h.fechaIso && h.fechaIso.includes('-')) a = h.fechaIso.slice(0, 4);
+            else if (h.fecha && h.fecha.includes('/')) a = h.fecha.split('/').pop();
+            if (a !== anio) return false;
+            if (h.tipo === 'ingreso' && h.detalle === 'Saldo entre socios') return false;
+            return h.tipo === 'ingreso' || h.tipo === 'gasto';
+        }).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        let ingAcum = 0, gasAcum = 0;
+        const puntos = [{ label: `Inicio ${anio}`, detalle: '', ingresos: 0, gastos: 0, resultado: 0 }];
+        movs.forEach(m => {
+            if (m.tipo === 'ingreso') ingAcum += m.monto || 0;
+            else gasAcum += m.monto || 0;
+            puntos.push({
+                label: m.fecha || '',
+                detalle: m.detalle || '',
+                ingresos: ingAcum,
+                gastos: gasAcum,
+                resultado: ingAcum - gasAcum
+            });
+        });
+        return puntos;
+    }
+
+    window.cambiarAnioEvolucion = function(anio) {
+        _evoAnioSeleccionado = anio;
+        calcularInforme();
+    }
+
+    let _chartEvolucion = null;
+    let _evoAnioSeleccionado = null;
+    function dibujarGraficaEvolucion(anio) {
+        const puntos = datosEvolucionAnio(anio);
+        const canvas = document.getElementById('grafica-evolucion');
+        const totalesEl = document.getElementById('evo-totales');
+        const raiz = getComputedStyle(document.documentElement);
+        const cVerde = raiz.getPropertyValue('--verde').trim() || '#5a9c68';
+        const cRojo = raiz.getPropertyValue('--rojo').trim() || '#c97873';
+        const cAzul = raiz.getPropertyValue('--azul').trim() || '#6b8fb0';
+        const cTexto2 = raiz.getPropertyValue('--texto2').trim() || '#8b93a3';
+        if (canvas && typeof Chart !== 'undefined') {
+            if (_chartEvolucion) { _chartEvolucion.destroy(); _chartEvolucion = null; }
+            _chartEvolucion = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: puntos.map(p => p.label),
+                    datasets: [
+                        { label: 'Ingresos', data: puntos.map(p => p.ingresos), borderColor: cVerde, backgroundColor: cVerde, stepped: 'after', pointRadius: 2, borderWidth: 2 },
+                        { label: 'Gastos', data: puntos.map(p => p.gastos), borderColor: cRojo, backgroundColor: cRojo, stepped: 'after', pointRadius: 2, borderWidth: 2 },
+                        { label: 'Resultado', data: puntos.map(p => p.resultado), borderColor: cAzul, backgroundColor: cAzul, stepped: 'after', pointRadius: 2, borderWidth: 2, borderDash: [6, 3] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: cTexto2, font: { family: 'Rajdhani' } } },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => { const p = puntos[items[0].dataIndex]; return p.detalle ? `${p.label} · ${p.detalle}` : p.label; },
+                                label: (item) => `${item.dataset.label}: ${item.formattedValue}€`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: cTexto2, autoSkip: true, maxRotation: 60 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                        y: { ticks: { color: cTexto2, callback: v => v + '€' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+                    }
+                }
+            });
+        }
+        if (totalesEl) {
+            const ultimo = puntos[puntos.length - 1];
+            totalesEl.innerHTML = `
+                <div style="flex:1;min-width:100px;background:var(--tarjeta);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--borde);">
+                    <div style="font-size:0.6rem;color:var(--texto2);letter-spacing:1px;font-weight:700;">INGRESOS</div>
+                    <div style="font-size:1.02rem;font-weight:700;color:var(--verde);margin-top:4px;">${fmt(ultimo.ingresos)}</div>
+                </div>
+                <div style="flex:1;min-width:100px;background:var(--tarjeta);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--borde);">
+                    <div style="font-size:0.6rem;color:var(--texto2);letter-spacing:1px;font-weight:700;">GASTOS</div>
+                    <div style="font-size:1.02rem;font-weight:700;color:var(--rojo);margin-top:4px;">${fmt(ultimo.gastos)}</div>
+                </div>
+                <div style="flex:1;min-width:100px;background:var(--tarjeta);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--borde);">
+                    <div style="font-size:0.6rem;color:var(--texto2);letter-spacing:1px;font-weight:700;">RESULTADO</div>
+                    <div style="font-size:1.02rem;font-weight:700;color:${ultimo.resultado >= 0 ? 'var(--verde)' : 'var(--rojo)'};margin-top:4px;">${fmt(ultimo.resultado)}</div>
+                </div>`;
         }
     }
 
@@ -2413,7 +2561,7 @@
         document.getElementById('l-'+t).classList.add('active');
         if (t === 'r') renderInformes();
     }
-    function renderCaja(){ const la=document.getElementById('l-a'),lg=document.getElementById('l-g'),li=document.getElementById('l-i'); if(!la) return; la.innerHTML=lg.innerHTML=li.innerHTML=""; if(historico.length===0){la.innerHTML='<p class="msg-vacio">Sin movimientos aún</p>';return;} historico.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(h=>{ const fechaIso=h.fechaIso||''; const esGasto=h.tipo==='gasto',color=esGasto?'var(--rojo)':'var(--verde)',signo=esGasto?'−':'+'; const html=`<div class="item-hist ${esGasto?'item-gasto':''}" style="border-left-color:${color}"><div class="item-monto" style="color:${color}">${signo} ${fmt(h.monto)}</div><div class="item-detalle">${h.detalle}</div><div class="item-meta">${h.socio} · ${h.fecha}</div><div class="item-acciones"><button class="btn-item btn-editar" onclick="abrirEditar('${h.id}','${h.detalle.replace(/'/g,"\\'")}',${h.monto},'${h.socio}','${fechaIso}')">✏️ EDITAR</button><button class="btn-item btn-borrar" onclick="eliminarRegistro('${h.id}')">🗑️ ELIMINAR</button></div></div>`; la.innerHTML+=html; if(esGasto) lg.innerHTML+=html; else li.innerHTML+=html; }); }
+    function renderCaja(){ const la=document.getElementById('l-a'),lg=document.getElementById('l-g'),li=document.getElementById('l-i'); if(!la) return; la.innerHTML=lg.innerHTML=li.innerHTML=""; if(historico.length===0){la.innerHTML='<p class="msg-vacio">Sin movimientos aún</p>';return;} historico.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(h=>{ const fechaIso=h.fechaIso||''; const esGasto=h.tipo==='gasto',color=esGasto?'var(--rojo)':'var(--verde)',signo=esGasto?'−':'+'; const html=`<div class="item-hist"><div class="item-main"><div class="item-detalle">${h.detalle}</div><div class="item-meta">${h.socio} · ${h.fecha}</div></div><div class="item-monto" style="color:${color}">${signo} ${fmt(h.monto)}</div><div class="item-acciones"><button class="btn-item btn-editar btn-ic" onclick="abrirEditar('${h.id}','${h.detalle.replace(/'/g,"\\'")}',${h.monto},'${h.socio}','${fechaIso}')">✏️</button><button class="btn-item btn-borrar btn-ic" onclick="eliminarRegistro('${h.id}')">🗑️</button></div></div>`; la.innerHTML+=html; if(esGasto) lg.innerHTML+=html; else li.innerHTML+=html; }); }
 
     window._pynFiltro = 'pendientes';
     window.setPynFiltro = function(f) {
@@ -3323,9 +3471,9 @@
         }
 
         listaEl.innerHTML = Array.from({length: cant}, (_, i) => `
-            <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:0.75rem;color:var(--texto2);min-width:60px;">Animal ${i+1}</span>
-                <select id="nac-chip-${i}" style="flex:1;background:var(--tarjeta2);border:1px solid var(--borde);border-radius:8px;color:var(--texto);padding:6px 8px;font-family:'Rajdhani',sans-serif;font-size:0.82rem;" onchange="refrescarOpcionesChips(${cant})">
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                <span style="font-size:0.75rem;color:var(--texto2);min-width:60px;text-align:right;">Animal ${i+1}</span>
+                <select id="nac-chip-${i}" style="flex:0 1 200px;background:var(--tarjeta2);border:1px solid var(--borde);border-radius:8px;color:var(--texto);padding:6px 8px;font-family:'Rajdhani',sans-serif;font-size:0.82rem;text-align:center;" onchange="refrescarOpcionesChips(${cant})">
                 </select>
             </div>
         `).join('');
