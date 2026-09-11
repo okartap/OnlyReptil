@@ -84,24 +84,20 @@
            huevos/en-stock como chips de estadística; un único botón ✏️ (junto
            al nombre) edita los 3 campos seguidos en vez de un botón por campo;
            Stock inicial y Precio cría comparten línea; todo centrado. */
-        .especie-card { border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--borde); background: var(--tarjeta2); }
-        .especie-card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .especie-id { display: flex; align-items: center; gap: 6px; min-width: 0; }
-        .especie-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-        .especie-nombre { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .btn-editar-especie { flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--borde); background: transparent; color: var(--texto2); font-size: 0.8rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .especie-stats { display: flex; gap: 8px; margin-bottom: 12px; }
-        .especie-stat { flex: 1; min-width: 0; background: var(--fondo); border-radius: 10px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .especie-stat .ico { font-size: 0.9rem; }
-        .especie-stat .num { font-size: 1.05rem; font-weight: 700; }
-        .especie-stat .lbl { font-size: 0.58rem; color: var(--texto2); letter-spacing: 0.4px; text-transform: uppercase; }
-        .campo-especie-row { padding: 9px 0; border-top: 1px solid var(--borde); text-align: center; }
-        .campo-especie-row.par { display: flex; gap: 14px; }
-        .campo-especie-info { min-width: 0; flex: 1; }
-        .campo-especie-lbl { display: block; font-size: 0.6rem; color: var(--texto2); letter-spacing: 0.5px; text-transform: uppercase; }
-        .campo-especie-val { display: block; font-size: 0.86rem; font-weight: 600; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .valor-stock-especie { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--borde); text-align: center; font-size: 0.86rem; font-weight: 700; color: var(--verde); }
-        .especie-acciones { display: flex; justify-content: center; margin-top: 10px; }
+        .especie-card { border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--borde); background: var(--tarjeta2); }
+        .especie-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+        .especie-id { min-width: 0; }
+        .especie-id-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .especie-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .especie-nombre { font-size: 0.98rem; font-weight: 700; letter-spacing: 0.4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .especie-cientifico { font-size: 0.66rem; color: var(--texto2); font-style: italic; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .btn-editar-especie { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--borde); background: transparent; color: var(--texto2); font-size: 0.76rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .especie-chips { display: flex; gap: 6px; }
+        .especie-chip { flex: 1; min-width: 0; background: var(--fondo); border-radius: 9px; padding: 7px 3px; text-align: center; }
+        .especie-chip .val { font-size: 0.86rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .especie-chip .lbl { font-size: 0.5rem; color: var(--texto2); letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px; }
+        .valor-stock-especie { margin-top: 9px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--verde); }
+        .especie-acciones { display: flex; justify-content: center; margin-top: 9px; }
         .btn-borrar-especie { background: rgba(239,83,80,0.12); color: var(--rojo); border: 1px solid rgba(239,83,80,0.25); border-radius: 6px; padding: 5px 12px; font-size: 0.7rem; font-weight: 700; font-family: 'Rajdhani', sans-serif; cursor: pointer; letter-spacing: 0.5px; }
 
         /* Añadir especie */
@@ -119,7 +115,7 @@
         /* Rediseño 11/09/2026: fila de "Registrar" y lista de "Gestión" en Inicio */
         .seccion-titulo { font-size: 0.66rem; letter-spacing: 1.8px; color: var(--texto2); font-weight: 700; text-transform: uppercase; margin: 18px 0 10px 2px; text-align: center; }
         .acciones-row { display: flex; gap: 8px; margin-top: 4px; }
-        .accion { flex: 1; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 9px 6px; text-align: center; cursor: pointer; transition: opacity 0.15s; }
+        .accion { flex: 1; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 13px 6px; text-align: center; cursor: pointer; transition: opacity 0.15s; }
         .accion:active { opacity: 0.75; }
         .accion .ico { font-size: 1.25rem; display: block; margin-bottom: 3px; }
         .accion .lbl { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px; }
@@ -299,20 +295,22 @@
         <div class="stock-bar-inner" id="stock-bar-inner">
             <!-- Se rellena dinámicamente -->
         </div>
-        <div style="display:flex;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--borde);gap:6px;">
-            <div style="display:flex;align-items:center;gap:5px;cursor:pointer;min-width:0;flex-shrink:0;" onclick="irA('pantalla-caja')">
-                <span style="font-size:0.95rem;">💲</span>
-                <span style="font-size:0.78rem;color:var(--texto2);">→</span>
-                <span id="stock-valoracion-mini-valor" style="font-size:0.82rem;font-weight:700;color:var(--verde);white-space:nowrap;">0€</span>
+        <!-- 11/09/2026 v2: fila cambiada a grid de 3 columnas (1fr auto 1fr) para que el
+             bloque central quede SIEMPRE centrado respecto al ancho total, sin importar
+             que los bloques de los lados tengan anchos distintos (antes, con flex:1 sobre
+             el hueco restante, el centro se desplazaba hacia el lado más ancho). Además,
+             a petición de Patry, el bloque de la izquierda ($ + importe) pasa a apilarse
+             en vertical en vez de ir en línea con la flecha, para ocupar menos ancho. -->
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--borde);gap:6px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer;min-width:0;justify-self:start;" onclick="irA('pantalla-caja')">
+                <span style="font-size:0.85rem;line-height:1;">💲</span>
+                <span id="stock-valoracion-mini-valor" style="font-size:0.72rem;font-weight:700;color:var(--verde);white-space:nowrap;line-height:1.2;">0€</span>
             </div>
-            <!-- 11/09/2026: envuelto en flex:1 + justify-content:center (en vez de space-between con 3 hijos de ancho distinto) para que quede realmente centrado -->
-            <div style="flex:1;display:flex;justify-content:center;min-width:0;">
-                <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:center;gap:1px;min-width:0;overflow:hidden;">
-                    <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;" id="stock-reparto-martin">Martín: —</div>
-                    <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;" id="stock-reparto-patry">Patry: —</div>
-                </div>
+            <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:center;gap:1px;min-width:0;overflow:hidden;justify-self:center;">
+                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;" id="stock-reparto-martin">Martín: —</div>
+                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;" id="stock-reparto-patry">Patry: —</div>
             </div>
-            <div id="btn-ver-especies" style="display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;" onclick="toggleEspecies()">
+            <div id="btn-ver-especies" style="display:flex;align-items:center;gap:5px;cursor:pointer;min-width:0;justify-self:end;" onclick="toggleEspecies()">
                 <span id="icon-ver-especies" style="font-size:1.1rem;">🐢</span>
                 <span style="font-size:0.9rem;color:var(--azul);font-weight:700;">→</span>
             </div>
@@ -333,11 +331,12 @@
         </div>
 
         <div class="seccion-titulo">Registrar</div>
+        <!-- 11/09/2026: quitados los iconos a petición de Patry ("me sobran"), solo texto -->
         <div class="acciones-row">
-            <div class="accion" style="color:var(--azul);" onclick="irA('form-puesta')"><span class="ico">🥚</span><span class="lbl">PUESTA</span></div>
-            <div class="accion" style="color:var(--azul);" onclick="navA('pantalla-pyn2')"><span class="ico">🗂️</span><span class="lbl">PyN</span></div>
-            <div class="accion" style="color:var(--verde);" onclick="irA('form-ingreso')"><span class="ico">＋</span><span class="lbl">INGRESO</span></div>
-            <div class="accion" style="color:var(--rojo);" onclick="irA('form-gasto')"><span class="ico">－</span><span class="lbl">GASTO</span></div>
+            <div class="accion" style="color:var(--azul);" onclick="irA('form-puesta')"><span class="lbl">PUESTA</span></div>
+            <div class="accion" style="color:var(--azul);" onclick="navA('pantalla-pyn2')"><span class="lbl">PyN</span></div>
+            <div class="accion" style="color:var(--verde);" onclick="irA('form-ingreso')"><span class="lbl">INGRESO</span></div>
+            <div class="accion" style="color:var(--rojo);" onclick="irA('form-gasto')"><span class="lbl">GASTO</span></div>
         </div>
 
         <div class="seccion-titulo">Gestión</div>
@@ -349,7 +348,7 @@
         </div>
 
         <!-- Próximas eclosiones -->
-        <div id="card-eclosiones" style="margin-top:16px;background:var(--tarjeta);border-radius:12px;padding:14px;border:1px solid var(--borde);border-left:3px solid var(--azul);text-align:center;display:none;">
+        <div id="card-eclosiones" style="margin-top:16px;background:var(--tarjeta);border-radius:12px;padding:14px;border:1px solid var(--borde);text-align:center;display:none;">
             <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--azul);font-weight:700;margin-bottom:8px;text-transform:uppercase;">🌡️ Próximas eclosiones</div>
             <div id="lista-eclosiones"></div>
         </div>
@@ -1709,21 +1708,19 @@
             <div class="especie-card">
                 <div class="especie-card-header">
                     <div class="especie-id">
-                        <span class="especie-dot" style="background:${e.color};"></span>
-                        <span class="especie-nombre" style="color:${e.color};">${e.nombre}</span>
+                        <div class="especie-id-top">
+                            <span class="especie-dot" style="background:${e.color};"></span>
+                            <span class="especie-nombre" style="color:${e.color};">${e.nombre}</span>
+                        </div>
+                        <div class="especie-cientifico">${e.nombreCientifico || '— sin nombre científico —'}</div>
                     </div>
                     <button class="btn-editar-especie" onclick="editarEspecieCompleta('${e.nombre}')">✏️</button>
                 </div>
-                <div class="especie-stats">
-                    <div class="especie-stat"><span class="ico">🥚</span><span class="num">${e.huevos}</span><span class="lbl">huevos</span></div>
-                    <div class="especie-stat"><span class="ico">🐢</span><span class="num">${e.nacidos}</span><span class="lbl">en stock</span></div>
-                </div>
-                <div class="campo-especie-row">
-                    <div class="campo-especie-info"><span class="campo-especie-lbl">Nombre científico</span><span class="campo-especie-val">${e.nombreCientifico || '— sin nombre científico —'}</span></div>
-                </div>
-                <div class="campo-especie-row par">
-                    <div class="campo-especie-info"><span class="campo-especie-lbl">Stock inicial</span><span class="campo-especie-val">${e.stockInicial || 0}</span></div>
-                    <div class="campo-especie-info"><span class="campo-especie-lbl">Precio cría</span><span class="campo-especie-val">${precioTexto}</span></div>
+                <div class="especie-chips">
+                    <div class="especie-chip"><div class="val">🥚 ${e.huevos}</div><div class="lbl">huevos</div></div>
+                    <div class="especie-chip"><div class="val">🐢 ${e.nacidos}</div><div class="lbl">en stock</div></div>
+                    <div class="especie-chip"><div class="val">${e.stockInicial || 0}</div><div class="lbl">inicial</div></div>
+                    <div class="especie-chip"><div class="val">${precioTexto}</div><div class="lbl">cría</div></div>
                 </div>
                 ${precioEsp > 0 && e.nacidos > 0 ? '<div class="valor-stock-especie">💰 Valor stock: ' + fmtVal(e.nacidos * precioEsp) + '</div>' : ''}
                 ${!FIJAS.includes(e.nombre) ? '<div class="especie-acciones"><button class="btn-borrar-especie" onclick="eliminarEspecie(\'' + e.nombre + '\')">🗑️ ELIMINAR</button></div>' : ''}
@@ -2252,7 +2249,7 @@
                 ${ventas.length} movimiento${ventas.length!==1?'s':''} · Total: <strong style="color:var(--verde);">${fmt(totalGeneral)}</strong>
             </div>`;
             Object.entries(porCliente).sort((a,b) => b[1].total - a[1].total).forEach(([clave, datos]) => {
-                html += `<div style="background:var(--tarjeta);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--borde);border-left:3px solid var(--verde);">
+                html += `<div style="background:var(--tarjeta);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--borde);">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:700;font-size:0.88rem;">${clave}</span>
                         <span style="font-weight:700;color:var(--verde);">${fmt(datos.total)}</span>
@@ -2289,7 +2286,7 @@
                 ${gastos.length} gasto${gastos.length!==1?'s':''} · Total: <strong style="color:var(--rojo);">${fmt(totalGeneral)}</strong>
             </div>`;
             Object.entries(porCat).sort((a,b) => b[1].total - a[1].total).forEach(([cat, datos]) => {
-                html += `<div style="background:var(--tarjeta);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--borde);border-left:3px solid var(--rojo);">
+                html += `<div style="background:var(--tarjeta);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--borde);">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:700;font-size:0.88rem;">${cat}</span>
                         <span style="font-weight:700;color:var(--rojo);">${fmt(datos.total)}</span>
@@ -2331,7 +2328,7 @@
             </div>`;
             Object.entries(porEsp).sort((a,b) => b[1].total - a[1].total).forEach(([esp, datos]) => {
                 const color = getColorEspecie(esp);
-                html += `<div style="background:var(--tarjeta);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--borde);border-left:3px solid ${color};">
+                html += `<div style="background:var(--tarjeta);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--borde);">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:700;font-size:0.88rem;color:${color};">${esp}</span>
                         <span style="font-weight:700;color:var(--verde);">${fmt(datos.total)}</span>
@@ -2361,18 +2358,22 @@
             }
             const opcionesAnio = anios.map(a => `<option value="${a}" ${a === _evoAnioSeleccionado ? 'selected' : ''}>${a}</option>`).join('');
             contenido.innerHTML = `
-                <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:12px;">
+                <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:8px;">
                     <span style="font-size:0.72rem;color:var(--texto2);font-weight:700;letter-spacing:1px;">AÑO</span>
-                    <select id="evo-anio-select" onchange="cambiarAnioEvolucion(this.value)" style="padding:7px 10px;border-radius:8px;background:var(--tarjeta);color:var(--texto);border:1px solid var(--borde);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.85rem;">
+                    <select id="evo-anio-select" onchange="cambiarAnioEvolucion(this.value)" style="padding:5px 10px;border-radius:8px;background:var(--tarjeta);color:var(--texto);border:1px solid var(--borde);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.85rem;">
                         ${opcionesAnio}
                     </select>
                 </div>
-                <div style="background:var(--tarjeta);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--borde);">
-                    <div style="position:relative;height:240px;">
+                <!-- 11/09/2026: gráfico bajado de 240px a 175px + márgenes más ajustados
+                     alrededor (selector, título RESULTADO) para que toda la vista de
+                     Evolución quepa en una pantalla de móvil normal sin tener que hacer
+                     scroll para ver las cajas de INGRESOS/GASTOS/RESULTADO -->
+                <div style="background:var(--tarjeta);border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid var(--borde);">
+                    <div style="position:relative;height:175px;">
                         <canvas id="grafica-evolucion"></canvas>
                     </div>
                 </div>
-                <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:8px;text-align:center;">RESULTADO ${_evoAnioSeleccionado}</div>
+                <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:6px;text-align:center;">RESULTADO ${_evoAnioSeleccionado}</div>
                 <div id="evo-totales" style="display:flex;gap:8px;flex-wrap:wrap;"></div>`;
             exportar.style.display = 'none';
             dibujarGraficaEvolucion(_evoAnioSeleccionado);
