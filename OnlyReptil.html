@@ -2404,8 +2404,7 @@
                     labels: puntos.map(p => p.label),
                     datasets: [
                         { label: 'Ingresos', data: puntos.map(p => p.ingresos), borderColor: cVerde, backgroundColor: cVerde, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 },
-                        { label: 'Gastos', data: puntos.map(p => p.gastos), borderColor: cRojo, backgroundColor: cRojo, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 },
-                        { label: 'Resultado', data: puntos.map(p => p.resultado), borderColor: cAzul, backgroundColor: cAzul, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 }
+                        { label: 'Gastos', data: puntos.map(p => p.gastos), borderColor: cRojo, backgroundColor: cRojo, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 }
                     ]
                 },
                 options: {
@@ -2441,7 +2440,7 @@
                 </div>
                 <div style="flex:1;min-width:100px;background:var(--tarjeta);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--borde);">
                     <div style="font-size:0.6rem;color:var(--texto2);letter-spacing:1px;font-weight:700;">RESULTADO</div>
-                    <div style="font-size:1.02rem;font-weight:700;color:${ultimo.resultado >= 0 ? 'var(--verde)' : 'var(--rojo)'};margin-top:4px;">${fmt(ultimo.resultado)}</div>
+                    <div style="font-size:1.02rem;font-weight:700;color:${ultimo.resultado >= 0 ? 'var(--azul)' : 'var(--rojo)'};margin-top:4px;">${fmt(ultimo.resultado)}</div>
                 </div>`;
         }
     }
