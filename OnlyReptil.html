@@ -92,6 +92,20 @@
         .grid-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 4px 0 16px; }
         .btn-action { background: var(--tarjeta); padding: 16px 10px; border-radius: 12px; font-weight: 700; cursor: pointer; text-align: center; font-size: 0.9rem; letter-spacing: 1px; border: 1px solid var(--borde); transition: opacity 0.15s; }
         .btn-action:active { opacity: 0.75; }
+
+        /* Rediseño 11/09/2026: fila de "Registrar" y lista de "Gestión" en Inicio */
+        .seccion-titulo { font-size: 0.66rem; letter-spacing: 1.8px; color: var(--texto2); font-weight: 700; text-transform: uppercase; margin: 18px 0 10px 2px; text-align: center; }
+        .acciones-row { display: flex; gap: 8px; margin-top: 4px; }
+        .accion { flex: 1; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 14px 6px; text-align: center; cursor: pointer; transition: opacity 0.15s; }
+        .accion:active { opacity: 0.75; }
+        .accion .ico { font-size: 1.25rem; display: block; margin-bottom: 6px; }
+        .accion .lbl { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px; }
+        .lista-gestion { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
+        .fila-gestion { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--borde); cursor: pointer; }
+        .fila-gestion:last-child { border-bottom: none; }
+        .fila-gestion:active { opacity: 0.75; }
+        .fila-gestion .ico { font-size: 1.05rem; }
+        .fila-gestion .txt { font-size: 0.86rem; font-weight: 600; letter-spacing: 0.3px; color: var(--texto); }
         .btn-puesta  { border-left: 4px solid var(--azul);  color: var(--azul); }
         .btn-nacer   { border-left: 4px solid var(--azul);  color: var(--azul); }
         .btn-ingreso { border-left: 4px solid var(--verde); color: var(--verde); }
@@ -281,23 +295,32 @@
 
     <div id="pantalla-inicio">
         <div class="alerta-chips" id="alerta-chips-inicio" style="margin-bottom:10px;"></div>
-        <div class="grid-actions">
-            <div class="btn-action btn-puesta"  onclick="irA('form-puesta')">🥚 PUESTA</div>
-            <div class="btn-action btn-nacer"   onclick="navA('pantalla-pyn')" style="display:none;">📋 PyN</div><!-- PyN antiguo desconectado 11/09/2026 a petición de Patry: pantalla y funciones intactas, solo se ha ocultado este botón. Para reactivarlo, quitar el style="display:none" de este div. -->
-            <div class="btn-action btn-ingreso" onclick="irA('form-ingreso')">＋ INGRESO</div>
-            <div class="btn-action btn-gasto"   onclick="irA('form-gasto')">－ GASTO</div>
+
+        <!-- Botones antiguos desconectados 11/09/2026 a petición de Patry: pantallas y funciones intactas, solo ocultos y sacados del nuevo diseño visual. Para reactivar cualquiera, quitar su style="display:none". -->
+        <div style="display:none;">
+            <div onclick="navA('pantalla-pyn')">📋 PyN</div>
+            <div onclick="navA('pantalla-miteco')">🏛️ MITECO</div>
         </div>
-        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="irA('pantalla-chips')">💉 CHIPS</div>
-            <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="irA('pantalla-parentales')">🐢 PLANTEL</div>
-            <div class="btn-action" style="border-left:4px solid var(--naranja);color:var(--naranja);display:none;" onclick="navA('pantalla-miteco')">🏛️ MITECO</div><!-- MITECO antiguo desconectado 11/09/2026 a petición de Patry: pantalla y funciones intactas, solo oculto. Quitar display:none para reactivarlo. -->
-            <div class="btn-action" style="border-left:4px solid var(--verde);color:var(--verde);" onclick="irA('pantalla-cesion')">📄 CESIÓN</div>
-            <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="navA('pantalla-pyn2')">🧪 PyN NUEVO</div>
-            <div class="btn-action" style="border-left:4px solid var(--texto2);color:var(--texto2);grid-column:1/-1;" onclick="irA('pantalla-auditoria')">📋 HISTORIAL DE CAMBIOS</div>
+
+        <div class="seccion-titulo">Registrar</div>
+        <div class="acciones-row">
+            <div class="accion" style="color:var(--azul);" onclick="irA('form-puesta')"><span class="ico">🥚</span><span class="lbl">PUESTA</span></div>
+            <div class="accion" style="color:var(--azul);" onclick="navA('pantalla-pyn2')"><span class="ico">🗂️</span><span class="lbl">PyN</span></div>
+            <div class="accion" style="color:var(--verde);" onclick="irA('form-ingreso')"><span class="ico">＋</span><span class="lbl">INGRESO</span></div>
+            <div class="accion" style="color:var(--rojo);" onclick="irA('form-gasto')"><span class="ico">－</span><span class="lbl">GASTO</span></div>
         </div>
+
+        <div class="seccion-titulo">Gestión</div>
+        <div class="lista-gestion">
+            <div class="fila-gestion" onclick="irA('pantalla-chips')"><span class="ico" style="color:var(--azul);">💉</span><span class="txt">Chips</span></div>
+            <div class="fila-gestion" onclick="irA('pantalla-parentales')"><span class="ico" style="color:var(--azul);">🐢</span><span class="txt">Plantel</span></div>
+            <div class="fila-gestion" onclick="irA('pantalla-cesion')"><span class="ico" style="color:var(--verde);">📄</span><span class="txt">Cesión</span></div>
+            <div class="fila-gestion" onclick="irA('pantalla-auditoria')"><span class="ico" style="color:var(--texto2);">📋</span><span class="txt">Historial de cambios</span></div>
+        </div>
+
         <!-- Próximas eclosiones -->
-        <div id="card-eclosiones" style="margin-top:12px;background:var(--tarjeta);border-radius:12px;padding:14px;border:1px solid var(--borde);border-left:4px solid var(--azul);display:none;">
-            <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--azul);font-weight:700;margin-bottom:10px;">🌡️ PRÓXIMAS ECLOSIONES</div>
+        <div id="card-eclosiones" style="margin-top:16px;background:var(--tarjeta);border-radius:12px;padding:14px;border:1px solid var(--borde);border-left:3px solid var(--azul);text-align:center;display:none;">
+            <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--azul);font-weight:700;margin-bottom:8px;text-transform:uppercase;">🌡️ Próximas eclosiones</div>
             <div id="lista-eclosiones"></div>
         </div>
     </div>
