@@ -43,6 +43,7 @@
         .login-error { color:var(--rojo); font-size:0.78rem; font-weight:700; letter-spacing:1px; margin-top:14px; min-height:20px; }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow-x: hidden; max-width: 100vw; }
         body { font-family: 'Rajdhani', 'Segoe UI', sans-serif; background: var(--fondo); color: var(--texto); padding-bottom: 80px; min-height: 100vh; }
 
         header { background: var(--tarjeta); padding: 0; text-align: center; border-bottom: 2px solid var(--verde); position: sticky; top: 0; z-index: 50; padding-top: env(safe-area-inset-top); }
@@ -55,8 +56,8 @@
         /* STOCK BAR rediseñada */
         .stock-bar { background: var(--tarjeta); padding: 12px 10px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--borde); }
         .stock-bar-inner { display: flex; justify-content: space-around; align-items: stretch; gap: 6px; }
-        .stock-item { text-align: center; font-size: 0.65rem; letter-spacing: 1px; color: var(--texto2); font-weight: 600; flex: 1; background: var(--fondo); border-radius: 10px; padding: 8px 4px; border-top: 3px solid var(--verde); }
-        .stock-nombre { margin-bottom: 6px; font-size: 0.68rem; }
+        .stock-item { text-align: center; font-size: 0.65rem; letter-spacing: 1px; color: var(--texto2); font-weight: 600; flex: 1; min-width: 0; background: var(--fondo); border-radius: 10px; padding: 8px 4px; border-top: 3px solid var(--verde); }
+        .stock-nombre { margin-bottom: 6px; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .stock-datos { display: flex; justify-content: center; gap: 10px; }
         .stock-dato { display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .stock-num { font-weight: 700; font-size: 1.1rem; }
@@ -213,6 +214,11 @@
         .nav-item { text-align: center; font-size: 0.65rem; color: var(--texto2); cursor: pointer; font-weight: 700; letter-spacing: 1px; padding: 4px 16px; border-radius: 8px; transition: color 0.15s; }
         .nav-item.activo { color: var(--verde); }
         .nav-item span { display: block; font-size: 1.2rem; margin-bottom: 2px; }
+
+        /* PyN NUEVO (prueba) */
+        .btn-mini { display: inline-block; margin-top: 4px; background: rgba(100,181,246,0.14); color: var(--azul); border: 1px solid rgba(100,181,246,0.3); border-radius: 7px; padding: 6px 12px; font-size: 0.72rem; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.3px; cursor: pointer; }
+        .btn-mini.verde   { background: rgba(76,175,80,0.14);  color: var(--verde);   border-color: rgba(76,175,80,0.3); }
+        .btn-mini.naranja { background: rgba(255,152,0,0.14);  color: var(--naranja); border-color: rgba(255,152,0,0.3); }
     </style>
 </head>
 <body>
@@ -242,17 +248,17 @@
         <div class="stock-bar-inner" id="stock-bar-inner">
             <!-- Se rellena dinámicamente -->
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--borde);">
-            <div style="display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="irA('pantalla-caja')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--borde);gap:6px;">
+            <div style="display:flex;align-items:center;gap:5px;cursor:pointer;min-width:0;flex-shrink:0;" onclick="irA('pantalla-caja')">
                 <span style="font-size:0.95rem;">💲</span>
                 <span style="font-size:0.78rem;color:var(--texto2);">→</span>
-                <span id="stock-valoracion-mini-valor" style="font-size:0.82rem;font-weight:700;color:var(--verde);">0€</span>
+                <span id="stock-valoracion-mini-valor" style="font-size:0.82rem;font-weight:700;color:var(--verde);white-space:nowrap;">0€</span>
             </div>
-            <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:flex-end;gap:1px;">
-                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;" id="stock-reparto-martin">Martín: —</div>
-                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;" id="stock-reparto-patry">Patry: —</div>
+            <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:flex-end;gap:1px;min-width:0;overflow:hidden;">
+                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;" id="stock-reparto-martin">Martín: —</div>
+                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;" id="stock-reparto-patry">Patry: —</div>
             </div>
-            <div id="btn-ver-especies" style="display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="toggleEspecies()">
+            <div id="btn-ver-especies" style="display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;" onclick="toggleEspecies()">
                 <span id="icon-ver-especies" style="font-size:1.1rem;">🐢</span>
                 <span style="font-size:0.9rem;color:var(--azul);font-weight:700;">→</span>
             </div>
@@ -276,6 +282,7 @@
             <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="irA('pantalla-parentales')">🐢 PLANTEL</div>
             <div class="btn-action" style="border-left:4px solid var(--naranja);color:var(--naranja);" onclick="navA('pantalla-miteco')">🏛️ MITECO</div>
             <div class="btn-action" style="border-left:4px solid var(--verde);color:var(--verde);" onclick="irA('pantalla-cesion')">📄 CESIÓN</div>
+            <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="navA('pantalla-pyn2')">🧪 PyN NUEVO</div>
             <div class="btn-action" style="border-left:4px solid var(--texto2);color:var(--texto2);grid-column:1/-1;" onclick="irA('pantalla-auditoria')">📋 HISTORIAL DE CAMBIOS</div>
         </div>
         <!-- Próximas eclosiones -->
@@ -458,6 +465,42 @@
         </div>
         <div id="pyn-lista-parejas"></div>
     </div>
+
+    <!-- PyN NUEVO (prueba) — todo el trámite de cada puesta en un único sitio -->
+    <div id="pantalla-pyn2" class="seccion-app" style="border-top-color:var(--azul);">
+        <div class="titulo-centrado" style="color:var(--azul);">🧪 PyN NUEVO · PRUEBA</div>
+        <div style="font-size:0.7rem;color:var(--texto2);margin:-8px 0 12px;line-height:1.5;">Pantalla de prueba: reúne aquí la notificación a MITECO, el nacimiento, el certificado veterinario, el CSV y los papeles de cada puesta, ordenadas por fecha. El PyN de siempre sigue funcionando igual.</div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button class="btn-mini" onclick="pyn2CrearPruebaPuesta()">🧪 CREAR PUESTA DE PRUEBA</button>
+            <button class="btn-mini naranja" onclick="pyn2BorrarPruebas()">🗑️ BORRAR TODO LO DE PRUEBA</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;">
+            <div class="tab bio-active" id="pyn2-f-curso" onclick="setPyn2Filtro('curso')" style="flex:1;">EN CURSO</div>
+            <div class="tab" id="pyn2-f-completas" onclick="setPyn2Filtro('completas')" style="flex:1;">COMPLETADAS</div>
+            <div class="tab" id="pyn2-f-todas" onclick="setPyn2Filtro('todas')" style="flex:1;">TODAS</div>
+        </div>
+        <div id="pyn2-lista"></div>
+        <button class="btn-cancelar" onclick="irA('pantalla-inicio')">← VOLVER</button>
+    </div>
+
+    <!-- Modal: confirmar certificado veterinario firmado (PyN NUEVO) -->
+    <div class="modal-overlay" id="modal-pyn2-vet">
+        <div class="modal-box azul">
+            <div class="modal-titulo azul">🩺 CONFIRMAR CERTIFICADO FIRMADO</div>
+            <div id="pyn2-vet-info" style="font-size:0.8rem;color:var(--texto2);margin-bottom:12px;"></div>
+            <div class="form-group">
+                <label>Fecha de marcado (la que ponga el veterinario)</label>
+                <div class="fecha-row">
+                    <select class="fecha-sel" id="pyn2-vet-fecha-d"></select>
+                    <select class="fecha-sel" id="pyn2-vet-fecha-m"></select>
+                    <select class="fecha-sel" id="pyn2-vet-fecha-y"></select>
+                </div>
+            </div>
+            <button class="btn-save" style="background:var(--azul);color:#0a0a0a;" onclick="pyn2ConfirmarVet()">GUARDAR</button>
+            <button class="btn-cancelar" onclick="document.getElementById('modal-pyn2-vet').classList.remove('active')">CANCELAR</button>
+        </div>
+    </div>
+
     <!-- TODAS LAS ESPECIES -->
     <div id="pantalla-especies" class="seccion-app" style="border-top-color:var(--verde);">
         <div class="titulo-centrado">🐢 STOCK POR ESPECIE</div>
@@ -1233,11 +1276,11 @@
     });
     let historico = [], histBio = [], clientes = [];
     let inventario = { Sulcata:0, Radiata:0, Rusa:0, Pardalis:0, Carbonaria:0 };
-    const SECCIONES = ['pantalla-inicio','form-gasto','form-ingreso','form-nacimiento','form-puesta','pantalla-caja','pantalla-exito','pantalla-pyn','pantalla-clientes','pantalla-especies','pantalla-electricidad','pantalla-chips','pantalla-parentales','pantalla-auditoria','pantalla-miteco','pantalla-cesion'];
+    const SECCIONES = ['pantalla-inicio','form-gasto','form-ingreso','form-nacimiento','form-puesta','pantalla-caja','pantalla-exito','pantalla-pyn','pantalla-pyn2','pantalla-clientes','pantalla-especies','pantalla-electricidad','pantalla-chips','pantalla-parentales','pantalla-auditoria','pantalla-miteco','pantalla-cesion'];
 
     // Pantallas donde se ocultan stock-bar y/o card-balance
     const SIN_STOCKBAR = ['pantalla-parentales','pantalla-caja'];
-    const SIN_BALANCE  = ['pantalla-pyn','pantalla-parentales','form-puesta','form-nacimiento','form-gasto','form-ingreso','pantalla-clientes','pantalla-especies','pantalla-electricidad','pantalla-chips','pantalla-exito','pantalla-auditoria','pantalla-miteco','pantalla-cesion'];
+    const SIN_BALANCE  = ['pantalla-pyn','pantalla-pyn2','pantalla-parentales','form-puesta','form-nacimiento','form-gasto','form-ingreso','pantalla-clientes','pantalla-especies','pantalla-electricidad','pantalla-chips','pantalla-exito','pantalla-auditoria','pantalla-miteco','pantalla-cesion'];
 
     window.irA = function(id) {
         SECCIONES.forEach(s => { const el = document.getElementById(s); if(el) el.style.display = 'none'; });
@@ -1262,6 +1305,7 @@
         if(id === 'form-puesta') { setFechaHoy('p-fecha'); cargarTodasParejas(); }
         if(id === 'pantalla-miteco') { switchTabMiteco('miteco'); renderMiteco(); }
         if(id === 'pantalla-cesion') { iniciarPantallaCesion(); }
+        if(id === 'pantalla-pyn2') { renderPynNuevo(); }
     }
     window.toggleEspecies = function() {
         const pantalla = document.getElementById('pantalla-especies');
@@ -1437,6 +1481,7 @@
         if(window._inventario) inventario = window._inventario;
         recalcularStock(); renderBio(); actualizarEclosiones();
         if (typeof renderMiteco === 'function' && document.getElementById('pantalla-miteco') && document.getElementById('pantalla-miteco').style.display !== 'none') renderMiteco();
+        if (typeof renderPynNuevo === 'function' && document.getElementById('pantalla-pyn2') && document.getElementById('pantalla-pyn2').style.display !== 'none') renderPynNuevo();
     });
 
     // ── ESPECIES (Firebase) ──────────────────────────────────────
@@ -2496,6 +2541,291 @@
         if (flecha) flecha.textContent = visible ? '▶' : '▼';
     }
 
+    // ── PyN NUEVO (prueba) — un único flujo por puesta: notificación MITECO,
+    // nacimiento, certificado veterinario, CSV y papeles, todo en una pantalla.
+    // No modifica nada de lo que ya existe: reutiliza las mismas funciones de
+    // generación de documentos (generarPDFPyN, abrirModalVet, abrirModalCSV,
+    // abrirModalNacimiento) y solo añade campos nuevos para recordar en qué
+    // paso está cada puesta.
+    window._pyn2Filtro = 'curso';
+    window.setPyn2Filtro = function(f) {
+        window._pyn2Filtro = f;
+        ['curso','completas','todas'].forEach(id => {
+            const el = document.getElementById('pyn2-f-' + id);
+            if (el) el.classList.toggle('bio-active', id === f);
+        });
+        renderPynNuevo();
+    };
+
+    // Devuelve true si esta puesta es la "secundaria" de una combinación (su
+    // información se muestra dentro de la tarjeta de la puesta más antigua,
+    // para no duplicar la tarjeta).
+    function pyn2ToIso(f) { if (!f) return ''; if (f.includes('-')) return f; const [d,m,y] = f.split('/'); return `${y}-${m}-${d}`; }
+    function pyn2EsSecundaria(p) {
+        if (!p.combinadaCon) return false;
+        const otra = histBio.find(x => x.id === p.combinadaCon);
+        if (!otra) return false;
+        return pyn2ToIso(p.fecha) > pyn2ToIso(otra.fecha);
+    }
+
+    function pyn2EstadoPuesta(p) {
+        const nacsPropios = histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === p.id);
+        const otraPuesta  = p.combinadaCon ? histBio.find(x => x.id === p.combinadaCon) : null;
+        const nacsOtra    = otraPuesta ? histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === otraPuesta.id) : [];
+        const todosNacs   = nacsPropios.concat(nacsOtra);
+        const totalNacidos = nacsPropios.reduce((s,n) => s + (parseInt(n.cant)||0), 0);
+
+        const pasoNotificada  = !!p.notificadoPyN;
+        const pasoNacimiento  = nacsPropios.length > 0;
+        const pasoActualizada = pasoNacimiento ? !!p.pynActualizadaConEclosion : false;
+        const pasoVet         = todosNacs.length > 0 && todosNacs.every(n => n.certVetGenerado);
+        const pasoCsv         = todosNacs.length > 0 && todosNacs.every(n => n.csvExportado);
+        const pasoPapeles     = todosNacs.length > 0 && todosNacs.every(n => n.papelesMitecoRecibidos);
+        const completa = pasoNotificada && pasoNacimiento && pasoActualizada && pasoVet && pasoCsv && pasoPapeles;
+
+        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoVet, pasoCsv, pasoPapeles, completa, todosNacs, otraPuesta };
+    }
+
+    // Días transcurridos desde que se envió el CSV a MITECO (el más antiguo de los
+    // nacimientos implicados), para el aviso de "llevan esperando mucho".
+    function pyn2DiasEsperaMiteco(todosNacs) {
+        const fechas = todosNacs.map(n => n.fechaCSVExportado).filter(Boolean);
+        if (!fechas.length) return null;
+        const toTs = f => { const [d,m,y] = f.split('/'); return new Date(`${y}-${m}-${d}T12:00:00`).getTime(); };
+        const masAntigua = Math.min(...fechas.map(toTs));
+        return Math.max(0, Math.floor((Date.now() - masAntigua) / 86400000));
+    }
+
+    function pyn2PasoHecho(titulo, detalle, extra) {
+        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;">
+            <div style="width:18px;height:18px;border-radius:50%;background:var(--verde);color:#0a0a0a;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">✓</div>
+            <div style="flex:1;">
+                <div style="font-size:0.76rem;color:var(--texto2);">${titulo}</div>
+                ${detalle ? `<div style="font-size:0.68rem;color:var(--texto2);opacity:0.8;">${detalle}</div>` : ''}
+                ${extra || ''}
+            </div>
+        </div>`;
+    }
+    function pyn2PasoActual(titulo, detalle, extra) {
+        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;">
+            <div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--naranja);color:var(--naranja);font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">●</div>
+            <div style="flex:1;">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--texto);">${titulo}</div>
+                ${detalle ? `<div style="font-size:0.72rem;margin-top:1px;">${detalle}</div>` : ''}
+                <div style="margin-top:5px;">${extra || ''}</div>
+            </div>
+        </div>`;
+    }
+
+    function pyn2RenderPuestaCard(p, estado) {
+        const pareja = parejasData.find(x => x.id === p.idPareja) || { nombre: p.nombrePareja || '—' };
+        const secundaria = estado.otraPuesta;
+        const comboTag = secundaria ? `<span class="combo-tag" style="font-size:0.6rem;background:rgba(255,152,0,0.15);color:var(--naranja);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:2px 8px;font-weight:700;letter-spacing:0.5px;margin-left:6px;">+ ${secundaria.idPuesta || secundaria.detalle} combinada</span>` : '';
+        const idPuestaTxt = p.idPuesta || p.detalle || '—';
+        const huevosTxt = secundaria ? `${p.cant} + ${secundaria.cant} huevos` : `${p.cant} huevos`;
+        const fechasTxt = secundaria ? `puestas ${p.fecha} y ${secundaria.fecha}` : `puesta ${p.fecha}`;
+
+        const pasos = [];
+
+        pasos.push(estado.pasoNotificada
+            ? pyn2PasoHecho('Puesta notificada a MITECO', `Marcada el ${p.fechaNotificadoPyN || '—'}`)
+            : pyn2PasoActual('Notificar puesta a MITECO', '', `<button class="btn-mini" onclick="pyn2GenerarNotificacion('${p.idPareja}','${p.id}',false)">📄 GENERAR Y MARCAR ENVIADA</button>`)
+        );
+
+        if (!estado.pasoNacimiento) {
+            pasos.push(pyn2PasoActual('Esperando eclosión', p.fechaEclosionEstimada ? `Estimada 🌡️ ${p.fechaEclosionEstimada}` : '', `<button class="btn-mini verde" onclick="abrirModalNacimiento('${p.id}')">🐢 REGISTRAR NACIMIENTO</button>`));
+        } else if (!estado.pasoActualizada) {
+            pasos.push(pyn2PasoActual(`Nacimiento registrado · ${estado.totalNacidos} cría(s)`, 'Falta actualizar la notificación PyN con la eclosión', `<button class="btn-mini" onclick="pyn2GenerarNotificacion('${p.idPareja}','${p.id}',true)">🔄 ACTUALIZAR NOTIFICACIÓN CON LA ECLOSIÓN</button>`));
+        } else {
+            pasos.push(pyn2PasoHecho(`Nacimiento registrado · ${estado.totalNacidos} cría(s)`, 'Notificación PyN actualizada con la eclosión'));
+        }
+
+        if (estado.pasoNacimiento) {
+            if (!estado.pasoVet) {
+                const comboBtn = !secundaria ? ` <button class="btn-mini naranja" onclick="pyn2AbrirCombinar('${p.id}')">🔗 JUNTAR CON OTRA PUESTA</button>` : '';
+                pasos.push(pyn2PasoActual('Certificado veterinario', '', `<button class="btn-mini" onclick="abrirModalVet('${p.id}')">🩺 GENERAR CERTIFICADO</button> <button class="btn-mini verde" onclick="pyn2AbrirMarcarVet('${p.id}')">✓ YA FIRMADO</button>${comboBtn}`));
+            } else {
+                const conFecha = estado.todosNacs.find(n => n.fechaMarcado);
+                pasos.push(pyn2PasoHecho('Certificado veterinario', conFecha ? `Marcado ${conFecha.fechaMarcado}` : ''));
+            }
+        }
+
+        if (estado.pasoVet) {
+            if (!estado.pasoCsv) {
+                pasos.push(pyn2PasoActual('CSV a MITECO', '', `<button class="btn-mini" onclick="abrirModalCSV('${p.id}')">📤 GENERAR CSV</button>`));
+            } else {
+                pasos.push(pyn2PasoHecho('CSV enviado a MITECO', ''));
+            }
+        }
+
+        if (estado.pasoCsv) {
+            if (!estado.pasoPapeles) {
+                const dias = pyn2DiasEsperaMiteco(estado.todosNacs);
+                const color = (dias !== null && dias > 30) ? 'var(--naranja)' : 'var(--texto2)';
+                const diasTxt = dias !== null ? `<span style="color:${color};font-weight:700;">⏳ ${dias} día${dias!==1?'s':''} esperando</span>` : '';
+                pasos.push(pyn2PasoActual('Esperando papeles de MITECO', diasTxt, `<button class="btn-mini naranja" onclick="pyn2MarcarPapeles('${p.id}')">✓ MARCAR PAPELES RECIBIDOS</button>`));
+            } else {
+                pasos.push(pyn2PasoHecho('Papeles de MITECO recibidos', 'Listos para CESIÓN', `<button class="btn-mini verde" style="margin-top:6px;" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
+            }
+        }
+
+        return `<div style="background:var(--tarjeta2);border:1px solid var(--borde);border-left:4px solid var(--azul);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+            <div style="margin-bottom:8px;">
+                <div style="font-weight:700;font-size:0.88rem;color:var(--azul);">🥚 ${idPuestaTxt}${comboTag}</div>
+                <div style="font-size:0.72rem;color:var(--texto2);margin-top:2px;">${pareja.nombre} · ${huevosTxt} · ${fechasTxt}</div>
+            </div>
+            ${pasos.join('')}
+        </div>`;
+    }
+
+    function renderPynNuevo() {
+        const cont = document.getElementById('pyn2-lista');
+        if (!cont) return;
+        const filtro = window._pyn2Filtro || 'curso';
+
+        const puestas = histBio.filter(b => b.tipo === 'puesta' && !pyn2EsSecundaria(b));
+        const filas = puestas.map(p => ({ p, estado: pyn2EstadoPuesta(p) }));
+
+        let filtradas = filas;
+        if (filtro === 'curso')     filtradas = filas.filter(f => !f.estado.completa);
+        if (filtro === 'completas') filtradas = filas.filter(f => f.estado.completa);
+
+        if (filtradas.length === 0) {
+            const msgs = { curso: 'Sin puestas en curso', completas: 'Sin puestas completadas', todas: 'Sin puestas registradas aún' };
+            cont.innerHTML = `<p class="msg-vacio">${msgs[filtro]}</p>`;
+            return;
+        }
+
+        // Orden por fecha de puesta, la más antigua primero — para no saltarse
+        // ninguna aunque sea de una pareja distinta a la que se miró antes.
+        filtradas.sort((a,b) => pyn2ToIso(a.p.fecha).localeCompare(pyn2ToIso(b.p.fecha)));
+
+        cont.innerHTML = filtradas.map(({p, estado}) => pyn2RenderPuestaCard(p, estado)).join('');
+    }
+
+    window.pyn2GenerarNotificacion = async function(parejaId, puestaId, esActualizacion) {
+        try {
+            await generarPDFPyN(parejaId);
+            const campo = esActualizacion
+                ? { pynActualizadaConEclosion: true }
+                : { notificadoPyN: true, fechaNotificadoPyN: new Date().toLocaleDateString('es-ES') };
+            await updateDoc(doc(db, 'bio', puestaId), campo);
+            registrarAuditoria('edicion', 'bio', esActualizacion ? 'Notificación PyN actualizada con la eclosión' : 'Notificación PyN marcada como enviada a MITECO');
+        } catch(err) { alert('Error: ' + err.message); }
+    };
+
+    window.pyn2AbrirCombinar = function(puestaId) {
+        abrirModalVet(puestaId);
+    };
+
+    window._pyn2VetPuestaId = null;
+    window.pyn2AbrirMarcarVet = function(puestaId) {
+        window._pyn2VetPuestaId = puestaId;
+        const p = histBio.find(x => x.id === puestaId);
+        const info = document.getElementById('pyn2-vet-info');
+        if (info) info.innerHTML = `🥚 ${p ? (p.idPuesta || p.detalle) : ''}`;
+        poblarSelectFecha('pyn2-vet-fecha');
+        setFechaHoy('pyn2-vet-fecha');
+        document.getElementById('modal-pyn2-vet').classList.add('active');
+    };
+
+    window.pyn2ConfirmarVet = async function() {
+        const puestaId = window._pyn2VetPuestaId;
+        if (!puestaId) return;
+        const fecha = isoAEs(getFechaIso('pyn2-vet-fecha'));
+        // Si al generar el certificado se marcó combinar con otra puesta, window._vetPuestaIds
+        // recuerda cuáles se incluyeron; si no, se aplica solo a esta.
+        const puestaIds = (window._vetPuestaIds && window._vetPuestaIds.includes(puestaId)) ? window._vetPuestaIds : [puestaId];
+        try {
+            const animales = getAnimalesPorPuestas(puestaIds);
+            const nacIds = [...new Set(animales.map(a => a.nacId))];
+            for (const nacId of nacIds) {
+                await updateDoc(doc(db, 'bio', nacId), { certVetGenerado: true, fechaMarcado: fecha });
+            }
+            if (puestaIds.length === 2) {
+                await updateDoc(doc(db, 'bio', puestaIds[0]), { combinadaCon: puestaIds[1] });
+                await updateDoc(doc(db, 'bio', puestaIds[1]), { combinadaCon: puestaIds[0] });
+            }
+            registrarAuditoria('edicion', 'bio', `Certificado veterinario confirmado · fecha de marcado ${fecha}`);
+            document.getElementById('modal-pyn2-vet').classList.remove('active');
+        } catch(err) { alert('Error: ' + err.message); }
+    };
+
+    window.pyn2MarcarPapeles = async function(puestaId) {
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return;
+        const puestaIds = p.combinadaCon ? [puestaId, p.combinadaCon] : [puestaId];
+        try {
+            const animales = getAnimalesPorPuestas(puestaIds);
+            const nacIds = [...new Set(animales.map(a => a.nacId))];
+            const hoy = new Date().toLocaleDateString('es-ES');
+            for (const nacId of nacIds) {
+                await updateDoc(doc(db, 'bio', nacId), { papelesMitecoRecibidos: true, fechaPapelesMiteco: hoy });
+            }
+            registrarAuditoria('edicion', 'bio', 'Papeles de MITECO marcados como recibidos');
+        } catch(err) { alert('Error: ' + err.message); }
+    };
+
+    // ── DATOS DE PRUEBA (PyN NUEVO) ─────────────────────────────
+    // Crea una pareja y una puesta completamente inventadas (especie "PRUEBA",
+    // marcadas con esPrueba:true) para poder recorrer todo el flujo — notificación,
+    // nacimiento, veterinario, CSV, papeles — sin tocar ningún dato ni chip real.
+    // Un solo botón las borra todas de golpe cuando se termina de probar.
+    window.pyn2CrearPruebaPuesta = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede crear datos de prueba.');
+        try {
+            const sello = Date.now().toString().slice(-6);
+            const nombrePareja = 'PRUEBA-' + sello;
+            const fecha = new Date().toLocaleDateString('es-ES');
+            const parejaRef = await addDoc(collection(db, 'parejas'), {
+                nombre: nombrePareja,
+                especie: 'PRUEBA',
+                idHembra: 'prueba-hembra-' + sello,
+                nombreHembra: 'Hembra de prueba',
+                idEspecimenHembra: 'PRUEBA-H-' + sello,
+                marcaHembra: '',
+                idMacho: 'prueba-macho-' + sello,
+                nombreMacho: 'Macho de prueba',
+                idEspecimenMacho: 'PRUEBA-M-' + sello,
+                marcaMacho: '',
+                diasIncubacion: 90,
+                esPrueba: true,
+                timestamp: Date.now()
+            });
+            const idPuesta = nombrePareja + '-P1';
+            await addDoc(collection(db, 'bio'), {
+                tipo: 'puesta',
+                especie: 'PRUEBA',
+                cant: 5,
+                idPareja: parejaRef.id,
+                nombrePareja: nombrePareja,
+                idEspecimenMacho: 'PRUEBA-M-' + sello,
+                idEspecimenHembra: 'PRUEBA-H-' + sello,
+                idPuesta,
+                detalle: idPuesta,
+                fecha,
+                fechaEclosionEstimada: fecha,
+                esPrueba: true,
+                timestamp: Date.now()
+            });
+            alert('✅ Puesta de prueba creada: ' + idPuesta + '\n\nEs una puesta inventada (especie "PRUEBA") que no afecta a ningún dato real. Ya la ves en la lista de abajo. Si en el paso de "REGISTRAR NACIMIENTO" te pide elegir chip, deja "— Sin chip —" para no gastar ningún chip real. Cuando termines de probar, pulsa "🗑️ BORRAR TODO LO DE PRUEBA".');
+        } catch(err) { alert('Error: ' + err.message); }
+    };
+
+    window.pyn2BorrarPruebas = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede borrar datos de prueba.');
+        const bioPrueba = histBio.filter(b => b.esPrueba === true);
+        const parejasPrueba = parejasData.filter(p => p.esPrueba === true);
+        if (bioPrueba.length === 0 && parejasPrueba.length === 0) return alert('No hay datos de prueba que borrar.');
+        if (!confirm(`¿Borrar todos los datos de prueba? (${bioPrueba.length} puesta(s)/nacimiento(s) + ${parejasPrueba.length} pareja(s) de prueba)\n\nEsto no afecta a ningún dato real.`)) return;
+        try {
+            for (const b of bioPrueba) { await deleteDoc(doc(db, 'bio', b.id)); }
+            for (const p of parejasPrueba) { await deleteDoc(doc(db, 'parejas', p.id)); }
+            alert('✅ Datos de prueba borrados.');
+        } catch(err) { alert('Error: ' + err.message); }
+    };
+    // ─────────────────────────────────────────────────────────────
+
     // ── CIERRE DE PUESTA ─────────────────────────────────────────
     window.abrirModalCerrarPuesta = function(puestaId, totalHuevos, nacidosYa) {
         document.getElementById('cerrar-puesta-id').value = puestaId;
@@ -2781,6 +3111,7 @@
     window.abrirModalNacimiento = function(puestaId) {
         const puesta = histBio.find(x => x.id === puestaId);
         if (!puesta) return;
+        window._nacPuestaEsPrueba = !!puesta.esPrueba;
         document.getElementById('nac-puesta-id').value = puestaId;
         // Info de la puesta
         const nacidosYa = histBio.filter(b => b.tipo==='nacimiento' && b.idPuestaOrigen===puestaId)
@@ -2821,15 +3152,19 @@
         const listaEl = document.getElementById('nac-chips-lista');
         if (!infoEl || !listaEl) return;
 
-        infoEl.innerHTML = `Chips libres disponibles: <strong style="color:var(--azul)">${libres.length}</strong>`;
+        const esPrueba = !!window._nacPuestaEsPrueba;
+        infoEl.innerHTML = esPrueba
+            ? `<strong style="color:var(--naranja);">🧪 Puesta de PRUEBA — deja los animales en "— Sin chip —" para no usar chips reales.</strong>`
+            : `Chips libres disponibles: <strong style="color:var(--azul)">${libres.length}</strong>`;
 
-        if (libres.length === 0) {
+        if (libres.length === 0 && !esPrueba) {
             listaEl.innerHTML = '<div style="font-size:0.78rem;color:var(--rojo);font-weight:700;">⚠️ Sin chips libres — añade chips antes de registrar</div>';
             return;
         }
 
-        // Pre-asignar automáticamente los primeros N chips libres
-        const preAsignados = libres.slice(0, cant).map(c => c.numero);
+        // Pre-asignar automáticamente los primeros N chips libres — nunca en una
+        // puesta de prueba, para no reservar/consumir chips reales sin querer.
+        const preAsignados = esPrueba ? [] : libres.slice(0, cant).map(c => c.numero);
 
         function buildOpciones(seleccionadoIdx) {
             // Chips elegidos por los otros selectores
@@ -2936,7 +3271,8 @@
                 detalle: `Eclosión de ${puesta.idPuesta || puesta.detalle}`,
                 fecha,
                 chipsAsignados: chipsAsignados,
-                timestamp: isoATimestamp(fechaIso)
+                timestamp: isoATimestamp(fechaIso),
+                ...(puesta.esPrueba ? { esPrueba: true } : {})
             });
 
             registrarAuditoria('nuevo','bio',`Nacimiento: ${cant}x ${puesta.especie} · ${chipsAsignados.length} chips · ${fecha}`);
@@ -3228,12 +3564,12 @@
             else if (diffDias <= 7)  { tiempoTxt = `En ${diffDias} días`;                     tiempoColor = 'var(--naranja)'; }
             else                    { tiempoTxt = `En ${diffDias} días`;                      tiempoColor = 'var(--texto2)'; }
 
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--borde);">
-                <div>
-                    <div style="font-size:0.82rem;font-weight:700;color:${color};">${p.nombrePareja || p.especie} · ${huevosPendientes} 🥚${p.idEspecimenHembra ? ` <span style="font-size:0.7rem;color:var(--texto2);font-weight:400;">♀ ${p.idEspecimenHembra}</span>` : ''}</div>
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--borde);gap:8px;">
+                <div style="min-width:0;overflow:hidden;">
+                    <div style="font-size:0.82rem;font-weight:700;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nombrePareja || p.especie} · ${huevosPendientes} 🥚${p.idEspecimenHembra ? ` <span style="font-size:0.7rem;color:var(--texto2);font-weight:400;">♀ ${p.idEspecimenHembra}</span>` : ''}</div>
                     <div style="font-size:0.72rem;color:var(--texto2);">Est. ${p.fechaEclosionEstimada ? p.fechaEclosionEstimada.split('-').reverse().join('/') : '—'}</div>
                 </div>
-                <div style="font-size:0.78rem;font-weight:700;color:${tiempoColor};text-align:right;">${tiempoTxt}</div>
+                <div style="font-size:0.78rem;font-weight:700;color:${tiempoColor};text-align:right;flex-shrink:0;white-space:nowrap;">${tiempoTxt}</div>
             </div>`;
         }).join('');
     }
