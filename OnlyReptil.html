@@ -3664,7 +3664,11 @@
         const ids = Array.isArray(puestaIds) ? puestaIds : [puestaIds];
         const puestasObjs = ids.map(id => histBio.find(x => x.id === id)).filter(Boolean);
         const nacimientos = histBio.filter(b => {
-            if (b.tipo !== 'nacimiento' || !b.chipsAsignados || !b.chipsAsignados.length) return false;
+            if (b.tipo !== 'nacimiento') return false;
+            // Los nacimientos de puestas de PRUEBA se guardan a propósito SIN chips
+            // (para no tocar chips reales), pero aun así deben poder avanzar los
+            // pasos de certificado/CSV/papeles — por eso no se descartan aquí.
+            if ((!b.chipsAsignados || !b.chipsAsignados.length) && !b.esPrueba) return false;
             if (b.idPuestaOrigen) return ids.includes(b.idPuestaOrigen);
             // Compatibilidad con nacimientos antiguos guardados sin idPuestaOrigen:
             // se enlazan comparando el identificador de texto de la puesta (idPuesta/detalle).
@@ -3672,7 +3676,11 @@
         });
         const animales = [];
         nacimientos.forEach(nac => {
-            nac.chipsAsignados.forEach(chip => {
+            // Puesta de prueba sin chips: se crea un "animal" ficticio solo para que
+            // el nacimiento tenga representación (y así su nacId llegue a las funciones
+            // que marcan certificado/CSV/papeles como hechos).
+            const chips = (nac.chipsAsignados && nac.chipsAsignados.length) ? nac.chipsAsignados : (nac.esPrueba ? ['SIN CHIP · PRUEBA'] : []);
+            chips.forEach(chip => {
                 animales.push({
                     chip,
                     especie:  nac.especie,
