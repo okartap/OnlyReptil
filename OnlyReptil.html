@@ -219,6 +219,7 @@
         .btn-mini { display: inline-block; margin-top: 4px; background: rgba(100,181,246,0.14); color: var(--azul); border: 1px solid rgba(100,181,246,0.3); border-radius: 7px; padding: 6px 12px; font-size: 0.72rem; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.3px; cursor: pointer; }
         .btn-mini.verde   { background: rgba(76,175,80,0.14);  color: var(--verde);   border-color: rgba(76,175,80,0.3); }
         .btn-mini.naranja { background: rgba(255,152,0,0.14);  color: var(--naranja); border-color: rgba(255,152,0,0.3); }
+        .btn-mini.rojo    { background: rgba(239,83,80,0.14);  color: var(--rojo);    border-color: rgba(239,83,80,0.3); }
     </style>
 </head>
 <body>
@@ -273,14 +274,14 @@
         <div class="alerta-chips" id="alerta-chips-inicio" style="margin-bottom:10px;"></div>
         <div class="grid-actions">
             <div class="btn-action btn-puesta"  onclick="irA('form-puesta')">🥚 PUESTA</div>
-            <div class="btn-action btn-nacer"   onclick="navA('pantalla-pyn')">📋 PyN</div>
+            <div class="btn-action btn-nacer"   onclick="navA('pantalla-pyn')" style="display:none;">📋 PyN</div><!-- PyN antiguo desconectado 11/09/2026 a petición de Patry: pantalla y funciones intactas, solo se ha ocultado este botón. Para reactivarlo, quitar el style="display:none" de este div. -->
             <div class="btn-action btn-ingreso" onclick="irA('form-ingreso')">＋ INGRESO</div>
             <div class="btn-action btn-gasto"   onclick="irA('form-gasto')">－ GASTO</div>
         </div>
         <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="irA('pantalla-chips')">💉 CHIPS</div>
             <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="irA('pantalla-parentales')">🐢 PLANTEL</div>
-            <div class="btn-action" style="border-left:4px solid var(--naranja);color:var(--naranja);" onclick="navA('pantalla-miteco')">🏛️ MITECO</div>
+            <div class="btn-action" style="border-left:4px solid var(--naranja);color:var(--naranja);display:none;" onclick="navA('pantalla-miteco')">🏛️ MITECO</div><!-- MITECO antiguo desconectado 11/09/2026 a petición de Patry: pantalla y funciones intactas, solo oculto. Quitar display:none para reactivarlo. -->
             <div class="btn-action" style="border-left:4px solid var(--verde);color:var(--verde);" onclick="irA('pantalla-cesion')">📄 CESIÓN</div>
             <div class="btn-action" style="border-left:4px solid var(--azul);color:var(--azul);" onclick="navA('pantalla-pyn2')">🧪 PyN NUEVO</div>
             <div class="btn-action" style="border-left:4px solid var(--texto2);color:var(--texto2);grid-column:1/-1;" onclick="irA('pantalla-auditoria')">📋 HISTORIAL DE CAMBIOS</div>
@@ -394,7 +395,7 @@
         <p id="exito-detalle" style="color:var(--texto2);margin-top:8px;font-size:0.9rem;"></p>
         <button class="btn-save" style="margin-top:20px;" onclick="irA('pantalla-inicio')">VOLVER AL INICIO</button>
         <p id="link-caja" onclick="navA('pantalla-caja')" style="text-decoration:underline;cursor:pointer;font-size:0.82rem;margin-top:16px;color:var(--verde);display:none;letter-spacing:1px;">VER HISTORIAL DE CAJA →</p>
-        <p id="link-bio"  onclick="navA('pantalla-pyn')"  style="text-decoration:underline;cursor:pointer;font-size:0.82rem;margin-top:16px;color:var(--azul);display:none;letter-spacing:1px;">VER PyN →</p>
+        <p id="link-bio"  onclick="navA('pantalla-pyn2')"  style="text-decoration:underline;cursor:pointer;font-size:0.82rem;margin-top:16px;color:var(--azul);display:none;letter-spacing:1px;">VER PyN →</p><!-- 11/09/2026: apuntaba al PyN antiguo (pantalla-pyn), ahora redirige a PyN NUEVO (pantalla-pyn2) ya que el antiguo se ha desconectado -->
     </div>
 
     <div id="pantalla-caja" class="seccion-app">
@@ -1140,8 +1141,8 @@
 
 <nav id="app-nav" style="display:none;">
     <div class="nav-item activo" id="nav-inicio"  onclick="navA('pantalla-inicio')"><span>🏠</span>INICIO</div>
-    <div class="nav-item" id="nav-pyn"    onclick="navA('pantalla-pyn')"><span>🥚</span>PyN</div>
-    <div class="nav-item" id="nav-miteco" onclick="navA('pantalla-miteco')"><span>🏛️</span>MITECO</div>
+    <div class="nav-item" id="nav-pyn"    onclick="navA('pantalla-pyn')" style="display:none;"><span>🥚</span>PyN</div><!-- desconectado 11/09/2026, ver nota en grid de Inicio -->
+    <div class="nav-item" id="nav-miteco" onclick="navA('pantalla-miteco')" style="display:none;"><span>🏛️</span>MITECO</div><!-- desconectado 11/09/2026, ver nota en grid de Inicio -->
     <div class="nav-item" id="nav-caja"   onclick="navA('pantalla-caja')"><span>💰</span>CAJA</div>
 </nav>
 
@@ -1481,6 +1482,17 @@
         if(window._inventario) inventario = window._inventario;
         recalcularStock(); renderBio(); actualizarEclosiones();
         if (typeof renderMiteco === 'function' && document.getElementById('pantalla-miteco') && document.getElementById('pantalla-miteco').style.display !== 'none') renderMiteco();
+        if (typeof renderPynNuevo === 'function' && document.getElementById('pantalla-pyn2') && document.getElementById('pantalla-pyn2').style.display !== 'none') renderPynNuevo();
+    });
+
+    // ── CITES ESTADO (especies Apéndice I — hoy solo Radiata) — reactivo,
+    // para poder comprobar desde PyN NUEVO si el certificado CITES de una
+    // puesta ya está listo, sin depender de la pantalla MITECO antigua.
+    let citesEstadoData = {};
+    onSnapshot(collection(db, 'cites_estado'), snap => {
+        citesEstadoData = {};
+        snap.forEach(d => { citesEstadoData[d.id] = d.data(); });
+        if (typeof renderCitesLista === 'function' && document.getElementById('pantalla-miteco') && document.getElementById('pantalla-miteco').style.display !== 'none' && document.getElementById('tab-cites') && document.getElementById('tab-cites').style.display !== 'none') renderCitesLista();
         if (typeof renderPynNuevo === 'function' && document.getElementById('pantalla-pyn2') && document.getElementById('pantalla-pyn2').style.display !== 'none') renderPynNuevo();
     });
 
@@ -2568,6 +2580,22 @@
         return pyn2ToIso(p.fecha) > pyn2ToIso(otra.fecha);
     }
 
+    // Estado del trámite CITES (Modelo 790 + certificado) de un conjunto de nacimientos.
+    // Solo aplica a especies de Apéndice I (hoy solo Radiata, confirmado por Patry
+    // 11/09/2026 — "esa tasa se paga solo en radiatas, de momento"). Para el resto de
+    // especies no aplica y se considera resuelto automáticamente (aplica:false).
+    function pyn2CitesEstado(todosNacs) {
+        if (!todosNacs.length || !esApendiceI(todosNacs[0].especie)) return { aplica: false, listo: true, chips: [] };
+        const chips = [];
+        todosNacs.forEach(n => (n.chipsAsignados || []).forEach(c => chips.push({ nacId: n.id, chip: c })));
+        if (chips.length === 0) return { aplica: true, listo: false, chips: [] };
+        const listo = chips.every(({ nacId, chip }) => {
+            const est = citesEstadoData[nacId + '_' + chip];
+            return est && est.estado === 'certificado_recibido';
+        });
+        return { aplica: true, listo, chips };
+    }
+
     function pyn2EstadoPuesta(p) {
         const nacsPropios = histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === p.id);
         const otraPuesta  = p.combinadaCon ? histBio.find(x => x.id === p.combinadaCon) : null;
@@ -2581,9 +2609,10 @@
         const pasoVet         = todosNacs.length > 0 && todosNacs.every(n => n.certVetGenerado);
         const pasoCsv         = todosNacs.length > 0 && todosNacs.every(n => n.csvExportado);
         const pasoPapeles     = todosNacs.length > 0 && todosNacs.every(n => n.papelesMitecoRecibidos);
-        const completa = pasoNotificada && pasoNacimiento && pasoActualizada && pasoVet && pasoCsv && pasoPapeles;
+        const citesInfo       = pyn2CitesEstado(todosNacs);
+        const completa = pasoNotificada && pasoNacimiento && pasoActualizada && pasoVet && pasoCsv && pasoPapeles && citesInfo.listo;
 
-        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoVet, pasoCsv, pasoPapeles, completa, todosNacs, otraPuesta };
+        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoVet, pasoCsv, pasoPapeles, citesInfo, completa, todosNacs, otraPuesta };
     }
 
     // Días transcurridos desde que se envió el CSV a MITECO (el más antiguo de los
@@ -2664,10 +2693,68 @@
                 const color = (dias !== null && dias > 30) ? 'var(--naranja)' : 'var(--texto2)';
                 const diasTxt = dias !== null ? `<span style="color:${color};font-weight:700;">⏳ ${dias} día${dias!==1?'s':''} esperando</span>` : '';
                 pasos.push(pyn2PasoActual('Esperando papeles de MITECO', diasTxt, `<button class="btn-mini naranja" onclick="pyn2MarcarPapeles('${p.id}')">✓ MARCAR PAPELES RECIBIDOS</button>`));
+            } else if (estado.citesInfo.aplica && !estado.citesInfo.listo) {
+                // Especie de Apéndice I (hoy solo Radiata): falta el trámite CITES
+                // (Modelo 790 + certificado) antes de poder dar la puesta por cerrada.
+                const chipsBtns = estado.citesInfo.chips.length
+                    ? estado.citesInfo.chips.map(({nacId, chip}) => {
+                        const est = citesEstadoData[nacId + '_' + chip] || {};
+                        const label = CITES_ESTADOS[est.estado || 'sin_solicitar'] ? CITES_ESTADOS[est.estado || 'sin_solicitar'].label : 'Sin solicitar';
+                        return `<button class="btn-mini naranja" onclick="abrirModalEstadoCITES('${nacId}','${chip}','${est.estado || 'sin_solicitar'}','${est.fechaTasa || ''}')">📄 ${chip} · ${label}</button>`;
+                    }).join(' ')
+                    : '<span style="color:var(--rojo);font-size:0.72rem;">Sin chips asignados — asigna el chip antes de tramitar el CITES</span>';
+                pasos.push(pyn2PasoHecho('Papeles de MITECO recibidos', ''));
+                pasos.push(pyn2PasoActual('Certificado CITES pendiente (Radiata)', 'Obligatorio antes de poder ceder: paga la tasa Modelo 790 en AEAT y espera el certificado', chipsBtns));
             } else {
-                pasos.push(pyn2PasoHecho('Papeles de MITECO recibidos', 'Listos para CESIÓN', `<button class="btn-mini verde" style="margin-top:6px;" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
+                pasos.push(pyn2PasoHecho('Papeles de MITECO recibidos', estado.citesInfo.aplica ? 'CITES recibido' : '', `<button class="btn-mini verde" style="margin-top:6px;" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
             }
         }
+
+        // ── Acciones secundarias (editar, plantel, baja, CITES, documentos,
+        // cerrar/eliminar) — antes solo estaban en el PyN antiguo; se ofrecen
+        // aquí también, plegadas, para no recargar la vista principal de pasos.
+        const nacsAccionesHTML = estado.nacsPropios.map(n => `
+            <div style="font-size:0.66rem;color:var(--texto2);margin:8px 0 4px;">🐢 Nacimiento ${n.fecha} · ${n.cant} cría(s)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                <button class="btn-mini" onclick="abrirModalEditNacimiento('${n.id}')">✏️ EDITAR</button>
+                <button class="btn-mini" onclick="abrirModalPlantel('${n.id}')">🐢 PLANTEL</button>
+                <button class="btn-mini" onclick="abrirModalBajaCria('${n.id}', '${n.especie}')">🔻 BAJA</button>
+                <button class="btn-mini" onclick="abrirModalCitesNacimiento('${n.id}')">💉 CITES</button>
+                <button class="btn-mini" onclick="abrirDocsNacimiento('${n.id}')">📎 DOCS</button>
+                <button class="btn-mini rojo" onclick="eliminarBio('${n.id}')">🗑️ ELIMINAR NACIMIENTO</button>
+            </div>`).join('');
+
+        // Nacimientos de la puesta secundaria combinada (si la hay) — con las mismas
+        // acciones, para no dejarlos sin PLANTEL/BAJA/CITES/DOCS al estar combinadas.
+        const nacsOtraAccionesHTML = secundaria ? histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === secundaria.id).map(n => `
+            <div style="font-size:0.66rem;color:var(--texto2);margin:8px 0 4px;">🐢 Nacimiento ${n.fecha} · ${n.cant} cría(s) · de ${secundaria.idPuesta || secundaria.detalle}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                <button class="btn-mini" onclick="abrirModalEditNacimiento('${n.id}')">✏️ EDITAR</button>
+                <button class="btn-mini" onclick="abrirModalPlantel('${n.id}')">🐢 PLANTEL</button>
+                <button class="btn-mini" onclick="abrirModalBajaCria('${n.id}', '${n.especie}')">🔻 BAJA</button>
+                <button class="btn-mini" onclick="abrirModalCitesNacimiento('${n.id}')">💉 CITES</button>
+                <button class="btn-mini" onclick="abrirDocsNacimiento('${n.id}')">📎 DOCS</button>
+                <button class="btn-mini rojo" onclick="eliminarBio('${n.id}')">🗑️ ELIMINAR NACIMIENTO</button>
+            </div>`).join('') : '';
+
+        const puedeCerrar = !p.cerrada && ((parseInt(p.cant)||0) - estado.totalNacidos) > 0;
+        const accionesHTML = `
+            <div style="margin-top:6px;">
+                <div onclick="pyn2ToggleAcciones('${p.id}')" style="cursor:pointer;font-size:0.66rem;color:var(--texto2);font-weight:700;letter-spacing:1px;padding:6px 0;border-top:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;">
+                    <span>⚙️ MÁS ACCIONES</span>
+                    <span id="pyn2-flecha-acc-${p.id}">▶</span>
+                </div>
+                <div id="pyn2-acc-${p.id}" style="display:none;">
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                        <button class="btn-mini" onclick="abrirModalEditPuesta('${p.id}')">✏️ EDITAR PUESTA</button>
+                        ${puedeCerrar ? `<button class="btn-mini naranja" onclick="abrirModalCerrarPuesta('${p.id}', ${parseInt(p.cant)||0}, ${estado.totalNacidos})">🔒 CERRAR PUESTA</button>` : ''}
+                        <button class="btn-mini rojo" onclick="eliminarBio('${p.id}')">🗑️ ELIMINAR PUESTA</button>
+                        ${secundaria ? `<button class="btn-mini" onclick="abrirModalEditPuesta('${secundaria.id}')">✏️ EDITAR ${secundaria.idPuesta || secundaria.detalle}</button>` : ''}
+                    </div>
+                    ${nacsAccionesHTML}
+                    ${nacsOtraAccionesHTML}
+                </div>
+            </div>`;
 
         return `<div style="background:var(--tarjeta2);border:1px solid var(--borde);border-left:4px solid var(--azul);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
             <div style="margin-bottom:8px;">
@@ -2675,7 +2762,17 @@
                 <div style="font-size:0.72rem;color:var(--texto2);margin-top:2px;">${pareja.nombre} · ${huevosTxt} · ${fechasTxt}</div>
             </div>
             ${pasos.join('')}
+            ${accionesHTML}
         </div>`;
+    }
+
+    window.pyn2ToggleAcciones = function(puestaId) {
+        const div    = document.getElementById('pyn2-acc-' + puestaId);
+        const flecha = document.getElementById('pyn2-flecha-acc-' + puestaId);
+        if (!div) return;
+        const visible = div.style.display === 'block';
+        div.style.display = visible ? 'none' : 'block';
+        if (flecha) flecha.textContent = visible ? '▶' : '▼';
     }
 
     function renderPynNuevo() {
