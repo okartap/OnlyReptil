@@ -2403,9 +2403,9 @@
                 data: {
                     labels: puntos.map(p => p.label),
                     datasets: [
-                        { label: 'Ingresos', data: puntos.map(p => p.ingresos), borderColor: cVerde, backgroundColor: cVerde, stepped: 'after', pointRadius: 2, borderWidth: 2 },
-                        { label: 'Gastos', data: puntos.map(p => p.gastos), borderColor: cRojo, backgroundColor: cRojo, stepped: 'after', pointRadius: 2, borderWidth: 2 },
-                        { label: 'Resultado', data: puntos.map(p => p.resultado), borderColor: cAzul, backgroundColor: cAzul, stepped: 'after', pointRadius: 2, borderWidth: 2, borderDash: [6, 3] }
+                        { label: 'Ingresos', data: puntos.map(p => p.ingresos), borderColor: cVerde, backgroundColor: cVerde, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 },
+                        { label: 'Gastos', data: puntos.map(p => p.gastos), borderColor: cRojo, backgroundColor: cRojo, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 },
+                        { label: 'Resultado', data: puntos.map(p => p.resultado), borderColor: cAzul, backgroundColor: cAzul, tension: 0.25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3 }
                     ]
                 },
                 options: {
@@ -2422,7 +2422,7 @@
                         }
                     },
                     scales: {
-                        x: { ticks: { color: cTexto2, autoSkip: true, maxRotation: 60 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                        x: { ticks: { display: false }, grid: { display: false } },
                         y: { ticks: { color: cTexto2, callback: v => v + '€' }, grid: { color: 'rgba(255,255,255,0.06)' } }
                     }
                 }
