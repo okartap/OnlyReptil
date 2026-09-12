@@ -1259,7 +1259,10 @@
             const auth = window.__firebaseAuth;
             const { signInWithEmailAndPassword } = window.__firebaseAuthFns;
             await signInWithEmailAndPassword(auth, USUARIOS_EMAIL[usuarioSeleccionado], password);
-            usuarioActual = { nombre: usuarioSeleccionado, rol: 'admin' };
+            // 12/09/2026: antes se daba rol 'admin' a quien fuera — con esto, todas las
+            // comprobaciones "Solo Patricio puede..." ya existentes en la app (que hasta
+            // ahora nunca bloqueaban a nadie) pasan a aplicarse de verdad solo a Martín.
+            usuarioActual = { nombre: usuarioSeleccionado, rol: (usuarioSeleccionado === 'Patry' ? 'admin' : 'socio') };
             localStorage.setItem('onlyreptil_user', JSON.stringify(usuarioActual));
             // Recargamos la página: las consultas a Firestore de la app se lanzan nada más
             // cargar, antes de que exista sesión — con la base de datos ahora restringida,
@@ -1314,6 +1317,13 @@
         if (saved) {
             try {
                 usuarioActual = JSON.parse(saved);
+                // 12/09/2026: sesiones guardadas ANTES de este cambio tienen rol:'admin'
+                // grabado para cualquiera — se recalcula aquí para que el nuevo permiso
+                // de Martín se aplique ya, sin que tenga que cerrar sesión a mano.
+                if (usuarioActual && usuarioActual.nombre) {
+                    usuarioActual.rol = (usuarioActual.nombre === 'Patry' ? 'admin' : 'socio');
+                    localStorage.setItem('onlyreptil_user', JSON.stringify(usuarioActual));
+                }
                 document.addEventListener('DOMContentLoaded', entrarApp);
             } catch(e) { localStorage.removeItem('onlyreptil_user'); }
         }
@@ -1383,7 +1393,7 @@
         if(id === 'form-gasto') { setFechaHoy('g-fecha'); const cat=document.getElementById('g-categoria'); if(cat) cat.value='Otros'; const otros=document.getElementById('grupo-gasto-otros'); if(otros) otros.style.display='block'; const conc=document.getElementById('g-concepto'); if(conc) conc.value=''; const gc=document.getElementById('grupo-gasto-compra'); if(gc) gc.style.display='none'; const gcc=document.getElementById('grupo-gasto-compra-cant'); if(gcc) gcc.style.display='none'; }
         if(id === 'pantalla-electricidad') { setFechaHoy('elec-fecha'); renderUltimaLectura(); resetFormLuz(); }
         if(id === 'pantalla-chips') { renderChips(); }
-        if(id === 'pantalla-parentales') { sincronizarSelectParentalEspecie(); sincronizarFiltroEspecie(); renderParentales(); const fab=document.getElementById('btn-fab-parental'); if(fab) fab.style.display=(usuarioActual&&usuarioActual.rol==='admin')?'flex':'none'; }
+        if(id === 'pantalla-parentales') { sincronizarSelectParentalEspecie(); sincronizarFiltroEspecie(); renderParentales(); const fab=document.getElementById('btn-fab-parental'); if(fab) fab.style.display='flex'; /* 12/09/2026: antes se ocultaba para quien no fuera admin; ahora se deja visible para todos, igual que el resto de botones — el aviso "Solo Patricio puede..." ya sale solo al pulsar, dentro de abrirFormParental() */ }
         if(id === 'pantalla-clientes') renderClientes();
         if(id === 'pantalla-especies') { renderEspecies(); const ic=document.getElementById('icon-ver-especies'); if(ic) ic.textContent='✕'; }
         else { const ic=document.getElementById('icon-ver-especies'); if(ic) ic.textContent='🐢'; }
@@ -1936,10 +1946,10 @@
 
     window.guardarMovimiento=async function(tipo){ const pref=tipo==='gasto'?'g-':'i-',monto=parseFloat(document.getElementById(pref+'monto').value),socio=document.getElementById(pref+'socio').value; if(!monto||monto<=0) return alert("Introduce un importe válido"); const fechaIso=getFechaIso(pref+'fecha'); const fechaEs=isoAEs(fechaIso); let datos={tipo,socio,monto,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}; if(tipo==='ingreso'){const especie=document.getElementById('i-especie').value,cant=parseInt(document.getElementById('i-cant').value),cliente=document.getElementById('i-cliente').value||"Sin cliente",concepto=especie==='Otros'?(document.getElementById('i-otros-concepto').value||'Otros'):especie; datos.especie=especie;datos.cant=cant;datos.cliente=cliente;datos.detalle=`${concepto} x${cant} · ${cliente}`;}else{const cat=document.getElementById('g-categoria').value; datos.categoria=cat; if(cat==='Compra de animales'){ const especie=document.getElementById('g-especie').value, cant=parseInt(document.getElementById('g-cant').value)||0; if(!especie||cant<=0) return alert('Elige especie y cantidad válidas'); datos.especie=especie; datos.cant=cant; datos.detalle=`Compra ${especie} x${cant}`; } else { datos.detalle=cat==='Otros'?(document.getElementById('g-concepto').value||'Otros'):cat; } } setBotones(true); try{await addDoc(collection(db,"caja"),datos);registrarAuditoria('nuevo','caja',`${datos.tipo==='ingreso'?'Ingreso':'Gasto'}: ${fmt(monto)} · ${datos.detalle}`);finalizar('DINERO',`${fmt(monto)} registrados`);}catch(err){alert("Error: "+err.message);setBotones(false);} }
 
-    window.eliminarRegistro=async function(id){ if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede eliminar movimientos de caja.'); if(!confirm("¿Eliminar este registro?")) return; const reg=historico.find(h=>h.id===id); await deleteDoc(doc(db,"caja",id)); if(reg) registrarAuditoria("borrado","caja",`${reg.tipo==="ingreso"?"Ingreso":"Gasto"}: ${fmt(reg.monto)} · ${reg.detalle}`); }
+    window.eliminarRegistro=async function(id){ if(!confirm("¿Eliminar este registro?")) return; const reg=historico.find(h=>h.id===id); await deleteDoc(doc(db,"caja",id)); if(reg) registrarAuditoria("borrado","caja",`${reg.tipo==="ingreso"?"Ingreso":"Gasto"}: ${fmt(reg.monto)} · ${reg.detalle}`); }
     window.abrirEditar=function(id,detalle,monto,socio,fechaIso){ document.getElementById('edit-id').value=id; document.getElementById('edit-detalle').value=detalle; document.getElementById('edit-monto').value=monto; document.getElementById('edit-socio').value=socio; setFechaFromIso('edit-fecha', fechaIso||''); document.getElementById('modal-editar').classList.add('active'); }
     window.cerrarModal=function(){ document.getElementById('modal-editar').classList.remove('active'); }
-    window.guardarEdicion=async function(){ if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede editar movimientos de caja.'); const id=document.getElementById('edit-id').value,detalle=document.getElementById('edit-detalle').value,monto=parseFloat(document.getElementById('edit-monto').value),socio=document.getElementById('edit-socio').value,fechaIso=getFechaIso('edit-fecha'); if(!monto||monto<=0) return alert("Importe inválido"); const fechaEs=isoAEs(fechaIso); await updateDoc(doc(db,"caja",id),{detalle,monto,socio,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}); registrarAuditoria("edicion","caja",`Edición: ${fmt(monto)} · ${detalle}`); cerrarModal(); }
+    window.guardarEdicion=async function(){ const id=document.getElementById('edit-id').value,detalle=document.getElementById('edit-detalle').value,monto=parseFloat(document.getElementById('edit-monto').value),socio=document.getElementById('edit-socio').value,fechaIso=getFechaIso('edit-fecha'); if(!monto||monto<=0) return alert("Importe inválido"); const fechaEs=isoAEs(fechaIso); await updateDoc(doc(db,"caja",id),{detalle,monto,socio,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}); registrarAuditoria("edicion","caja",`Edición: ${fmt(monto)} · ${detalle}`); cerrarModal(); }
 
     function finalizar(tipo,msg){ document.getElementById('exito-titulo').innerText=tipo==='BIO'?'¡REGISTRADO!':'¡GUARDADO!'; document.getElementById('exito-detalle').innerText=msg; document.getElementById('link-caja').style.display=tipo==='DINERO'?'block':'none'; document.getElementById('link-bio').style.display=tipo==='BIO'?'block':'none'; setBotones(false); window.irA('pantalla-exito'); }
 
@@ -2543,7 +2553,6 @@
     }
 
     window.confirmarSaldo = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede ajustar el saldo entre socios.');
         const b = window._balanceSaldo;
         const importe = parseFloat(document.getElementById('saldo-importe').value);
         if (!importe || importe <= 0) return alert('Introduce un importe válido');
@@ -5229,7 +5238,6 @@
     }
 
     window.confirmarLuz = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede registrar lecturas de electricidad.');
         if(!_luzPendiente) return;
         const {ant, act, precio, kwh, importe, iva} = _luzPendiente;
         const fechaIso = getFechaIso('elec-fecha');
