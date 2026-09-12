@@ -202,7 +202,10 @@
         .btn-elec { width:100%; padding:11px; border-radius:8px; background:rgba(249,168,37,0.1); color:#f9a825; border:1px solid rgba(249,168,37,0.35); font-weight:700; font-family:'Rajdhani',sans-serif; font-size:0.82rem; letter-spacing:1.5px; cursor:pointer; margin-bottom:12px; }
         .btn-elec:active { opacity:0.75; }
 
-        .elec-ultima-box { background:var(--fondo); border:1px solid rgba(249,168,37,0.3); border-left:4px solid #f9a825; border-radius:10px; padding:12px 14px; margin-bottom:16px; }
+        /* 12/09/2026: "cuadrada" para que coincida con el resto de la pantalla (centrada,
+           sin barra lateral de color) — antes era la única caja de este formulario con
+           texto alineado a la izquierda y una franja de color a un lado. */
+        .elec-ultima-box { background:var(--fondo); border:1px solid rgba(249,168,37,0.3); border-radius:10px; padding:12px 14px; margin-bottom:16px; text-align:center; }
         .elec-ultima-label { font-size:0.65rem; letter-spacing:1.5px; color:#f9a825; font-weight:700; margin-bottom:6px; }
         .elec-ultima-valor { font-size:0.9rem; color:var(--texto); font-weight:600; line-height:1.5; }
         .elec-editar-btn { background:none; border:none; color:#f9a825; font-size:0.78rem; font-weight:700; font-family:'Rajdhani',sans-serif; cursor:pointer; margin-top:8px; padding:0; letter-spacing:0.5px; }
@@ -313,15 +316,11 @@
                 <span style="font-size:0.85rem;line-height:1;">💲</span>
                 <span id="stock-valoracion-mini-valor" style="font-size:0.72rem;font-weight:700;color:var(--verde);white-space:nowrap;line-height:1.2;">0€</span>
             </div>
-            <!-- 12/09/2026: añadida una 3ª línea con el saldo entre socios (deuda real en
-                 caja), a petición de Patry — se mantienen los dos datos porque son cosas
-                 distintas: arriba, cuánto cobraría cada uno si se vendiera hoy TODO el
-                 stock; abajo, la deuda actual en efectivo entre ambos -->
-            <!-- 12/09/2026: Patry no quería ver la proyección Martín/Patry (cuánto cobraría
-                 cada uno si se vendiera todo el stock hoy) — solo el saldo real entre socios
-                 (la deuda pendiente), en el mismo azul que en Historial de caja. -->
+            <!-- 12/09/2026: solo el saldo real entre socios (la deuda pendiente), en el mismo
+                 azul que en Historial de caja. Tamaño subido (0.78rem→0.95rem) a petición de
+                 Patry para que se vea mejor, sin llegar a competir con el icono 🐢 (1.1rem). -->
             <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:center;gap:0;min-width:0;overflow:hidden;justify-self:center;">
-                <div style="font-size:0.78rem;color:var(--azul);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;line-height:1.2;" id="stock-saldo-mini"></div>
+                <div style="font-size:0.95rem;color:var(--azul);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;line-height:1.2;" id="stock-saldo-mini"></div>
             </div>
             <div id="btn-ver-especies" style="display:flex;align-items:center;gap:5px;cursor:pointer;min-width:0;justify-self:end;" onclick="toggleEspecies()">
                 <span id="icon-ver-especies" style="font-size:1.1rem;">🐢</span>
