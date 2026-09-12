@@ -300,6 +300,7 @@
             <div id="ah-palabra" style="margin-bottom:12px;display:flex;flex-wrap:wrap;justify-content:center;row-gap:8px;column-gap:10px;"></div>
             <div id="ah-teclado" style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-bottom:10px;"></div>
             <button class="btn-mini" id="ah-btn-pista" onclick="ahPista()" style="margin-bottom:8px;">💡 PISTA (<span id="ah-pistas-restantes">3</span>)</button>
+            <div id="ah-pistas-texto" style="margin-bottom:4px;"></div>
             <div id="ah-mensaje" style="font-size:0.8rem;color:var(--verde);font-weight:700;min-height:18px;margin-bottom:4px;"></div>
             <div style="font-size:0.68rem;color:var(--texto2);text-decoration:underline;cursor:pointer;" onclick="ahMostrarCampoDirecto()">¿Ya sabes la contraseña? Escríbela</div>
         </div>
@@ -1252,7 +1253,14 @@
     // "amo a pedro sanchez" sin espacios, agrupada en 4 palabras para pintar los huecos.
     var AH_PALABRA = 'amoapedrosanchez';
     var AH_GRUPOS  = [3,1,5,7];
-    var AH_MAX_PISTAS = 3;
+    // 12/09/2026: las pistas ya no regalan una letra — son frases de texto que apuntan
+    // al significado de la contraseña, elegidas por Patry.
+    var AH_PISTAS_TEXTO = [
+        'ES TU QUERIDO LÍDER.',
+        'ESTÁ HACIENDO GRANDE ESPAÑA.',
+        'LO AMAS.'
+    ];
+    var AH_MAX_PISTAS = AH_PISTAS_TEXTO.length;
     // 12/09/2026: ahorcado "de verdad" — 6 fallos y la cabeza explota; si llega ahí,
     // el juego se reinicia entero desde cero (vuelve a tapar todas las letras).
     var AH_CARAS = ['🙂','😬','😯','😨','😰','😱','🤯'];
@@ -1271,6 +1279,8 @@
         _ahBloqueado = false;
         var msg = document.getElementById('ah-mensaje');
         if (msg) { msg.textContent = ''; msg.style.color = 'var(--verde)'; }
+        var pistasEl = document.getElementById('ah-pistas-texto');
+        if (pistasEl) pistasEl.innerHTML = '';
     }
 
     // 12/09/2026: cada palabra va envuelta en su propio bloque "de una pieza"
@@ -1344,14 +1354,13 @@
     window.ahPista = function() {
         if (_ahBloqueado) return;
         if (_ahPistas >= AH_MAX_PISTAS) return;
-        var unicas = Array.from(new Set(AH_PALABRA.split('')));
-        var restantes = unicas.filter(function(l) { return !_ahAcertadas.has(l); });
-        if (!restantes.length) return;
-        var elegida = restantes[Math.floor(Math.random() * restantes.length)];
-        _ahAcertadas.add(elegida);
+        var texto = AH_PISTAS_TEXTO[_ahPistas];
         _ahPistas++;
+        var pistasEl = document.getElementById('ah-pistas-texto');
+        if (pistasEl) {
+            pistasEl.innerHTML += '<div style="font-size:0.74rem;color:var(--naranja);font-weight:600;margin-top:4px;">💡 ' + texto + '</div>';
+        }
         ahRender();
-        ahComprobarVictoria();
     };
 
     window.ahMostrarCampoDirecto = function() {
