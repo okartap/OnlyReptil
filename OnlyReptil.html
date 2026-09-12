@@ -293,6 +293,16 @@
             <input type="password" id="login-password" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--borde);background:transparent;color:var(--texto);margin-bottom:10px;text-align:center;font-family:Rajdhani,sans-serif;" onkeydown="if(event.key==='Enter')iniciarSesion()">
             <button class="btn-save" style="width:100%;" onclick="iniciarSesion()">ENTRAR</button>
         </div>
+        <!-- 12/09/2026: juego del ahorcado — solo para Martín, broma de Patry. Ver seleccionarUsuario() -->
+        <div id="login-ahorcado" style="display:none;width:100%;max-width:300px;margin:10px auto 0;text-align:center;">
+            <div style="font-size:0.66rem;letter-spacing:1px;color:var(--texto2);margin-bottom:8px;">🔒 ADIVINA LA CONTRASEÑA · FRASE DE 4 PALABRAS</div>
+            <div id="ah-cara" style="font-size:2rem;margin-bottom:4px;line-height:1;">🙂</div>
+            <div id="ah-palabra" style="margin-bottom:12px;display:flex;flex-wrap:wrap;justify-content:center;row-gap:8px;column-gap:10px;"></div>
+            <div id="ah-teclado" style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-bottom:10px;"></div>
+            <button class="btn-mini" id="ah-btn-pista" onclick="ahPista()" style="margin-bottom:8px;">💡 PISTA (<span id="ah-pistas-restantes">3</span>)</button>
+            <div id="ah-mensaje" style="font-size:0.8rem;color:var(--verde);font-weight:700;min-height:18px;margin-bottom:4px;"></div>
+            <div style="font-size:0.68rem;color:var(--texto2);text-decoration:underline;cursor:pointer;" onclick="ahMostrarCampoDirecto()">¿Ya sabes la contraseña? Escríbela</div>
+        </div>
         <div class="login-error" id="login-error"></div>
     </div>
 
@@ -1238,15 +1248,137 @@
     var usuarioActual = null;
     var usuarioSeleccionado = null;
 
+    // ── JUEGO DEL AHORCADO (broma de Patry para Martín) ──────────────
+    // "amo a pedro sanchez" sin espacios, agrupada en 4 palabras para pintar los huecos.
+    var AH_PALABRA = 'amoapedrosanchez';
+    var AH_GRUPOS  = [3,1,5,7];
+    var AH_MAX_PISTAS = 3;
+    // 12/09/2026: ahorcado "de verdad" — 6 fallos y la cabeza explota; si llega ahí,
+    // el juego se reinicia entero desde cero (vuelve a tapar todas las letras).
+    var AH_CARAS = ['🙂','😬','😯','😨','😰','😱','🤯'];
+    var AH_MAX_FALLOS = AH_CARAS.length - 1;
+    var _ahAcertadas = new Set();
+    var _ahFalladas  = new Set();
+    var _ahFallos = 0;
+    var _ahPistas = 0;
+    var _ahBloqueado = false;
+
+    function ahReset() {
+        _ahAcertadas = new Set();
+        _ahFalladas  = new Set();
+        _ahFallos = 0;
+        _ahPistas = 0;
+        _ahBloqueado = false;
+        var msg = document.getElementById('ah-mensaje');
+        if (msg) { msg.textContent = ''; msg.style.color = 'var(--verde)'; }
+    }
+
+    // 12/09/2026: cada palabra va envuelta en su propio bloque "de una pieza"
+    // (display:inline-flex, sin wrap dentro) para que, si no cabe una línea entera,
+    // salte ENTERA a la siguiente en vez de partirse una palabra por la mitad.
+    function ahRenderPalabraHtml() {
+        var idx = 0;
+        var grupos = AH_GRUPOS.map(function(len) {
+            var letrasHtml = '';
+            for (var i=0;i<len;i++) {
+                var letra = AH_PALABRA[idx];
+                var visible = _ahAcertadas.has(letra);
+                letrasHtml += '<span style="display:inline-block;min-width:15px;border-bottom:3px solid var(--azul);margin:0 1px;text-align:center;font-size:1.1rem;font-weight:700;color:var(--texto);">' + (visible ? letra.toUpperCase() : '&nbsp;') + '</span>';
+                idx++;
+            }
+            return '<span style="display:inline-flex;white-space:nowrap;">' + letrasHtml + '</span>';
+        });
+        return grupos.join('');
+    }
+
+    function ahRenderTecladoHtml() {
+        var letras = 'abcdefghijklmnopqrstuvwxyz'.split('');
+        return letras.map(function(l) {
+            var bg = 'var(--fondo)', color = 'var(--texto)', borde = 'var(--borde)', disabled = '';
+            if (_ahAcertadas.has(l)) { bg='rgba(76,175,80,0.25)'; color='var(--verde)'; borde='var(--verde)'; disabled='disabled'; }
+            else if (_ahFalladas.has(l)) { bg='rgba(239,83,80,0.15)'; color='var(--rojo)'; borde='var(--rojo)'; disabled='disabled'; }
+            return '<button onclick="ahGuess(\'' + l + '\')" ' + disabled + ' style="width:26px;height:30px;border-radius:6px;border:1px solid ' + borde + ';background:' + bg + ';color:' + color + ';font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">' + l.toUpperCase() + '</button>';
+        }).join('');
+    }
+
+    function ahRender() {
+        var elPalabra = document.getElementById('ah-palabra');
+        var elTeclado = document.getElementById('ah-teclado');
+        var elCara = document.getElementById('ah-cara');
+        var elRestantes = document.getElementById('ah-pistas-restantes');
+        var btnPista = document.getElementById('ah-btn-pista');
+        if (elPalabra) elPalabra.innerHTML = ahRenderPalabraHtml();
+        if (elTeclado) elTeclado.innerHTML = ahRenderTecladoHtml();
+        if (elCara) elCara.textContent = AH_CARAS[Math.min(_ahFallos, AH_CARAS.length - 1)];
+        var restantes = AH_MAX_PISTAS - _ahPistas;
+        if (elRestantes) elRestantes.textContent = restantes;
+        if (btnPista) btnPista.style.display = restantes > 0 ? 'inline-block' : 'none';
+    }
+
+    function ahComprobarVictoria() {
+        var unicas = Array.from(new Set(AH_PALABRA.split('')));
+        if (unicas.every(function(l) { return _ahAcertadas.has(l); })) {
+            var msg = document.getElementById('ah-mensaje');
+            if (msg) msg.textContent = '🎉 ¡La has descubierto! Entrando...';
+            document.getElementById('login-password').value = AH_PALABRA;
+            setTimeout(function() { iniciarSesion(); }, 1000);
+        }
+    }
+
+    window.ahGuess = function(letra) {
+        if (_ahBloqueado) return;
+        if (_ahAcertadas.has(letra) || _ahFalladas.has(letra)) return;
+        if (AH_PALABRA.indexOf(letra) !== -1) { _ahAcertadas.add(letra); }
+        else { _ahFalladas.add(letra); _ahFallos++; }
+        ahRender();
+        if (_ahFallos >= AH_MAX_FALLOS) {
+            _ahBloqueado = true;
+            var msg = document.getElementById('ah-mensaje');
+            if (msg) { msg.style.color = 'var(--rojo)'; msg.textContent = '💥 ¡Cabeza explotada! Empezamos de nuevo...'; }
+            setTimeout(function() { ahReset(); ahRender(); }, 1700);
+            return;
+        }
+        ahComprobarVictoria();
+    };
+
+    window.ahPista = function() {
+        if (_ahBloqueado) return;
+        if (_ahPistas >= AH_MAX_PISTAS) return;
+        var unicas = Array.from(new Set(AH_PALABRA.split('')));
+        var restantes = unicas.filter(function(l) { return !_ahAcertadas.has(l); });
+        if (!restantes.length) return;
+        var elegida = restantes[Math.floor(Math.random() * restantes.length)];
+        _ahAcertadas.add(elegida);
+        _ahPistas++;
+        ahRender();
+        ahComprobarVictoria();
+    };
+
+    window.ahMostrarCampoDirecto = function() {
+        document.getElementById('login-ahorcado').style.display = 'none';
+        document.getElementById('login-auth-form').style.display = 'block';
+        setTimeout(function() { document.getElementById('login-password').focus(); }, 50);
+    };
+
     function seleccionarUsuario(nombre) {
         usuarioSeleccionado = nombre;
         document.getElementById('login-error').textContent = '';
         document.getElementById('login-btn-patry').classList.toggle('selected', nombre === 'Patry');
         document.getElementById('login-btn-martin').classList.toggle('selected', nombre === 'Martin');
-        document.getElementById('login-auth-form').style.display = 'block';
         document.getElementById('login-email').value = USUARIOS_EMAIL[nombre];
         document.getElementById('login-password').value = '';
-        setTimeout(() => document.getElementById('login-password').focus(), 50);
+        // 12/09/2026: para Martín, en vez del campo de contraseña normal se abre
+        // el juego del ahorcado — puede saltárselo con el enlace "¿Ya sabes..." de abajo.
+        if (nombre === 'Martin') {
+            document.getElementById('login-auth-form').style.display = 'none';
+            ahReset();
+            document.getElementById('login-ahorcado').style.display = 'block';
+            ahRender();
+        } else {
+            document.getElementById('login-ahorcado').style.display = 'none';
+            document.getElementById('login-auth-form').style.display = 'block';
+            setTimeout(() => document.getElementById('login-password').focus(), 50);
+        }
     }
 
     async function iniciarSesion() {
@@ -1306,6 +1438,7 @@
         document.getElementById('login-btn-patry').classList.remove('selected');
         document.getElementById('login-btn-martin').classList.remove('selected');
         document.getElementById('login-auth-form').style.display = 'none';
+        document.getElementById('login-ahorcado').style.display = 'none';
         document.getElementById('login-password').value = '';
         document.getElementById('login-error').textContent = '';
     }
