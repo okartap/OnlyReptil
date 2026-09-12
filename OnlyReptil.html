@@ -132,7 +132,10 @@
 
         /* 11/09/2026: quitado el borde superior de color a petición de Patry (antes 3px de color distinto por pantalla vía border-top-color inline) — ahora el borde es igual en los 4 lados */
         .seccion-app { display: none; flex-direction: column; background: var(--tarjeta); padding: 20px; border-radius: 14px; border: 1px solid var(--borde); margin-top: 8px; }
-        .titulo-centrado { text-align: center; font-weight: 700; font-size: 1rem; letter-spacing: 2px; margin-bottom: 16px; color: var(--texto); }
+        .titulo-centrado { position: relative; text-align: center; font-weight: 700; font-size: 1rem; letter-spacing: 2px; margin-bottom: 16px; color: var(--texto); }
+        /* 12/09/2026: flecha de volver arriba a la izquierda del título, para no tener
+           que bajar hasta el final de la pantalla cada vez que se quiere salir */
+        .btn-volver-header { position: absolute; left: 0; top: 50%; transform: translateY(-50%); font-size: 1.1rem; color: var(--texto2); cursor: pointer; letter-spacing: 0; font-weight: 700; }
 
         .form-group { width: 100%; margin-bottom: 12px; text-align: center; }
         .campo-row { display: flex; gap: 12px; }
@@ -151,7 +154,10 @@
         .tab.active     { background: var(--verde); color: #0a0a0a; border-color: var(--verde); }
         .tab.bio-active { background: var(--azul);  color: #0a0a0a; border-color: var(--azul); }
 
-        .lista-hist { display: none; flex-direction: column; gap: 6px; max-height: 45vh; overflow-y: auto; }
+        /* 12/09/2026: quitado max-height + overflow-y — dejaba una caja de scroll interna
+           que recortaba la lista y dejaba hueco muerto debajo; ahora la pantalla entera
+           hace scroll de forma natural, igual que Inicio. */
+        .lista-hist { display: none; flex-direction: column; gap: 6px; }
         .lista-hist.active { display: flex; }
         .item-hist { display: flex; align-items: center; gap: 10px; background: var(--tarjeta2); padding: 10px 12px; border-radius: 9px; border: 1px solid var(--borde); font-size: 0.85rem; }
         .item-hist .item-main { flex: 1; min-width: 0; text-align: left; }
@@ -249,7 +255,8 @@
         .chip-num { font-family: 'Rajdhani', monospace; letter-spacing: 1px; font-size: 1rem; font-weight: 700; }
         .chip-meta { font-size: 0.7rem; color: var(--texto2); margin-top: 2px; }
         .btn-borrar-chip { background: none; border: none; color: var(--rojo); cursor: pointer; font-size: 0.9rem; padding: 2px 6px; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
-        .chips-lista-scroll { max-height: 38vh; overflow-y: auto; }
+        /* 12/09/2026: mismo motivo que .lista-hist — sin caja de scroll interna */
+        .chips-lista-scroll { }
         .add-chips-box { background: var(--fondo); border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--borde); }
         .add-chips-titulo { font-size: 0.68rem; letter-spacing: 1.5px; color: var(--texto2); font-weight: 700; margin-bottom: 10px; text-align: center; }
         .chips-modo-row { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -310,10 +317,11 @@
                  caja), a petición de Patry — se mantienen los dos datos porque son cosas
                  distintas: arriba, cuánto cobraría cada uno si se vendiera hoy TODO el
                  stock; abajo, la deuda actual en efectivo entre ambos -->
-            <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:center;gap:1px;min-width:0;overflow:hidden;justify-self:center;">
-                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;" id="stock-reparto-martin">Martín: —</div>
-                <div style="font-size:0.68rem;color:var(--verde);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;" id="stock-reparto-patry">Patry: —</div>
-                <div style="font-size:0.6rem;color:var(--texto2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;margin-top:1px;" id="stock-saldo-mini"></div>
+            <!-- 12/09/2026: Patry no quería ver la proyección Martín/Patry (cuánto cobraría
+                 cada uno si se vendiera todo el stock hoy) — solo el saldo real entre socios
+                 (la deuda pendiente), en el mismo azul que en Historial de caja. -->
+            <div id="stock-reparto-socios" style="display:none;flex-direction:column;align-items:center;gap:0;min-width:0;overflow:hidden;justify-self:center;">
+                <div style="font-size:0.78rem;color:var(--azul);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center;line-height:1.2;" id="stock-saldo-mini"></div>
             </div>
             <div id="btn-ver-especies" style="display:flex;align-items:center;gap:5px;cursor:pointer;min-width:0;justify-self:end;" onclick="toggleEspecies()">
                 <span id="icon-ver-especies" style="font-size:1.1rem;">🐢</span>
@@ -360,7 +368,7 @@
     </div>
 
     <div id="form-puesta" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);">🥚 NUEVA PUESTA</div>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🥚 NUEVA PUESTA</div>
         <div class="form-group">
             <label>Pareja</label>
             <select id="p-pareja" onchange="actualizarInfoPareja()">
@@ -391,7 +399,7 @@
     </div>
 
     <div id="form-nacimiento" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);">🐢 ECLOSIÓN / NACIMIENTO</div>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🐢 ECLOSIÓN / NACIMIENTO</div>
         <div class="form-group"><label>Especie</label><select id="n-especie"><option value="Sulcata">Sulcata</option><option value="Radiata">Radiata</option><option value="Rusa">Rusa</option><option value="Pardalis">Pardalis</option><option value="Carbonaria">Carbonaria</option></select></div>
         <div class="form-group"><label>Cantidad</label><input type="number" id="n-cant" value="1" min="1"></div>
         <button class="btn-save" id="btn-guardar-nacimiento" onclick="guardarNacimiento()" style="background:var(--azul);color:#0a0a0a;">SUMAR AL STOCK</button>
@@ -399,7 +407,7 @@
     </div>
 
     <div id="form-gasto" class="seccion-app" style="border-top-color:var(--rojo);">
-        <div class="titulo-centrado" style="color:var(--rojo);">－ NUEVO GASTO</div>
+        <div class="titulo-centrado" style="color:var(--rojo);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>－ NUEVO GASTO</div>
         <div class="form-group"><label>Concepto</label>
             <select id="g-categoria" onchange="toggleGastoOtros()">
                 <option value="Otros">📋 Otros</option>
@@ -421,7 +429,7 @@
     </div>
 
     <div id="form-ingreso" class="seccion-app" style="border-top-color:var(--verde);">
-        <div class="titulo-centrado" style="color:var(--verde);">＋ NUEVO INGRESO</div>
+        <div class="titulo-centrado" style="color:var(--verde);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>＋ NUEVO INGRESO</div>
         <div class="form-group"><label>Cliente</label><select id="i-cliente"></select></div>
         <div class="form-group"><label>Producto / Especie</label>
             <select id="i-especie" onchange="toggleOtrosIngreso()">
@@ -441,7 +449,7 @@
     </div>
 
     <div id="pantalla-clientes" class="seccion-app" style="border-top-color:var(--naranja);">
-        <div class="titulo-centrado" style="color:var(--naranja);">👤 CLIENTES</div>
+        <div class="titulo-centrado" style="color:var(--naranja);"><span class="btn-volver-header" onclick="irA('form-ingreso')">←</span>👤 CLIENTES</div>
 
         <div id="cliente-form-box" style="background:var(--tarjeta);border-radius:10px;padding:14px;border:1px solid var(--borde);margin-bottom:14px;">
             <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:10px;" id="cliente-form-titulo">＋ NUEVO CLIENTE</div>
@@ -505,7 +513,7 @@
     </div>
 
     <div id="pantalla-electricidad" class="seccion-app" style="border-top-color:#f9a825;">
-        <div class="titulo-centrado" style="color:#f9a825;">⚡ LECTURA DE LUZ</div>
+        <div class="titulo-centrado" style="color:#f9a825;"><span class="btn-volver-header" onclick="irA('pantalla-caja')">←</span>⚡ LECTURA DE LUZ</div>
 
         <!-- Última lectura confirmada -->
         <div class="elec-ultima-box" id="elec-ultima-box">
@@ -543,7 +551,7 @@
 
     <!-- PyN NUEVO (prueba) — todo el trámite de cada puesta en un único sitio -->
     <div id="pantalla-pyn2" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);">🧪 PyN NUEVO · PRUEBA</div>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🧪 PyN NUEVO · PRUEBA</div>
         <div style="font-size:0.7rem;color:var(--texto2);margin:-8px 0 12px;line-height:1.5;">Pantalla de prueba: reúne aquí la notificación a MITECO, el nacimiento, el certificado veterinario, el CSV y los papeles de cada puesta, ordenadas por fecha. El PyN de siempre sigue funcionando igual.</div>
         <div style="display:flex;gap:6px;margin-bottom:12px;">
             <button class="btn-mini" onclick="pyn2CrearPruebaPuesta()">🧪 CREAR PUESTA DE PRUEBA</button>
@@ -578,7 +586,7 @@
 
     <!-- TODAS LAS ESPECIES -->
     <div id="pantalla-especies" class="seccion-app" style="border-top-color:var(--verde);">
-        <div class="titulo-centrado">🐢 STOCK POR ESPECIE</div>
+        <div class="titulo-centrado"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🐢 STOCK POR ESPECIE</div>
 
         <div id="lista-especies"></div>
 
@@ -598,7 +606,7 @@
 
     <!-- MÓDULO PARENTALES -->
     <div id="pantalla-parentales" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);">🐢 PLANTEL DE CRIADORES</div>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🐢 PLANTEL DE CRIADORES</div>
 
         <!-- Filtro especie -->
         <div class="form-group" style="margin-bottom:10px;">
@@ -616,7 +624,7 @@
         </div>
 
         <!-- Lista -->
-        <div id="parentales-lista" style="max-height:42vh;overflow-y:auto;margin-bottom:12px;"></div>
+        <div id="parentales-lista" style="margin-bottom:12px;"></div>
 
         <!-- Botón flotante + -->
         <button id="btn-fab-parental" onclick="abrirFormParental()" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--azul);color:#0a0a0a;font-size:2rem;font-weight:300;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(100,181,246,0.55);z-index:200;display:none;align-items:center;justify-content:center;line-height:1;padding:0;">+</button>
@@ -647,7 +655,7 @@
 
     <!-- MÓDULO CHIPS -->
     <div id="pantalla-chips" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);">💉 GESTIÓN DE MICROCHIPS</div>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>💉 GESTIÓN DE MICROCHIPS</div>
 
         <!-- Contadores -->
         <div class="chips-contador">
@@ -783,7 +791,7 @@
 <!-- PANTALLA HISTORIAL DE CAMBIOS -->
 <!-- MÓDULO CESIÓN -->
 <div id="pantalla-cesion" class="seccion-app" style="border-top-color:var(--verde);">
-    <div class="titulo-centrado" style="color:var(--verde);">📄 DOCUMENTO DE CESIÓN</div>
+    <div class="titulo-centrado" style="color:var(--verde);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>📄 DOCUMENTO DE CESIÓN</div>
 
     <!-- PASO 1: Animal -->
     <div style="background:var(--tarjeta);border-radius:10px;padding:14px;border:1px solid var(--borde);margin-bottom:12px;text-align:center;">
@@ -871,14 +879,14 @@
 </div>
 
 <div id="pantalla-auditoria" class="seccion-app" style="border-top-color:var(--texto2);">
-    <div class="titulo-centrado" style="color:var(--texto2);">📋 HISTORIAL DE CAMBIOS</div>
+    <div class="titulo-centrado" style="color:var(--texto2);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>📋 HISTORIAL DE CAMBIOS</div>
     <div id="auditoria-filtros" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
         <button onclick="filtrarAuditoria('todo')" id="aud-f-todo" class="tab active" style="flex:1;">TODOS</button>
         <button onclick="filtrarAuditoria('nuevo')" id="aud-f-nuevo" class="tab" style="flex:1;">NUEVOS</button>
         <button onclick="filtrarAuditoria('edicion')" id="aud-f-edicion" class="tab" style="flex:1;">EDICIONES</button>
         <button onclick="filtrarAuditoria('borrado')" id="aud-f-borrado" class="tab" style="flex:1;">BORRADOS</button>
     </div>
-    <div id="auditoria-lista" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+    <div id="auditoria-lista" style="display:flex;flex-direction:column;gap:6px;"></div>
     <div style="display:flex;gap:8px;margin-top:12px;">
         <select id="informe-mes" style="flex:1;padding:9px 10px;border-radius:8px;background:var(--fondo);color:var(--texto);border:1px solid var(--borde);font-family:Rajdhani,sans-serif;font-size:0.85rem;font-weight:600;"></select>
         <select id="informe-anyo" style="width:90px;padding:9px 10px;border-radius:8px;background:var(--fondo);color:var(--texto);border:1px solid var(--borde);font-family:Rajdhani,sans-serif;font-size:0.85rem;font-weight:600;"></select>
@@ -1967,17 +1975,14 @@
         if (saldoDetalle) saldoDetalle.textContent = diff > 0.005 ? `${deudor} debe a ${acreedor}` : '';
         // Mismo dato (saldo real en caja) también en miniatura, en Inicio
         const stockSaldoMini = document.getElementById('stock-saldo-mini');
-        if (stockSaldoMini) stockSaldoMini.textContent = diff > 0.005 ? `Saldo: ${deudor} debe ${fmt(diff)}` : 'Saldo: al día ✅';
+        const stockRepartoSocios = document.getElementById('stock-reparto-socios');
+        if (stockSaldoMini) stockSaldoMini.textContent = diff > 0.005 ? `${deudor} debe ${fmt(diff)}` : 'Saldo: al día ✅';
+        if (stockRepartoSocios) stockRepartoSocios.style.display = 'flex';
         // Mostrar botón saldo solo en pantalla-caja y solo si hay deuda
         const btnSaldo = document.getElementById('btn-saldo-socios');
         if (btnSaldo) btnSaldo.style.display = diff > 0.005 ? 'inline-block' : 'none';
         // Guardar estado del balance para usarlo en el modal
         window._balanceSaldo = { diff, deudor, acreedor, netoM, netoP };
-        // Refrescar reparto socios en stock-bar con el balance actualizado
-        const totalStockActual = window._stockData ? window._stockData.reduce((s,e) => {
-            return s + e.nacidos * parseFloat((window._preciosEspecie || {})[e.nombre] || 0);
-        }, 0) : 0;
-        actualizarRepartoSocios(totalStockActual);
         renderCaja();
     }
 
@@ -2036,8 +2041,6 @@
         // Actualizar mini valor en stock-bar
         const miniEl = document.getElementById('stock-valoracion-mini-valor');
         if (miniEl) miniEl.textContent = fmtVal(total);
-        // Calcular cuánto cobraría cada socio si se vende todo el stock
-        actualizarRepartoSocios(total);
     }
 
     window.editarNombreCientifico = async function(nombre) {
@@ -2109,28 +2112,6 @@
         const parts = n.toFixed(2).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         return parts[0] + ',' + parts[1] + '€';
-    }
-
-    // Calcula cuánto cobraría cada socio si se vendiese todo el stock ahora
-    function actualizarRepartoSocios(totalStock) {
-        const divReparto = document.getElementById('stock-reparto-socios');
-        const elMartin   = document.getElementById('stock-reparto-martin');
-        const elPatry    = document.getElementById('stock-reparto-patry');
-        if (!divReparto || !elMartin || !elPatry) return;
-        if (totalStock <= 0) { divReparto.style.display = 'none'; return; }
-        const mitad = totalStock / 2;
-        const bal   = window._balanceSaldo || { diff: 0, deudor: '', acreedor: '' };
-        // Si Martín debe a Patry: Martín cobra mitad + deuda, Patry cobra mitad - deuda
-        // Si Patry debe a Martín: Patry cobra mitad + deuda, Martín cobra mitad - deuda
-        let cobraMartin = mitad;
-        let cobraPatry  = mitad;
-        if (bal.diff > 0.005) {
-            if (bal.deudor === 'Martín')   { cobraMartin += bal.diff; cobraPatry  -= bal.diff; }
-            else                           { cobraPatry  += bal.diff; cobraMartin -= bal.diff; }
-        }
-        elMartin.textContent = 'Martín: ' + fmtVal(cobraMartin);
-        elPatry.textContent  = 'Patry: '  + fmtVal(cobraPatry);
-        divReparto.style.display = 'flex';
     }
 
     // ── MODAL SALDO ENTRE SOCIOS ──────────────────────────────────
