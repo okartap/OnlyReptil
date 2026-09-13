@@ -386,6 +386,10 @@
             </select>
             <button type="button" onclick="irA('pantalla-parentales')" style="margin-top:8px;width:100%;padding:9px;border-radius:8px;border:1px dashed var(--borde);background:transparent;color:var(--texto2);font-family:Rajdhani,sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;letter-spacing:0.5px;">＋ CREAR NUEVA PAREJA</button>
         </div>
+        <!-- 13/09/2026: vista de apoyo — de un vistazo, todas las parejas ordenadas por
+             urgencia (arriba la que más tiempo lleva sin poner), con su última puesta,
+             huevos y si ya está lista o aún le faltan días. Tocar una fila la selecciona. -->
+        <div id="p-parejas-resumen" style="margin-bottom:14px;display:none;"></div>
         <div id="p-especie-info" style="font-size:0.78rem;color:var(--texto2);margin:-6px 0 10px 0;text-align:center;display:none;">
             🐢 Especie: <span id="p-especie-nombre" style="font-weight:700;color:var(--azul);"></span>
         </div>
@@ -1896,6 +1900,61 @@
         }).join('') || '<p class="msg-vacio">Sin datos aún</p>';
     }
 
+    // 13/09/2026: sistema de seguridad para no confundir la pareja al registrar una
+    // puesta — mínimo de días biológico entre 2 puestas de la misma pareja.
+    var PUESTA_DIAS_MINIMOS = 25;
+
+    function calcularEstadoPareja(pareja) {
+        const puestas = histBio
+            .filter(b => b.tipo === 'puesta' && (b.nombrePareja === pareja.nombre || b.idPareja === pareja.id))
+            .sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+        const ultima = puestas.length ? puestas[puestas.length-1] : null;
+        const dias = ultima ? Math.floor((Date.now() - (ultima.timestamp||0)) / 86400000) : Infinity;
+        return { pareja, ultima, dias };
+    }
+
+    // Ordena de más urgente (nunca ha puesto, o más días esperando) a menos urgente.
+    function calcularEstadoParejas() {
+        return parejasData.map(calcularEstadoPareja).sort((a,b) => {
+            if (a.dias === Infinity && b.dias === Infinity) return a.pareja.nombre.localeCompare(b.pareja.nombre);
+            if (a.dias === Infinity) return -1;
+            if (b.dias === Infinity) return 1;
+            if (a.dias !== b.dias) return b.dias - a.dias;
+            return a.pareja.nombre.localeCompare(b.pareja.nombre);
+        });
+    }
+
+    function renderResumenParejas(estados) {
+        const cont = document.getElementById('p-parejas-resumen');
+        if (!cont) return;
+        if (!estados.length) { cont.innerHTML = ''; cont.style.display = 'none'; return; }
+        cont.style.display = 'block';
+        cont.innerHTML = estados.map(est => {
+            const p = est.pareja;
+            const color = getColorEspecie(p.especie);
+            const lista = est.dias === Infinity || est.dias >= PUESTA_DIAS_MINIMOS;
+            const diasTxt = est.dias === Infinity ? 'Nunca ha puesto' : `Hace ${est.dias} día${est.dias===1?'':'s'}`;
+            const huevosTxt = est.ultima ? `${est.ultima.cant} huevos` : '—';
+            const badge = lista
+                ? '<span style="color:var(--verde);font-weight:700;">✅ LISTA</span>'
+                : `<span style="color:var(--naranja);font-weight:700;">⏳ Faltan ${PUESTA_DIAS_MINIMOS - est.dias}</span>`;
+            return `<div onclick="seleccionarParejaDesdeResumen('${p.id}')" style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--tarjeta2);border-radius:9px;padding:8px 10px;margin-bottom:6px;cursor:pointer;">
+                <div style="min-width:0;">
+                    <div style="font-weight:700;font-size:0.82rem;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nombre} <span style="color:var(--texto2);font-weight:400;font-size:0.7rem;">· ${p.especie}</span></div>
+                    <div style="font-size:0.7rem;color:var(--texto2);">${diasTxt} · ${huevosTxt}</div>
+                </div>
+                <div style="font-size:0.68rem;text-align:right;white-space:nowrap;">${badge}</div>
+            </div>`;
+        }).join('');
+    }
+
+    window.seleccionarParejaDesdeResumen = function(id) {
+        const sel = document.getElementById('p-pareja');
+        if (!sel) return;
+        sel.value = id;
+        actualizarInfoPareja();
+    };
+
     function cargarTodasParejas() {
         const selPareja = document.getElementById('p-pareja');
         if (!selPareja) return;
@@ -1905,24 +1964,33 @@
             document.getElementById('p-eclosion-info').style.display = 'none';
             document.getElementById('p-especie-info').style.display = 'none';
             document.getElementById('p-id-puesta').value = '';
+            renderResumenParejas([]);
             return;
         }
         const valorActual = selPareja.value;
-        // 11/09/2026: a petición de Patry ya NO se preselecciona ninguna pareja por
-        // defecto (podía llevar a registrar una puesta a la pareja equivocada sin
-        // querer) — el desplegable arranca siempre en "— Selecciona pareja —" salvo
-        // que ya hubiera una selección en curso (p.ej. al recargarse la lista con el
-        // formulario ya abierto, ver el listener de 'parejas' más abajo).
-        selPareja.innerHTML = '<option value="">— Selecciona pareja —</option>' + parejasData
-            .sort((a,b) => a.nombre.localeCompare(b.nombre))
-            .map(p => {
+        // 13/09/2026: el desplegable se ordena poniendo primero la pareja que lleva
+        // más tiempo sin poner (o que nunca ha puesto) — ya no es alfabético. Y si esa
+        // pareja "candidata" ya ha cumplido el mínimo de días, se preselecciona sola,
+        // para no depender de que el usuario se acuerde a quién le toca.
+        const estados = calcularEstadoParejas();
+        selPareja.innerHTML = '<option value="">— Selecciona pareja —</option>' + estados
+            .map(est => {
+                const p = est.pareja;
                 const color = getColorEspecie(p.especie);
                 const sel = p.id === valorActual ? ' selected' : '';
                 const idEsp = p.idEspecimenHembra || p.idEspecimenMacho || '';
                 const idLabel = idEsp ? ` [${idEsp}]` : '';
                 return `<option value="${p.id}" data-nombre="${p.nombre}" data-especie="${p.especie}" data-color="${color}" data-dias="${p.diasIncubacion||90}"${sel}>${p.nombre}${idLabel} · ${p.especie}</option>`;
             }).join('');
-        if (valorActual) selPareja.value = valorActual;
+        if (valorActual) {
+            selPareja.value = valorActual;
+        } else {
+            const candidata = estados[0];
+            if (candidata && (candidata.dias === Infinity || candidata.dias >= PUESTA_DIAS_MINIMOS)) {
+                selPareja.value = candidata.pareja.id;
+            }
+        }
+        renderResumenParejas(estados);
         actualizarInfoPareja();
     }
 
@@ -1989,6 +2057,14 @@
         if (!huevos || huevos < 1) return alert('Introduce el número de huevos');
         const pareja = parejasData.find(p => p.id === parejaId);
         if (!pareja) return alert('Error al obtener los datos de la pareja');
+        // 13/09/2026: aviso de seguridad — si esta pareja ya puso hace menos del
+        // mínimo biológico, se pide confirmación explícita antes de guardar (no se
+        // bloquea del todo, por si hay una excepción real que Patry quiera forzar).
+        const estadoPareja = calcularEstadoPareja(pareja);
+        if (estadoPareja.dias !== Infinity && estadoPareja.dias < PUESTA_DIAS_MINIMOS) {
+            const seguir = confirm(`⚠️ Esta pareja puso hace ${estadoPareja.dias} día${estadoPareja.dias===1?'':'s'} — ¿seguro que quieres registrar otra puesta ahora?`);
+            if (!seguir) return;
+        }
         const fechaIso = getFechaIso('p-fecha');
         const fechaDate = new Date(fechaIso + 'T12:00:00');
         const fecha = isoAEs(fechaIso);
