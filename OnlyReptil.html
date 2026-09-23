@@ -1781,12 +1781,23 @@
     // puesta — mínimo de días biológico entre 2 puestas de la misma pareja.
     var PUESTA_DIAS_MINIMOS = 25;
 
+    // 23/09/2026: se usa la FECHA REAL de la puesta (campo fecha), no el momento en que se
+    // registró en la app — si una puesta se apuntaba con días de retraso, o se registraba una
+    // antigua olvidada, el cálculo de "hace X días" y "a quién le toca" salía mal.
+    function fechaRealPuestaTs(b) {
+        if (b.fecha && b.fecha.split('/').length === 3) {
+            const [d,m,y] = b.fecha.split('/');
+            const t = new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T12:00:00`).getTime();
+            if (!isNaN(t)) return t;
+        }
+        return b.timestamp || 0;
+    }
     function calcularEstadoPareja(pareja) {
         const puestas = histBio
             .filter(b => b.tipo === 'puesta' && (b.nombrePareja === pareja.nombre || b.idPareja === pareja.id))
-            .sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+            .sort((a,b) => fechaRealPuestaTs(a) - fechaRealPuestaTs(b));
         const ultima = puestas.length ? puestas[puestas.length-1] : null;
-        const dias = ultima ? Math.floor((Date.now() - (ultima.timestamp||0)) / 86400000) : Infinity;
+        const dias = ultima ? Math.max(0, Math.floor((Date.now() - fechaRealPuestaTs(ultima)) / 86400000)) : Infinity;
         return { pareja, ultima, dias };
     }
 
@@ -1892,7 +1903,7 @@
         // Última puesta de esta pareja — busca por nombrePareja (fiable) o idPareja
         const puestasPareja = histBio
             .filter(b => b.tipo === 'puesta' && (b.nombrePareja === nombrePareja || b.idPareja === opt.value))
-            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            .sort((a, b) => fechaRealPuestaTs(a) - fechaRealPuestaTs(b));
         const ultima = puestasPareja.length > 0 ? puestasPareja[puestasPareja.length - 1] : null;
         const boxUltima = document.getElementById('p-ultima-puesta');
         if (ultima) {
@@ -1913,6 +1924,8 @@
         actualizarIdPuesta();
     }
 
+    // 23/09/2026: expuesta en window — el HTML la llama desde onchange (antes daba error)
+    window.actualizarIdPuesta = actualizarIdPuesta;
     function actualizarIdPuesta() {
         const selPareja = document.getElementById('p-pareja');
         const opt = selPareja ? selPareja.options[selPareja.selectedIndex] : null;
@@ -2039,7 +2052,7 @@
         return new Date(iso + 'T12:00:00').getTime();
     }
 
-    window.guardarMovimiento=async function(tipo){ const pref=tipo==='gasto'?'g-':'i-',monto=parseFloat(document.getElementById(pref+'monto').value),socio=document.getElementById(pref+'socio').value; if(!monto||monto<=0) return alert("Introduce un importe válido"); const fechaIso=getFechaIso(pref+'fecha'); const fechaEs=isoAEs(fechaIso); let datos={tipo,socio,monto,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}; if(tipo==='ingreso'){const especie=document.getElementById('i-especie').value,cant=parseInt(document.getElementById('i-cant').value),cliente=document.getElementById('i-cliente').value||"Sin cliente",concepto=especie==='Otros'?(document.getElementById('i-otros-concepto').value||'Otros'):especie; datos.especie=especie;datos.cant=cant;datos.cliente=cliente;datos.detalle=`${concepto} x${cant} · ${cliente}`;}else{const cat=document.getElementById('g-categoria').value; datos.categoria=cat; if(cat==='Compra de animales'){ const especie=document.getElementById('g-especie').value, cant=parseInt(document.getElementById('g-cant').value)||0; if(!especie||cant<=0) return alert('Elige especie y cantidad válidas'); datos.especie=especie; datos.cant=cant; datos.detalle=`Compra ${especie} x${cant}`; } else { datos.detalle=cat==='Otros'?(document.getElementById('g-concepto').value||'Otros'):cat; } } setBotones(true); try{await addDoc(collection(db,"caja"),datos);registrarAuditoria('nuevo','caja',`${datos.tipo==='ingreso'?'Ingreso':'Gasto'}: ${fmt(monto)} · ${datos.detalle}`);finalizar('DINERO',`${fmt(monto)} registrados`);}catch(err){alert("Error: "+err.message);setBotones(false);} }
+    window.guardarMovimiento=async function(tipo){ const pref=tipo==='gasto'?'g-':'i-',monto=parseFloat(document.getElementById(pref+'monto').value),socio=document.getElementById(pref+'socio').value; if(!monto||monto<=0) return alert("Introduce un importe válido"); const fechaIso=getFechaIso(pref+'fecha'); const fechaEs=isoAEs(fechaIso); let datos={tipo,socio,monto,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}; if(tipo==='ingreso'){const especie=document.getElementById('i-especie').value,cant=parseInt(document.getElementById('i-cant').value),cliente=document.getElementById('i-cliente').value||"Sin cliente",concepto=especie==='Otros'?(document.getElementById('i-otros-concepto').value||'Otros'):especie; if(especie!=='Otros'&&(!cant||cant<1)) return alert('Introduce una cantidad de animales válida'); datos.especie=especie;datos.cant=cant;datos.cliente=cliente;datos.detalle=`${concepto} x${cant} · ${cliente}`;}else{const cat=document.getElementById('g-categoria').value; datos.categoria=cat; if(cat==='Compra de animales'){ const especie=document.getElementById('g-especie').value, cant=parseInt(document.getElementById('g-cant').value)||0; if(!especie||cant<=0) return alert('Elige especie y cantidad válidas'); datos.especie=especie; datos.cant=cant; datos.detalle=`Compra ${especie} x${cant}`; } else { datos.detalle=cat==='Otros'?(document.getElementById('g-concepto').value||'Otros'):cat; } } setBotones(true); try{await addDoc(collection(db,"caja"),datos);registrarAuditoria('nuevo','caja',`${datos.tipo==='ingreso'?'Ingreso':'Gasto'}: ${fmt(monto)} · ${datos.detalle}`);finalizar('DINERO',`${fmt(monto)} registrados`);}catch(err){alert("Error: "+err.message);setBotones(false);} }
 
     window.eliminarRegistro=async function(id){ if(!confirm("¿Eliminar este registro?")) return; const reg=historico.find(h=>h.id===id); await deleteDoc(doc(db,"caja",id)); if(reg) registrarAuditoria("borrado","caja",`${reg.tipo==="ingreso"?"Ingreso":"Gasto"}: ${fmt(reg.monto)} · ${reg.detalle}`); }
     window.abrirEditar=function(id,detalle,monto,socio,fechaIso){ document.getElementById('edit-id').value=id; document.getElementById('edit-detalle').value=detalle; document.getElementById('edit-monto').value=monto; document.getElementById('edit-socio').value=socio; setFechaFromIso('edit-fecha', fechaIso||''); document.getElementById('modal-editar').classList.add('active'); }
@@ -2696,7 +2709,7 @@
         document.getElementById('l-'+t).classList.add('active');
         if (t === 'r') renderInformes();
     }
-    function renderCaja(){ const la=document.getElementById('l-a'),lg=document.getElementById('l-g'),li=document.getElementById('l-i'); if(!la) return; la.innerHTML=lg.innerHTML=li.innerHTML=""; if(historico.length===0){la.innerHTML='<p class="msg-vacio">Sin movimientos aún</p>';return;} historico.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(h=>{ const fechaIso=h.fechaIso||''; const esGasto=h.tipo==='gasto',color=esGasto?'var(--rojo)':'var(--verde)',signo=esGasto?'−':'+'; const html=`<div class="item-hist"><div class="item-main"><div class="item-detalle">${h.detalle}</div><div class="item-meta">${h.socio} · ${h.fecha}</div></div><div class="item-monto" style="color:${color}">${signo} ${fmt(h.monto)}</div><div class="item-acciones"><button class="btn-item btn-editar btn-ic" onclick="abrirEditar('${h.id}','${h.detalle.replace(/'/g,"\\'")}',${h.monto},'${h.socio}','${fechaIso}')">✏️</button><button class="btn-item btn-borrar btn-ic" onclick="eliminarRegistro('${h.id}')">🗑️</button></div></div>`; la.innerHTML+=html; if(esGasto) lg.innerHTML+=html; else li.innerHTML+=html; }); }
+    function renderCaja(){ const la=document.getElementById('l-a'),lg=document.getElementById('l-g'),li=document.getElementById('l-i'); if(!la) return; la.innerHTML=lg.innerHTML=li.innerHTML=""; if(historico.length===0){la.innerHTML='<p class="msg-vacio">Sin movimientos aún</p>';return;} historico.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(h=>{ const fechaIso=h.fechaIso||''; const esGasto=h.tipo==='gasto',color=esGasto?'var(--rojo)':'var(--verde)',signo=esGasto?'−':'+'; const html=`<div class="item-hist"><div class="item-main"><div class="item-detalle">${h.detalle}</div><div class="item-meta">${h.socio} · ${h.fecha}</div></div><div class="item-monto" style="color:${color}">${signo} ${fmt(h.monto)}</div><div class="item-acciones"><button class="btn-item btn-editar btn-ic" onclick="abrirEditar('${h.id}','${String(h.detalle||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${h.monto},'${h.socio}','${fechaIso}')">✏️</button><button class="btn-item btn-borrar btn-ic" onclick="eliminarRegistro('${h.id}')">🗑️</button></div></div>`; la.innerHTML+=html; if(esGasto) lg.innerHTML+=html; else li.innerHTML+=html; }); }
 
     window._pynFiltro = 'pendientes';
     window.setPynFiltro = function(f) {
@@ -2935,10 +2948,19 @@
         return { aplica: true, listo, chips };
     }
 
+    // 23/09/2026: nacimientos de una puesta — por el enlace real (idPuestaOrigen) o, para
+    // nacimientos antiguos guardados sin ese campo, por el identificador de texto de la puesta
+    // (mismo criterio que ya usan getAnimalesPorPuestas y el stock). Antes PyN NUEVO solo
+    // miraba idPuestaOrigen y esas puestas antiguas se quedaban para siempre "esperando eclosión".
+    function pyn2NacsDePuesta(p) {
+        const clave = p.idPuesta || p.detalle;
+        return histBio.filter(n => n.tipo === 'nacimiento' &&
+            (n.idPuestaOrigen ? n.idPuestaOrigen === p.id : (!!clave && n.idPuesta === clave)));
+    }
     function pyn2EstadoPuesta(p) {
-        const nacsPropios = histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === p.id);
+        const nacsPropios = pyn2NacsDePuesta(p);
         const otraPuesta  = p.combinadaCon ? histBio.find(x => x.id === p.combinadaCon) : null;
-        const nacsOtra    = otraPuesta ? histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === otraPuesta.id) : [];
+        const nacsOtra    = otraPuesta ? pyn2NacsDePuesta(otraPuesta) : [];
         const todosNacs   = nacsPropios.concat(nacsOtra);
         const totalNacidos = nacsPropios.reduce((s,n) => s + (parseInt(n.cant)||0), 0);
 
@@ -2957,9 +2979,11 @@
     // Días transcurridos desde que se envió el CSV a MITECO (el más antiguo de los
     // nacimientos implicados), para el aviso de "llevan esperando mucho".
     function pyn2DiasEsperaMiteco(todosNacs) {
-        const fechas = todosNacs.map(n => n.fechaCSVExportado).filter(Boolean);
+        // 23/09/2026: se cuenta desde el día en que se generó el CSV (fechaEnvioCSV). Para CSV
+        // exportados antes de este cambio solo existe la fecha de marcado (fechaCSVExportado).
+        const fechas = todosNacs.map(n => n.fechaEnvioCSV || n.fechaCSVExportado).filter(Boolean);
         if (!fechas.length) return null;
-        const toTs = f => { const [d,m,y] = f.split('/'); return new Date(`${y}-${m}-${d}T12:00:00`).getTime(); };
+        const toTs = f => { const [d,m,y] = f.split('/'); return new Date(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}T12:00:00`).getTime(); };
         const masAntigua = Math.min(...fechas.map(toTs));
         return Math.max(0, Math.floor((Date.now() - masAntigua) / 86400000));
     }
@@ -3065,7 +3089,7 @@
 
         // Nacimientos de la puesta secundaria combinada (si la hay) — con las mismas
         // acciones, para no dejarlos sin PLANTEL/BAJA/CITES/DOCS al estar combinadas.
-        const nacsOtraAccionesHTML = secundaria ? histBio.filter(n => n.tipo === 'nacimiento' && n.idPuestaOrigen === secundaria.id).map(n => `
+        const nacsOtraAccionesHTML = secundaria ? pyn2NacsDePuesta(secundaria).map(n => `
             <div style="font-size:0.66rem;color:var(--texto2);margin:8px 0 4px;">🐢 Nacimiento ${n.fecha} · ${n.cant} cría(s) · de ${secundaria.idPuesta || secundaria.detalle}</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
                 <button class="btn-mini" onclick="abrirModalEditNacimiento('${n.id}')">✏️ EDITAR</button>
@@ -3178,7 +3202,9 @@
 
     window.pyn2GenerarNotificacion = async function(parejaId, puestaId, esActualizacion) {
         try {
-            await generarPDFPyN(parejaId);
+            // 23/09/2026: antes se marcaba el paso como hecho aunque el PDF hubiera fallado
+            const ok = await generarPDFPyN(parejaId);
+            if (!ok) return;
             const campo = esActualizacion
                 ? { pynActualizadaConEclosion: true }
                 : { notificadoPyN: true, fechaNotificadoPyN: new Date().toLocaleDateString('es-ES') };
@@ -3822,6 +3848,9 @@
         if (nombres.includes(val)) sel.value = val;
     }
 
+    // 23/09/2026: expuesta en window — el filtro de especie de Plantel la llama desde
+    // onchange y, al estar encerrada en el módulo, fallaba (el filtro no hacía nada)
+    window.renderParentales = renderParentales;
     function renderParentales() {
         const lista = document.getElementById('parentales-lista');
         if (!lista) return;
@@ -4203,7 +4232,7 @@
             return histBio.some(n => n.tipo === 'nacimiento' &&
                 (n.idPuestaOrigen ? n.idPuestaOrigen === b.id : n.idPuesta === (b.idPuesta || b.detalle)) &&
                 n.chipsAsignados && n.chipsAsignados.length > 0 &&
-                !n.docVetUrl);
+                !n.certVetGenerado && !n.docVetUrl); // 23/09/2026: docVetUrl nunca se guarda — el dato real es certVetGenerado
         });
     }
 
@@ -4353,6 +4382,7 @@
         // 1) Ventana de impresión — igual que hasta ahora. Se abre PRIMERO y de forma
         // síncrona con el clic para que el navegador no la bloquee como popup.
         const ventana = window.open('', '_blank');
+        if (!ventana) { alert('El navegador ha bloqueado la ventana de impresión. Se descargará solo el PDF.'); descargarPdfCertificadoVet(contenido, titulo); return; }
         ventana.document.write(`<!DOCTYPE html><html><head>
             <meta charset="UTF-8">
             <title>${titulo}</title>
@@ -4927,12 +4957,21 @@
             `🥚 <strong>${puesta.idPuesta || puesta.detalle}</strong><br>` +
             `${puesta.especie} · Pareja: ${puesta.nombrePareja || '—'}`;
 
-        // Fecha certificado = hoy por defecto
-        poblarSelectFecha('csv-fecha');
-        setFechaHoy('csv-fecha');
-
         // Animales de ESTA puesta concreta (no de toda la historia de la pareja — ver auditoría 10/09/2026)
-        const animales = getAnimalesPorPuestas(puestaId);
+        // 23/09/2026: si la puesta está combinada con otra, entran también sus chips (igual que
+        // en el certificado veterinario), y la fecha propuesta es la fecha de marcado ya guardada
+        // al pulsar "YA FIRMADO" — antes se proponía siempre HOY y, si no se cambiaba a mano,
+        // el CSV salía hacia MITECO con una fecha de marcado incorrecta.
+        const idsCsv = puesta.combinadaCon ? [puestaId, puesta.combinadaCon] : [puestaId];
+        const animales = getAnimalesPorPuestas(idsCsv);
+        poblarSelectFecha('csv-fecha');
+        const nacConFecha = histBio.find(n => n.tipo === 'nacimiento' && n.fechaMarcado && animales.some(a => a.nacId === n.id));
+        if (nacConFecha && nacConFecha.fechaMarcado.split('/').length === 3) {
+            const [dM, mM, yM] = nacConFecha.fechaMarcado.split('/');
+            setFechaFromIso('csv-fecha', `${yM}-${mM.padStart(2,'0')}-${dM.padStart(2,'0')}`);
+        } else {
+            setFechaHoy('csv-fecha');
+        }
 
         const lista = document.getElementById('csv-animales-lista');
         const warning = document.getElementById('csv-warning');
@@ -5069,7 +5108,7 @@
                 const totalDeEseNac = animales.filter(a => a.nacId === nacId).length;
                 const incluidosDeEseNac = seleccionados.filter(a => a.nacId === nacId).length;
                 if (incluidosDeEseNac >= totalDeEseNac) {
-                    await updateDoc(doc(db, 'bio', nacId), { csvExportado: true, fechaCSVExportado: fechaMarcado });
+                    await updateDoc(doc(db, 'bio', nacId), { csvExportado: true, fechaCSVExportado: fechaMarcado, fechaEnvioCSV: (d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`)(new Date()) });
                 }
             }
             registrarAuditoria('nuevo', 'miteco', `CSV MITECO exportado: ${seleccionados.length} animal(es) · ${puesta ? (puesta.idPuesta || puesta.detalle) : ''}`);
@@ -6233,7 +6272,7 @@
     window.generarPDFPyN = async function(parejaId) {
         try {
             const pareja = parejasData.find(p => p.id === parejaId);
-            if (!pareja) return alert('Pareja no encontrada');
+            if (!pareja) { alert('Pareja no encontrada'); return false; }
 
             const macho  = parentalesData ? parentalesData.find(p => p.id === pareja.idEspecimenMacho || p.id === pareja.idMacho) : null;
             const hembra = parentalesData ? parentalesData.find(p => p.id === pareja.idEspecimenHembra || p.id === pareja.idHembra) : null;
@@ -6244,7 +6283,7 @@
                 .filter(b => b.tipo === 'puesta' && b.idPareja === parejaId)
                 .sort((a, b) => (toIso(a.fechaIso || a.fecha)).localeCompare(toIso(b.fechaIso || b.fecha)));
 
-            if (puestas.length === 0) return alert('Esta pareja no tiene puestas registradas.');
+            if (puestas.length === 0) { alert('Esta pareja no tiene puestas registradas.'); return false; }
 
             // Cargar plantilla del repo
             const resp = await fetch('PLANTILLA PYN.pdf?v=' + Date.now());
@@ -6275,13 +6314,13 @@
             txt(215, H - 208.4 - 10, especie, false, 10);
             const marcaMachoVal = macho ? (macho.marca || macho.chip || '') : '';
             if (marcaMachoVal) txt(370, H - 208.4 - 10, marcaMachoVal, false, 10);
-            txt(494, H - 208.4 - 10, macho ? (macho.docCites || macho.documentoCites || '') : '', false, 10);
+            txt(494, H - 208.4 - 10, macho ? (macho.cites || macho.docCites || macho.documentoCites || '') : '', false, 10);
             txt(700, H - 208.4 - 10, macho ? (macho.idEspecimen || macho.idEspecimenMiteco || '') : '', false, 10);
 
             txt(215, H - 222.7 - 10, especie, false, 10);
             const marcaHembraVal = hembra ? (hembra.marca || hembra.chip || '') : '';
             if (marcaHembraVal) txt(370, H - 222.7 - 10, marcaHembraVal, false, 10);
-            txt(494, H - 222.7 - 10, hembra ? (hembra.docCites || hembra.documentoCites || '') : '', false, 10);
+            txt(494, H - 222.7 - 10, hembra ? (hembra.cites || hembra.docCites || hembra.documentoCites || '') : '', false, 10);
             txt(700, H - 222.7 - 10, hembra ? (hembra.idEspecimen || hembra.idEspecimenMiteco || '') : '', false, 10);
 
             // ── FILAS DE PUESTAS ──
@@ -6332,9 +6371,11 @@
             a.click();
             document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(url), 5000);
+            return true;
 
         } catch(err) {
             alert('Error al generar PDF PyN: ' + err.message);
+            return false;
         }
     };
 
@@ -6613,7 +6654,7 @@
         }
         try {
             const docRef = doc(db, 'cites_estado', nacId+'_'+chip);
-            await setDoc(docRef, { estado, fechaTasa, chip, nacId, updatedAt: new Date().toISOString() });
+            await setDoc(docRef, { estado, fechaTasa, chip, nacId, updatedAt: new Date().toISOString() }, { merge: true }); // merge: no borrar url790 ya subido
             document.getElementById('modal-cites-estado').classList.remove('active');
             renderCitesLista();
             // También actualizar indicador en expedientes si está activo
