@@ -154,6 +154,23 @@
         .tab.active     { background: var(--verde); color: #0a0a0a; border-color: var(--verde); }
         .tab.bio-active { background: var(--azul);  color: #0a0a0a; border-color: var(--azul); }
 
+        /* 23/09/2026: rejilla de pestañas de PyN NUEVO — 2 filas fijas de 3, sin scroll
+           (maqueta aprobada por Patry: "me gusta mas las dos filas, es que los scroles no me gustan") */
+        .pyn2-tabs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+        .pyn2-tab { padding: 7px 4px; background: var(--fondo); border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px; color: var(--texto2); border: 1px solid var(--borde); display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .pyn2-tab.activa { background: var(--azul); color: #0a0a0a; border-color: var(--azul); }
+        .pyn2-tab .pyn2-tab-contador { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 1px 6px; font-size: 0.6rem; }
+        .pyn2-tab.activa .pyn2-tab-contador { background: rgba(0,0,0,0.18); }
+
+        /* 23/09/2026: resalte temporal al volver a PyN tras registrar un nacimiento, para
+           encontrar la tarjeta sin tener que buscarla ("Volver a PyN debe volver a la puesta
+           que estamos trabajando") */
+        .pyn2-resaltada { animation: pyn2Destello 1.1s ease-in-out 2; }
+        @keyframes pyn2Destello {
+            0%, 100% { box-shadow: none; border-left-color: var(--azul); }
+            50% { box-shadow: 0 0 0 2px var(--verde); border-left-color: var(--verde); }
+        }
+
         /* 12/09/2026: quitado max-height + overflow-y — dejaba una caja de scroll interna
            que recortaba la lista y dejaba hueco muerto debajo; ahora la pantalla entera
            hace scroll de forma natural, igual que Inicio. */
@@ -560,11 +577,10 @@
             <button class="btn-mini" onclick="pyn2CrearPruebaPuesta()">🧪 CREAR PUESTA DE PRUEBA</button>
             <button class="btn-mini naranja" onclick="pyn2BorrarPruebas()">🗑️ BORRAR TODO LO DE PRUEBA</button>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px;">
-            <div class="tab bio-active" id="pyn2-f-curso" onclick="setPyn2Filtro('curso')" style="flex:1;">EN CURSO</div>
-            <div class="tab" id="pyn2-f-completas" onclick="setPyn2Filtro('completas')" style="flex:1;">COMPLETADAS</div>
-            <div class="tab" id="pyn2-f-todas" onclick="setPyn2Filtro('todas')" style="flex:1;">TODAS</div>
-        </div>
+        <!-- 23/09/2026: sustituidas las 3 pestañas (EN CURSO muy amplio) por 6, en 2 filas fijas
+             (sin scroll, a petición de Patry: "los scrolles no me gustan"), una por cada fase real
+             del papeleo que él mismo describió. Ver pyn2Fase() para la clasificación. -->
+        <div class="pyn2-tabs-grid" id="pyn2-tabs"></div>
         <div id="pyn2-lista"></div>
         <button class="btn-cancelar" onclick="irA('pantalla-inicio')">← VOLVER</button>
     </div>
@@ -1233,6 +1249,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- 23/09/2026: para descargar automáticamente el certificado veterinario en PDF a la vez
+     que se abre el diálogo de impresión (ver imprimirFormVet) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
     // Login real de Firebase (email+contraseña) para los dos usuarios. Ya no hay PIN.
     var USUARIOS_EMAIL = {
@@ -2863,13 +2882,29 @@
     // generación de documentos (generarPDFPyN, abrirModalVet, abrirModalCSV,
     // abrirModalNacimiento) y solo añade campos nuevos para recordar en qué
     // paso está cada puesta.
-    window._pyn2Filtro = 'curso';
+    // 23/09/2026: las 6 fases del papeleo tal como las describió Patry — fusiona lo que él
+    // llamó "fase 2" (nacimiento) y "fase 3" (esperar certificado firmado) en una sola pestaña,
+    // "porque suele hacerse el mismo día o el día siguiente". No usa ningún dato nuevo: se
+    // calcula a partir de lo que pyn2EstadoPuesta() ya sabe de cada puesta.
+    const PYN2_FASES = [
+        { id: 'todas',      label: 'TODAS' },
+        { id: 'puesta',     label: '🥚 PUESTA' },
+        { id: 'nacimiento', label: '🐣 NACIMIENTO' },
+        { id: 'miteco',     label: '📤 MITECO' },
+        { id: 'esperando',  label: '⏳ ESPERANDO' },
+        { id: 'cesion',     label: '✅ CESIÓN' },
+    ];
+    function pyn2Fase(estado) {
+        if (estado.completa) return 'cesion';
+        if (!estado.pasoNacimiento) return 'puesta';
+        if (!estado.pasoVet) return 'nacimiento';
+        if (!estado.pasoCsv) return 'miteco';
+        return 'esperando';
+    }
+
+    window._pyn2Filtro = 'todas';
     window.setPyn2Filtro = function(f) {
         window._pyn2Filtro = f;
-        ['curso','completas','todas'].forEach(id => {
-            const el = document.getElementById('pyn2-f-' + id);
-            if (el) el.classList.toggle('bio-active', id === f);
-        });
         renderPynNuevo();
     };
 
@@ -3060,7 +3095,7 @@
                 </div>
             </div>`;
 
-        return `<div style="background:var(--tarjeta2);border:1px solid var(--borde);border-left:4px solid var(--azul);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+        return `<div id="pyn2-card-${p.id}" style="background:var(--tarjeta2);border:1px solid var(--borde);border-left:4px solid var(--azul);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
             <div style="margin-bottom:8px;">
                 <div style="font-weight:700;font-size:0.88rem;color:var(--azul);">🥚 ${idPuestaTxt}${comboTag}</div>
                 <div style="font-size:0.72rem;color:var(--texto2);margin-top:2px;">${pareja.nombre} · ${huevosTxt} · ${fechasTxt}</div>
@@ -3079,21 +3114,45 @@
         if (flecha) flecha.textContent = visible ? '▶' : '▼';
     }
 
+    // 23/09/2026: al volver de "REGISTRAR NACIMIENTO" (VER PyN → en la pantalla de éxito),
+    // se guarda aquí el id de la puesta que se estaba trabajando; renderPynNuevo() la busca,
+    // se asegura de que la pestaña activa la deje visible, hace scroll hasta ella y la resalta
+    // un momento — así Patry no tiene que volver a buscarla en la lista. Se usa una sola vez
+    // (se borra después) para no reengancharse en visitas normales a PyN.
+    window._pyn2ScrollAPuestaId = null;
+
     function renderPynNuevo() {
+        const tabsEl = document.getElementById('pyn2-tabs');
         const cont = document.getElementById('pyn2-lista');
         if (!cont) return;
-        const filtro = window._pyn2Filtro || 'curso';
+        let filtro = window._pyn2Filtro || 'todas';
 
         const puestas = histBio.filter(b => b.tipo === 'puesta' && !pyn2EsSecundaria(b));
-        const filas = puestas.map(p => ({ p, estado: pyn2EstadoPuesta(p) }));
+        const filas = puestas.map(p => { const estado = pyn2EstadoPuesta(p); return { p, estado, fase: pyn2Fase(estado) }; });
 
-        let filtradas = filas;
-        if (filtro === 'curso')     filtradas = filas.filter(f => !f.estado.completa);
-        if (filtro === 'completas') filtradas = filas.filter(f => f.estado.completa);
+        // Si venimos de registrar un nacimiento, la pestaña activa debe ser la que
+        // contenga esa puesta — si no, cámbiala a la suya antes de pintar nada.
+        const puestaScrollId = window._pyn2ScrollAPuestaId;
+        if (puestaScrollId) {
+            const fila = filas.find(f => f.p.id === puestaScrollId);
+            if (fila && filtro !== 'todas' && filtro !== fila.fase) {
+                filtro = fila.fase;
+                window._pyn2Filtro = filtro;
+            }
+        }
+
+        if (tabsEl) {
+            tabsEl.innerHTML = PYN2_FASES.map(f => {
+                const n = f.id === 'todas' ? filas.length : filas.filter(x => x.fase === f.id).length;
+                return `<div class="pyn2-tab ${f.id === filtro ? 'activa' : ''}" onclick="setPyn2Filtro('${f.id}')">${f.label} <span class="pyn2-tab-contador">${n}</span></div>`;
+            }).join('');
+        }
+
+        let filtradas = filtro === 'todas' ? filas : filas.filter(f => f.fase === filtro);
 
         if (filtradas.length === 0) {
-            const msgs = { curso: 'Sin puestas en curso', completas: 'Sin puestas completadas', todas: 'Sin puestas registradas aún' };
-            cont.innerHTML = `<p class="msg-vacio">${msgs[filtro]}</p>`;
+            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', miteco: 'Sin certificados pendientes de enviar a MITECO', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
+            cont.innerHTML = `<p class="msg-vacio">${msgs[filtro] || 'Sin puestas'}</p>`;
             return;
         }
 
@@ -3102,6 +3161,19 @@
         filtradas.sort((a,b) => pyn2ToIso(a.p.fecha).localeCompare(pyn2ToIso(b.p.fecha)));
 
         cont.innerHTML = filtradas.map(({p, estado}) => pyn2RenderPuestaCard(p, estado)).join('');
+
+        // Scroll + resalte a la puesta que se acababa de trabajar (una sola vez)
+        if (puestaScrollId) {
+            window._pyn2ScrollAPuestaId = null;
+            const el = document.getElementById('pyn2-card-' + puestaScrollId);
+            if (el) {
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('pyn2-resaltada');
+                    setTimeout(() => el.classList.remove('pyn2-resaltada'), 2200);
+                }, 80);
+            }
+        }
     }
 
     window.pyn2GenerarNotificacion = async function(parejaId, puestaId, esActualizacion) {
@@ -3704,6 +3776,9 @@
             const chipsTxt = chipsAsignados.length > 0
                 ? ` · ${chipsAsignados.length} chips asignados`
                 : ' · Sin chips asignados';
+            // 23/09/2026: recordar esta puesta para que "VER PyN →" vuelva directamente a
+            // ella (scroll + resalte) en vez de abrir la lista desde cero.
+            window._pyn2ScrollAPuestaId = puestaId;
             finalizar('BIO', `${cant} nacidos de ${puesta.nombrePareja||puesta.especie}${chipsTxt}`);
         } catch(err) { alert('Error: '+err.message); }
     }
@@ -4274,13 +4349,16 @@
     window.imprimirFormVet = function() {
         const contenido = document.getElementById('vet-contenido').innerHTML;
         const titulo = (window._vetTituloDoc || 'Certificado Veterinario · OnlyReptil').replace(/[<>&"]/g, '');
+
+        // 1) Ventana de impresión — igual que hasta ahora. Se abre PRIMERO y de forma
+        // síncrona con el clic para que el navegador no la bloquee como popup.
         const ventana = window.open('', '_blank');
         ventana.document.write(`<!DOCTYPE html><html><head>
             <meta charset="UTF-8">
             <title>${titulo}</title>
             <style>
                 @page { size: A4; margin: 14mm; }
-                body { font-family: Arial, sans-serif; padding: 20px; font-size: 13px; color: #000; line-height: 1.75; max-width: 700px; margin: 0 auto; }
+                body { box-sizing: border-box; font-family: Arial, sans-serif; padding: 20px; font-size: 13px; color: #000; line-height: 1.75; max-width: 687px; margin: 0 auto; }
                 strong { font-weight: bold; }
                 em { font-style: italic; }
                 div { margin-bottom: 2px; }
@@ -4305,6 +4383,74 @@
         <\/script>
         </body></html>`);
         ventana.document.close();
+
+        // 2) 23/09/2026: a la vez, descarga automática de una copia en PDF — a petición
+        // de Patry, para no tener que "imprimir" y "guardar" por separado. Es una "foto"
+        // del documento (se ve e imprime igual, pero el texto no es seleccionable/copiable).
+        descargarPdfCertificadoVet(contenido, titulo);
+    }
+
+    function descargarPdfCertificadoVet(contenidoHtml, titulo) {
+        if (typeof html2pdf === 'undefined') return; // red de seguridad si la librería no llegó a cargar
+
+        // 23/09/2026 — corrección: la versión anterior tenía DOS fallos reales
+        // (verificados con pruebas locales, no eran cosas del usuario):
+        // 1) Colocaba el contenido con "position:fixed;left:-9999px" para
+        //    ocultarlo fuera de pantalla. html2canvas a veces captura eso como
+        //    un PDF completamente EN BLANCO (fallo conocido de la librería).
+        //    Ahora se añade en flujo normal al final de la página (se queda
+        //    fuera de la vista del usuario igualmente, ya que el modal cubre
+        //    la pantalla), lo cual sí se captura de forma fiable.
+        // 2) El ancho fijo (700px + 20px de relleno a cada lado = 740px) era
+        //    MÁS ANCHO que el hueco real de una A4 con márgenes de 14mm
+        //    (~688px), así que el texto y la tabla se cortaban por la derecha
+        //    en documentos cortos. Ahora el ancho se calcula siempre a partir
+        //    del hueco real de la página.
+        // Además, se añade un recorte de seguridad: si por lo que sea el PDF
+        // resultante tuviera más de 1 página (p.ej. una línea suelta que se
+        // desborda), se eliminan las páginas sobrantes antes de guardar, para
+        // garantizar que el documento entregado sea siempre de una sola hoja.
+        const anchoUtil = (210 - 2 * 14) * 96 / 25.4; // ancho útil A4 con márgenes 14mm, en px a 96dpi
+        const alturaUtil = (297 - 2 * 14) * 96 / 25.4; // alto útil A4 con márgenes 14mm, en px a 96dpi
+
+        const inner = document.createElement('div');
+        inner.innerHTML = contenidoHtml;
+        Object.assign(inner.style, {
+            boxSizing: 'border-box', width: anchoUtil + 'px',
+            background: '#fff', color: '#000', fontFamily: 'Arial, sans-serif',
+            fontSize: '13px', lineHeight: '1.75', padding: '20px'
+        });
+        const outer = document.createElement('div');
+        Object.assign(outer.style, { position: 'static', overflow: 'visible' });
+        outer.appendChild(inner);
+        document.body.appendChild(outer);
+
+        const alturaContenido = inner.scrollHeight;
+        if (alturaContenido > alturaUtil) {
+            // Reduce el tamaño lo justo para que quepa en una sola página (mínimo 55%,
+            // para no dejar el texto ilegible si hubiera muchísimos chips)
+            const escala = Math.max(0.55, alturaUtil / alturaContenido);
+            inner.style.transform = 'scale(' + escala + ')';
+            inner.style.transformOrigin = 'top left';
+            outer.style.height = (alturaContenido * escala) + 'px';
+            outer.style.width = (anchoUtil * escala) + 'px';
+        } else {
+            outer.style.height = alturaContenido + 'px';
+            outer.style.width = anchoUtil + 'px';
+        }
+
+        html2pdf().set({
+            margin: 14,
+            filename: titulo + '.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, backgroundColor: '#ffffff' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        }).from(outer).toPdf().get('pdf').then(pdf => {
+            const n = pdf.internal.getNumberOfPages();
+            for (let i = n; i > 1; i--) pdf.deletePage(i);
+            pdf.save(titulo + '.pdf');
+        }).catch(err => console.warn('Descarga PDF certificado: ', err)).finally(() => outer.remove());
     }
     // ─────────────────────────────────────────────────────────────
 
