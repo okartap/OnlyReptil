@@ -156,11 +156,46 @@
 
         /* 23/09/2026: rejilla de pestañas de PyN NUEVO — 2 filas fijas de 3, sin scroll
            (maqueta aprobada por Patry: "me gusta mas las dos filas, es que los scroles no me gustan") */
-        .pyn2-tabs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
-        .pyn2-tab { padding: 7px 4px; background: var(--fondo); border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px; color: var(--texto2); border: 1px solid var(--borde); display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .pyn2-tab.activa { background: var(--azul); color: #0a0a0a; border-color: var(--azul); }
-        .pyn2-tab .pyn2-tab-contador { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 1px 6px; font-size: 0.6rem; }
-        .pyn2-tab.activa .pyn2-tab-contador { background: rgba(0,0,0,0.18); }
+        .pyn2-tabs-grid { margin-bottom: 12px; }
+        /* 27/09/2026: pestañas de PyN en una fila, solo iconos */
+        .pyn2-tabs-iconos { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .pyn2-ti { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 7px 0 5px; text-align: center; cursor: pointer; user-select: none; }
+        .pyn2-ti .ic { font-size: 1.15rem; line-height: 1.2; }
+        .pyn2-ti .n { font-size: 0.72rem; font-weight: 700; color: var(--texto2); }
+        .pyn2-ti.activa { background: var(--azul); border-color: var(--azul); }
+        .pyn2-ti.activa .n { color: #0d1220; }
+        .pyn2-tab-nombre { text-align: center; font-size: 0.76rem; font-weight: 700; letter-spacing: 2px; color: var(--azul); margin-top: 7px; }
+        /* 27/09/2026: tarjeta de puesta compacta */
+        .pyn2-card { background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
+        .pyn2-card.abierta { border-color: var(--azul); }
+        .pyn2-cab { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; cursor: pointer; text-align: left; }
+        .pyn2-idp { font-size: 1.02rem; font-weight: 700; color: var(--texto); letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pyn2-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+        .pyn2-sub { font-size: 0.78rem; color: var(--texto2); margin-top: 1px; }
+        .pyn2-combo { display: inline-block; white-space: nowrap; margin-top: 3px; font-size: 0.62rem; background: rgba(255,152,0,0.13); color: var(--naranja); border: 1px solid rgba(255,152,0,0.35); border-radius: 10px; padding: 1px 7px; }
+        .pyn2-cifras { display: flex; gap: 6px; flex-shrink: 0; }
+        .pyn2-cifra { background: var(--fondo); border-radius: 11px; padding: 5px 9px; text-align: center; min-width: 54px; }
+        .pyn2-cifra b { font-size: 1.3rem; line-height: 1; display: block; }
+        .pyn2-cifra span { font-size: 0.6rem; color: var(--texto2); letter-spacing: 0.5px; }
+        .pyn2-cifra.est b { font-size: 0.9rem; padding: 4px 0 2px; color: var(--azul); }
+        .pyn2-siguiente { margin: 0 14px 12px; background: rgba(255,181,71,0.12); border: 1px solid rgba(255,181,71,0.45); border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; font-weight: 700; color: #ffb547; display: flex; align-items: center; gap: 7px; cursor: pointer; text-align: left; }
+        .pyn2-siguiente.rojo { background: rgba(239,83,80,0.12); border-color: rgba(239,83,80,0.5); color: var(--rojo); }
+        .pyn2-siguiente.verde { background: rgba(76,175,80,0.12); border-color: rgba(76,175,80,0.45); color: var(--verde); }
+        .pyn2-siguiente.gris { background: rgba(255,255,255,0.04); border-color: var(--borde); color: var(--texto2); }
+        .pyn2-flecha { margin-left: auto; color: var(--texto2); font-size: 0.95rem; transition: transform .2s; }
+        .pyn2-card.abierta .pyn2-flecha { transform: rotate(90deg); }
+        .pyn2-detalle { border-top: 1px solid var(--borde); padding: 10px 14px 10px; background: rgba(0,0,0,0.08); text-align: left; }
+        .pyn2-paso { display: flex; gap: 9px; padding: 5px 0; align-items: flex-start; }
+        .pyn2-bola { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 700; margin-top: 1px; }
+        .pyn2-paso.hecho .pyn2-bola { background: var(--verde); color: #0d1220; }
+        .pyn2-paso.actual .pyn2-bola { border: 2px solid #ffb547; color: #ffb547; }
+        .pyn2-paso.bloq .pyn2-bola { border: 2px solid var(--rojo); color: var(--rojo); }
+        .pyn2-paso.pend .pyn2-bola { border: 2px solid var(--borde); }
+        .pyn2-paso-t { font-size: 0.82rem; font-weight: 700; color: var(--texto); }
+        .pyn2-paso.hecho .pyn2-paso-t { color: var(--texto2); font-weight: 600; }
+        .pyn2-paso.pend .pyn2-paso-t { color: var(--texto2); opacity: 0.6; font-weight: 600; }
+        .pyn2-paso-d { font-size: 0.72rem; color: var(--texto2); margin-top: 1px; }
+        .pyn2-paso-btns { margin-top: 3px; }
 
         /* 23/09/2026: resalte temporal al volver a PyN tras registrar un nacimiento, para
            encontrar la tarjeta sin tener que buscarla ("Volver a PyN debe volver a la puesta
@@ -431,7 +466,13 @@
         </div>
         <div class="form-group" id="grupo-gasto-otros"><label>Detalle</label><input type="text" id="g-concepto" placeholder="Ej: Pienso, terrario..."></div>
         <div class="form-group" id="grupo-gasto-compra" style="display:none;"><label>Especie comprada</label><select id="g-especie"></select></div>
-        <div class="form-group" id="grupo-gasto-compra-cant" style="display:none;"><label>Cantidad comprada</label><input type="number" id="g-cant" value="1" min="1"></div>
+        <div class="form-group" id="grupo-gasto-compra-cant" style="display:none;"><label>Cantidad comprada</label><input type="number" id="g-cant" value="1" min="1">
+            <!-- 27/09/2026: chips de los animales comprados (opcional) — así se podrán vender después -->
+            <label style="margin-top:10px;">Chips de los animales comprados (uno por línea, opcional)</label>
+            <textarea id="g-chips" rows="3" placeholder="900263004245581&#10;900263004245582" style="width:100%;background:var(--tarjeta2);border:1px solid var(--borde);border-radius:8px;color:var(--texto);padding:8px;font-family:Rajdhani,sans-serif;font-size:0.85rem;"></textarea>
+            <label style="margin-top:10px;">Año de nacimiento de esos animales</label>
+            <input type="number" id="g-anyo" placeholder="Ej: 2025" min="1990" max="2100">
+        </div>
         <div class="campo-row">
             <div class="form-group"><label>Importe (€)</label><input type="number" id="g-monto" placeholder="0.00" step="0.01"></div>
             <div class="form-group"><label>Socio</label><select id="g-socio"><option value="Martin">Martín</option><option value="Patry">Patry</option></select></div>
@@ -450,8 +491,14 @@
             </select>
         </div>
         <div class="form-group" id="grupo-otros-concepto" style="display:none;"><label>Concepto</label><input type="text" id="i-otros-concepto" placeholder="Ej: Terrario, Accesorios..."></div>
+        <!-- 27/09/2026: venta de animales = se marcan los chips vendidos (obligatorio); la cantidad sale sola -->
+        <div id="i-venta-chips" style="display:none;margin:4px 0 12px;border-top:1px solid var(--borde);padding-top:10px;">
+            <div style="font-size:0.72rem;letter-spacing:1.5px;font-weight:700;color:#ffb547;text-align:center;margin-bottom:8px;">▶ MARCA LOS ANIMALES QUE VENDES</div>
+            <div id="i-venta-grupos"></div>
+            <div style="text-align:center;font-weight:700;font-size:0.9rem;margin-top:4px;"><b id="i-venta-n" style="font-size:1.25rem;color:var(--verde);">0</b> animales seleccionados</div>
+        </div>
         <div class="campo-row">
-            <div class="form-group"><label>Cantidad</label><input type="number" id="i-cant" value="1" min="1"></div>
+            <div class="form-group" id="grupo-i-cant" style="display:none;"><label>Cantidad</label><input type="number" id="i-cant" value="1" min="1"></div>
             <div class="form-group"><label>Total (€)</label><input type="number" id="i-monto" placeholder="0.00" step="0.01"></div>
         </div>
         <div class="form-group"><label>Fecha</label><div class="fecha-row"><select class="fecha-sel" id="i-fecha-d"></select><select class="fecha-sel" id="i-fecha-m"></select><select class="fecha-sel" id="i-fecha-y"></select></div></div>
@@ -573,11 +620,34 @@
         <button class="btn-cancelar" onclick="irA('pantalla-inicio')">← VOLVER</button>
     </div>
 
+    <!-- 27/09/2026: Modal — marcar crías como cedidas fuera de la app (regularización) -->
+    <div class="modal-overlay" id="modal-regularizar">
+        <div class="modal-box verde">
+            <div class="modal-titulo">✅ MARCAR COMO CEDIDAS</div>
+            <div style="font-size:0.78rem;color:var(--texto2);margin-bottom:10px;line-height:1.45;">Para crías que ya se cedieron o vendieron <b>fuera de la app</b>. No genera ningún documento ni CSV. Los chips quedan como cedidos y nunca vuelven a estar libres.</div>
+            <div id="regularizar-info" style="font-size:0.8rem;margin-bottom:8px;"></div>
+            <div id="regularizar-lista" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px;"></div>
+            <div class="form-group"><label>Comprador (opcional)</label><input type="text" id="regularizar-comprador" placeholder="Ej: Reptiles Levante"></div>
+            <label style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.8rem;margin:6px 0 12px;cursor:pointer;">
+                <input type="checkbox" id="regularizar-stock" style="width:16px;height:16px;"> Descontar también del stock
+            </label>
+            <div style="font-size:0.7rem;color:var(--texto2);margin:-6px 0 12px;">Márcalo solo si esa venta NO está bien apuntada en caja (si lo está, el stock ya se descontó).</div>
+            <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="confirmarRegularizar()">MARCAR COMO CEDIDAS</button>
+            <button class="btn-cancelar" onclick="document.getElementById('modal-regularizar').classList.remove('active')">CANCELAR</button>
+        </div>
+    </div>
+
     <!-- Modal: confirmar certificado veterinario firmado (PyN NUEVO) -->
     <div class="modal-overlay" id="modal-pyn2-vet">
         <div class="modal-box azul">
             <div class="modal-titulo azul">🩺 CONFIRMAR CERTIFICADO FIRMADO</div>
             <div id="pyn2-vet-info" style="font-size:0.8rem;color:var(--texto2);margin-bottom:12px;"></div>
+            <!-- 27/09/2026: subir el certificado firmado (foto o PDF) — opcional -->
+            <div class="form-group" id="pyn2-vet-archivo-grupo">
+                <label>Certificado firmado (foto o PDF)</label>
+                <input type="file" id="pyn2-vet-archivo" accept="image/*,application/pdf" style="width:100%;color:var(--texto);font-family:Rajdhani,sans-serif;">
+            </div>
+            <div id="pyn2-vet-progreso" style="display:none;font-size:0.8rem;color:var(--naranja);margin-bottom:8px;"></div>
             <div class="form-group">
                 <label>Fecha de marcado (la que ponga el veterinario)</label>
                 <div class="fecha-row">
@@ -799,6 +869,13 @@
 <!-- MÓDULO CESIÓN -->
 <div id="pantalla-cesion" class="seccion-app" style="border-top-color:var(--verde);">
     <div class="titulo-centrado" style="color:var(--verde);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>📄 DOCUMENTO DE CESIÓN</div>
+    <!-- 27/09/2026: las VENTAS de crías se hacen desde CAJA (＋ INGRESO) — aquí solo cesiones sin venta -->
+    <div style="background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.5);border-radius:12px;padding:10px 12px;font-size:0.8rem;line-height:1.45;margin-bottom:12px;text-align:left;">
+        ⚠️ <b style="color:#ffb547;">Para crías, esta pantalla es solo para cesiones SIN venta</b> (regalo, intercambio…).<br>
+        Si has <b style="color:#ffb547;">vendido</b> crías, hazlo desde <b>CAJA → ＋ INGRESO</b>: eliges la especie, marcas los chips vendidos y al guardar te ofrece el documento de cesión.
+        <div style="text-align:center;"><button class="btn-mini" onclick="irA('form-ingreso')">＋ IR A NUEVO INGRESO</button></div>
+    </div>
+    <div id="cesion-pendientes"></div>
 
     <!-- PASO 1: Animal -->
     <div style="background:var(--tarjeta);border-radius:10px;padding:14px;border:1px solid var(--borde);margin-bottom:12px;text-align:center;">
@@ -1400,7 +1477,7 @@
         if(cb) cb.style.display = SIN_BALANCE.includes(id)  ? 'none' : '';
         const t = document.getElementById(id);
         if(t) t.style.display = id === 'pantalla-inicio' ? 'block' : 'flex';
-        if(id === 'form-ingreso') { cargarSelectClientes(); setFechaHoy('i-fecha'); }
+        if(id === 'form-ingreso') { cargarSelectClientes(); setFechaHoy('i-fecha'); window._ventaChipsSel = new Set(); renderVentaChips(); }
         if(id === 'form-gasto') { setFechaHoy('g-fecha'); const cat=document.getElementById('g-categoria'); if(cat) cat.value='Otros'; const otros=document.getElementById('grupo-gasto-otros'); if(otros) otros.style.display='block'; const conc=document.getElementById('g-concepto'); if(conc) conc.value=''; const gc=document.getElementById('grupo-gasto-compra'); if(gc) gc.style.display='none'; const gcc=document.getElementById('grupo-gasto-compra-cant'); if(gcc) gcc.style.display='none'; }
         if(id === 'pantalla-electricidad') { setFechaHoy('elec-fecha'); renderUltimaLectura(); resetFormLuz(); }
         if(id === 'pantalla-chips') { renderChips(); }
@@ -1509,7 +1586,7 @@
         if (!confirm('¿Borrar este cliente?')) return;
         await deleteDoc(doc(db, 'clientes', id));
     }
-    window.toggleOtrosIngreso=function(){ const v=document.getElementById('i-especie').value; document.getElementById('grupo-otros-concepto').style.display=v==='Otros'?'block':'none'; }
+    window.toggleOtrosIngreso=function(){ const v=document.getElementById('i-especie').value; document.getElementById('grupo-otros-concepto').style.display=v==='Otros'?'block':'none'; window._ventaChipsSel = new Set(); renderVentaChips(); }
     window.toggleGastoOtros=function(){ const v=document.getElementById('g-categoria').value; const el=document.getElementById('grupo-gasto-otros'); if(el) el.style.display=v==='Otros'?'block':'none'; // Si cambia a Electricidad/Veterinario, limpiar texto libre
     if(v!=='Otros'){ const c=document.getElementById('g-concepto'); if(c) c.value=''; }
     const esCompra = v==='Compra de animales';
@@ -1531,7 +1608,8 @@
             // Solo cuentan aquí las bajas de CRÍAS (stock en venta). Un reproductor del
             // plantel que fallece no debe descontarse del contador de "disponibles" —
             // ese contador es de crías, no de reproductores.
-            if (data.motivo === 'muerte' && data.especie && data.origen !== 'parental') bm[data.especie] = (bm[data.especie] || 0) + 1;
+            // 27/09/2026: también las cesiones SIN venta (y regularizaciones marcadas "descontar stock")
+            if ((data.motivo === 'muerte' || data.motivo === 'cesion') && data.especie && data.origen !== 'parental') bm[data.especie] = (bm[data.especie] || 0) + 1;
         });
         window._bajasMuerte = bm;
         if (window._stockBio) recalcularStock();
@@ -2075,9 +2153,103 @@
         return new Date(iso + 'T12:00:00').getTime();
     }
 
-    window.guardarMovimiento=async function(tipo){ const pref=tipo==='gasto'?'g-':'i-',monto=parseFloat(document.getElementById(pref+'monto').value),socio=document.getElementById(pref+'socio').value; if(!monto||monto<=0) return alert("Introduce un importe válido"); const fechaIso=getFechaIso(pref+'fecha'); const fechaEs=isoAEs(fechaIso); let datos={tipo,socio,monto,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}; if(tipo==='ingreso'){const especie=document.getElementById('i-especie').value,cant=parseInt(document.getElementById('i-cant').value),cliente=document.getElementById('i-cliente').value||"Sin cliente",concepto=especie==='Otros'?(document.getElementById('i-otros-concepto').value||'Otros'):especie; if(especie!=='Otros'&&(!cant||cant<1)) return alert('Introduce una cantidad de animales válida'); datos.especie=especie;datos.cant=cant;datos.cliente=cliente;datos.detalle=`${concepto} x${cant} · ${cliente}`;}else{const cat=document.getElementById('g-categoria').value; datos.categoria=cat; if(cat==='Compra de animales'){ const especie=document.getElementById('g-especie').value, cant=parseInt(document.getElementById('g-cant').value)||0; if(!especie||cant<=0) return alert('Elige especie y cantidad válidas'); datos.especie=especie; datos.cant=cant; datos.detalle=`Compra ${especie} x${cant}`; } else { datos.detalle=cat==='Otros'?(document.getElementById('g-concepto').value||'Otros'):cat; } } setBotones(true); try{await addDoc(collection(db,"caja"),datos);registrarAuditoria('nuevo','caja',`${datos.tipo==='ingreso'?'Ingreso':'Gasto'}: ${fmt(monto)} · ${datos.detalle}`);finalizar('DINERO',`${fmt(monto)} registrados`);}catch(err){alert("Error: "+err.message);setBotones(false);} }
+    window.guardarMovimiento = async function(tipo) {
+        const pref = tipo === 'gasto' ? 'g-' : 'i-';
+        const monto = parseFloat(document.getElementById(pref+'monto').value);
+        const socio = document.getElementById(pref+'socio').value;
+        if (!monto || monto <= 0) return alert("Introduce un importe válido");
+        const fechaIso = getFechaIso(pref+'fecha');
+        const fechaEs = isoAEs(fechaIso);
+        let datos = { tipo, socio, monto, fecha: fechaEs, fechaIso, timestamp: isoATimestamp(fechaIso) };
+        let chipsVenta = [], chipsCompra = [], anyoCompra = '';
+        if (tipo === 'ingreso') {
+            const especie = document.getElementById('i-especie').value;
+            const cliente = document.getElementById('i-cliente').value || "Sin cliente";
+            let cant;
+            if (especie === 'Otros') {
+                cant = parseInt(document.getElementById('i-cant').value) || 1;
+            } else {
+                // 27/09/2026 (Patry): en una venta de animales es OBLIGATORIO marcar los chips vendidos
+                const numsDisp = new Set(chipsDisponiblesCria(especie).map(x => x.c.numero));
+                chipsVenta = [...window._ventaChipsSel].filter(n => numsDisp.has(n));
+                if (!numsDisp.size) return alert(`⛔ No hay crías de ${especie} con chip disponibles para vender.\n\nSi son animales comprados, registra antes la compra (NUEVO GASTO → Compra de animales) apuntando sus chips.`);
+                if (!chipsVenta.length) return alert('⛔ Marca los chips de los animales que vendes.');
+                cant = chipsVenta.length;
+            }
+            const concepto = especie === 'Otros' ? (document.getElementById('i-otros-concepto').value || 'Otros') : especie;
+            datos.especie = especie; datos.cant = cant; datos.cliente = cliente;
+            datos.detalle = `${concepto} x${cant} · ${cliente}`;
+            if (chipsVenta.length) datos.chipsVendidos = chipsVenta;
+        } else {
+            const cat = document.getElementById('g-categoria').value;
+            datos.categoria = cat;
+            if (cat === 'Compra de animales') {
+                const especie = document.getElementById('g-especie').value, cant = parseInt(document.getElementById('g-cant').value) || 0;
+                if (!especie || cant <= 0) return alert('Elige especie y cantidad válidas');
+                // 27/09/2026: chips de los animales comprados (opcional) — quedan disponibles para vender
+                const brutos = (document.getElementById('g-chips').value || '').split(/[\s,;]+/).map(limpiarNumChip).filter(Boolean);
+                chipsCompra = [...new Set(brutos)];
+                if (chipsCompra.some(n => n.length < 10)) return alert('Hay algún número de chip demasiado corto. Revísalos.');
+                if (chipsCompra.length > cant) return alert(`Has puesto ${chipsCompra.length} chips pero la cantidad comprada es ${cant}.`);
+                const repetidos = chipsCompra.filter(n => chipsData.some(c => c.numero === n) || chipUsadoEnAnimal(n));
+                if (repetidos.length) return alert(`⛔ Estos chips ya existen en la app y no se pueden volver a usar:\n${repetidos.map(fmtChip).join('\n')}`);
+                anyoCompra = (document.getElementById('g-anyo').value || '').trim();
+                if (chipsCompra.length && !/^\d{4}$/.test(anyoCompra)) return alert('Indica el año de nacimiento de los animales comprados (4 cifras) — se imprime en el documento de cesión cuando los vendas.');
+                datos.especie = especie; datos.cant = cant; datos.detalle = `Compra ${especie} x${cant}`;
+                if (chipsCompra.length) datos.chipsComprados = chipsCompra;
+            } else {
+                datos.detalle = cat === 'Otros' ? (document.getElementById('g-concepto').value || 'Otros') : cat;
+            }
+        }
+        setBotones(true);
+        try {
+            const refMov = await addDoc(collection(db, "caja"), datos);
+            // Venta: los chips vendidos quedan marcados (vendidos + documento de cesión pendiente)
+            for (const n of chipsVenta) {
+                const c = chipsData.find(x => x.numero === n);
+                if (c) await updateDoc(doc(db, 'chips', c.id), { cedido: true, vendido: true, idVenta: refMov.id, fechaCesion: fechaEs, compradorNombre: datos.cliente, docCesionPendiente: true, docCesionGenerado: false });
+            }
+            // Compra: alta de los chips de los animales comprados (usados desde el primer día)
+            for (const n of chipsCompra) {
+                await setDoc(doc(db, 'chips', n), { numero: n, usado: true, origen: 'compra', especie: datos.especie, idCompra: refMov.id, fechaUso: fechaEs, anyoNacimiento: anyoCompra, idPuesta: null });
+            }
+            registrarAuditoria('nuevo', 'caja', `${datos.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}: ${fmt(monto)} · ${datos.detalle}${chipsVenta.length ? ' · chips: ' + chipsVenta.join(', ') : ''}${chipsCompra.length ? ' · chips comprados: ' + chipsCompra.join(', ') : ''}`);
+            window._ventaChipsSel = new Set();
+            const gch = document.getElementById('g-chips'); if (gch) gch.value = '';
+            const gan = document.getElementById('g-anyo'); if (gan) gan.value = '';
+            finalizar('DINERO', `${fmt(monto)} registrados`);
+            if (chipsVenta.length) {
+                if (usuarioActual && usuarioActual.rol === 'admin') {
+                    if (confirm(`✅ Venta guardada: ${chipsVenta.length} ${datos.especie} a ${datos.cliente}.\nStock descontado y chips marcados como vendidos.\n\n¿Generar AHORA el documento de cesión y el CSV de baja MITECO?\n\n(Si pulsas Cancelar, quedará pendiente en la pantalla CESIÓN.)`)) {
+                        await generarCesionDeVenta(refMov.id);
+                    }
+                } else {
+                    alert(`✅ Venta guardada. El documento de cesión queda pendiente en CESIÓN (lo genera Patricio).`);
+                }
+            }
+        } catch (err) { alert("Error: " + err.message); setBotones(false); }
+    }
 
-    window.eliminarRegistro=async function(id){ if(!confirm("¿Eliminar este registro?")) return; const reg=historico.find(h=>h.id===id); await deleteDoc(doc(db,"caja",id)); if(reg) registrarAuditoria("borrado","caja",`${reg.tipo==="ingreso"?"Ingreso":"Gasto"}: ${fmt(reg.monto)} · ${reg.detalle}`); }
+    window.eliminarRegistro = async function(id) {
+        const reg = historico.find(h => h.id === id);
+        const chipsV = (reg && reg.chipsVendidos) || [];
+        const chipsC = (reg && reg.chipsComprados) || [];
+        let msg = "¿Eliminar este registro?";
+        if (chipsV.length) {
+            const conDoc = chipsData.filter(c => c.idVenta === id && c.docCesionGenerado).length;
+            msg += `\n\nEs una venta de ${chipsV.length} animal(es): sus chips volverán a "disponibles para ceder" (nunca a libres).` + (conDoc ? `\n⚠️ Ya se generó el documento de cesión y el CSV de baja de ${conDoc} de ellos.` : '');
+        }
+        if (chipsC.length) msg += `\n\nEs una compra con ${chipsC.length} chip(s): quedarán ANULADOS (no se podrán vender ni volver a usar).`;
+        if (!confirm(msg)) return;
+        await deleteDoc(doc(db, "caja", id));
+        for (const c of chipsData.filter(c => c.idVenta === id)) {
+            await updateDoc(doc(db, 'chips', c.id), { cedido: false, vendido: false, idVenta: null, fechaCesion: null, compradorNombre: null, docCesionPendiente: false, docCesionGenerado: false });
+        }
+        for (const c of chipsData.filter(c => c.origen === 'compra' && c.idCompra === id && !c.cedido)) {
+            await updateDoc(doc(db, 'chips', c.id), { anulado: true });
+        }
+        if (reg) registrarAuditoria("borrado", "caja", `${reg.tipo === "ingreso" ? "Ingreso" : "Gasto"}: ${fmt(reg.monto)} · ${reg.detalle}`);
+    }
     window.abrirEditar=function(id,detalle,monto,socio,fechaIso){ document.getElementById('edit-id').value=id; document.getElementById('edit-detalle').value=detalle; document.getElementById('edit-monto').value=monto; document.getElementById('edit-socio').value=socio; setFechaFromIso('edit-fecha', fechaIso||''); document.getElementById('modal-editar').classList.add('active'); }
     window.cerrarModal=function(){ document.getElementById('modal-editar').classList.remove('active'); }
     window.guardarEdicion=async function(){ const id=document.getElementById('edit-id').value,detalle=document.getElementById('edit-detalle').value,monto=parseFloat(document.getElementById('edit-monto').value),socio=document.getElementById('edit-socio').value,fechaIso=getFechaIso('edit-fecha'); if(!monto||monto<=0) return alert("Importe inválido"); const fechaEs=isoAEs(fechaIso); await updateDoc(doc(db,"caja",id),{detalle,monto,socio,fecha:fechaEs,fechaIso:fechaIso,timestamp:isoATimestamp(fechaIso)}); registrarAuditoria("edicion","caja",`Edición: ${fmt(monto)} · ${detalle}`); cerrarModal(); }
@@ -2888,19 +3060,23 @@
     // llamó "fase 2" (nacimiento) y "fase 3" (esperar certificado firmado) en una sola pestaña,
     // "porque suele hacerse el mismo día o el día siguiente". No usa ningún dato nuevo: se
     // calcula a partir de lo que pyn2EstadoPuesta() ya sabe de cada puesta.
+    // 27/09/2026: 7 pestañas en una fila, solo icono + contador (el nombre de la activa
+    // se muestra debajo). Nueva pestaña VETERINARIO: certificado enviado, esperando firmado.
     const PYN2_FASES = [
-        { id: 'todas',      label: 'TODAS' },
-        { id: 'puesta',     label: '🥚 PUESTA' },
-        { id: 'nacimiento', label: '🐣 NACIMIENTO' },
-        { id: 'miteco',     label: '📤 MITECO' },
-        { id: 'esperando',  label: '⏳ ESPERANDO' },
-        { id: 'cesion',     label: '✅ CESIÓN' },
+        { id: 'todas',       ic: '🗂️', label: 'TODAS' },
+        { id: 'puesta',      ic: '🥚', label: 'PUESTA' },
+        { id: 'nacimiento',  ic: '🐣', label: 'NACIMIENTO' },
+        { id: 'veterinario', ic: '🩺', label: 'VETERINARIO' },
+        { id: 'miteco',      ic: '📤', label: 'MITECO' },
+        { id: 'esperando',   ic: '⏳', label: 'ESPERANDO' },
+        { id: 'cesion',      ic: '✅', label: 'CESIÓN' },
     ];
     function pyn2Fase(estado) {
         if (estado.cerradaSinCrias) return 'cerrada'; // 24/09/2026: fuera de las pestañas activas (solo en TODAS)
+        if (estado.cedidaTotal) return 'cedida';      // 27/09/2026: todas las crías cedidas — solo en TODAS
         if (estado.completa) return 'cesion';
         if (!estado.pasoNacimiento) return 'puesta';
-        if (!estado.pasoVet) return 'nacimiento';
+        if (!estado.pasoVet) return estado.pasoCertEnviado ? 'veterinario' : 'nacimiento';
         if (!estado.pasoCsv) return 'miteco';
         return 'esperando';
     }
@@ -2908,6 +3084,7 @@
     window._pyn2Filtro = 'todas';
     window.setPyn2Filtro = function(f) {
         window._pyn2Filtro = f;
+        window._pyn2Abierta = null;
         renderPynNuevo();
     };
 
@@ -2972,6 +3149,8 @@
         // el paso del certificado y se avisa de forma explícita en la tarjeta.
         const nacsSinChip     = nacsActivos.filter(n => !n.esPrueba && !(n.chipsAsignados || []).length);
         const pasoVet         = nacsActivos.length > 0 && nacsSinChip.length === 0 && nacsActivos.every(n => n.certVetGenerado);
+        // 27/09/2026: certificado ya generado y enviado al veterinario (esperando que vuelva firmado)
+        const pasoCertEnviado = nacsActivos.length > 0 && nacsSinChip.length === 0 && nacsActivos.every(n => n.certVetEnviado || n.certVetGenerado);
         const pasoCsv         = pasoVet && nacsActivos.every(n => n.csvExportado);
         const pasoPapeles     = pasoCsv && nacsActivos.every(n => n.papelesMitecoRecibidos);
         const citesInfo       = pyn2CitesEstado(nacsActivos);
@@ -2979,8 +3158,15 @@
         // 24/09/2026 (decisión de Patry): puesta cerrada sin ninguna cría viva (no eclosionó
         // nada, o fallecieron todas) — sale de las pestañas activas, solo se ve en TODAS.
         const cerradaSinCrias = !!p.cerrada && (nacsPropios.length === 0 || nacsPropios.every(pyn2NacTodoMuerto));
+        // 27/09/2026: todas las crías vivas ya cedidas/vendidas (o pasadas al plantel) → la puesta
+        // está terminada y sale de las pestañas activas (solo se ve en TODAS).
+        const enPlantel = new Set(parentalesData.filter(x => x.marca).map(x => limpiarNumChip(x.marca)));
+        const chipsVivos = [];
+        nacsActivos.forEach(n => (n.chipsAsignados || []).forEach(c => { if (!chipsData.some(cd => cd.numero === c && cd.bajaMuerte)) chipsVivos.push(c); }));
+        const cedidaTotal = !cerradaSinCrias && chipsVivos.length > 0 && nacsSinChip.length === 0 &&
+            chipsVivos.every(c => enPlantel.has(c) || chipsData.some(cd => cd.numero === c && cd.cedido));
 
-        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoVet, pasoCsv, pasoPapeles, citesInfo, completa, todosNacs, otraPuesta, nacsSinChip, cerradaSinCrias };
+        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoCertEnviado, pasoVet, pasoCsv, pasoPapeles, citesInfo, completa, todosNacs, otraPuesta, nacsSinChip, cerradaSinCrias, cedidaTotal };
     }
 
     // Días transcurridos desde que se envió el CSV a MITECO (el más antiguo de los
@@ -2995,128 +3181,175 @@
         return Math.max(0, Math.floor((Date.now() - masAntigua) / 86400000));
     }
 
-    function pyn2PasoHecho(titulo, detalle, extra) {
-        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;">
-            <div style="width:18px;height:18px;border-radius:50%;background:var(--verde);color:#0a0a0a;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">✓</div>
-            <div style="flex:1;">
-                <div style="font-size:0.76rem;color:var(--texto2);">${titulo}</div>
-                ${detalle ? `<div style="font-size:0.68rem;color:var(--texto2);opacity:0.8;">${detalle}</div>` : ''}
-                ${extra || ''}
-            </div>
-        </div>`;
+    // ── 27/09/2026: rediseño de las tarjetas de PyN NUEVO (maqueta aprobada por Patry) ──
+    // Tarjeta CERRADA: identificador, pareja · fecha, huevos 🥚 y nacidos 🐣 (o eclosión
+    // estimada 🌡️) a la derecha y una franja con el SIGUIENTE PASO (ámbar = toca hacer algo,
+    // rojo = bloqueado, verde = lista). Al pulsarla se abre el detalle con TODOS los pasos
+    // (hechos en verde, disponibles en ámbar con sus botones, futuros en gris) y MÁS ACCIONES.
+    // Solo puede haber una tarjeta abierta a la vez.
+    window._pyn2Abierta = null;
+    window.pyn2ToggleCard = function(puestaId) {
+        window._pyn2Abierta = (window._pyn2Abierta === puestaId) ? null : puestaId;
+        renderPynNuevo();
+        if (window._pyn2Abierta) {
+            const el = document.getElementById('pyn2-card-' + puestaId);
+            if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+        }
+    };
+
+    function pyn2Paso(tipo, titulo, detalle, botones) {
+        // tipo: 'hecho' | 'actual' | 'pend' | 'bloq'
+        const bola = tipo === 'hecho' ? '✓' : (tipo === 'actual' ? '●' : (tipo === 'bloq' ? '!' : ''));
+        return `<div class="pyn2-paso ${tipo}"><div class="pyn2-bola">${bola}</div><div style="flex:1;min-width:0;">
+            <div class="pyn2-paso-t">${titulo}</div>
+            ${detalle ? `<div class="pyn2-paso-d">${detalle}</div>` : ''}
+            ${botones ? `<div class="pyn2-paso-btns">${botones}</div>` : ''}
+        </div></div>`;
     }
-    function pyn2PasoActual(titulo, detalle, extra) {
-        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--naranja);color:var(--naranja);font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">●</div>
-            <div style="flex:1;">
-                <div style="font-size:0.82rem;font-weight:700;color:var(--texto);">${titulo}</div>
-                ${detalle ? `<div style="font-size:0.72rem;margin-top:1px;">${detalle}</div>` : ''}
-                <div style="margin-top:5px;">${extra || ''}</div>
-            </div>
-        </div>`;
+
+    function pyn2FechaCorta(f) {
+        if (!f) return '';
+        const pt = f.split('/');
+        return pt.length === 3 ? `${pt[0].padStart(2,'0')}/${pt[1].padStart(2,'0')}` : f;
     }
 
     function pyn2RenderPuestaCard(p, estado) {
         const pareja = parejasData.find(x => x.id === p.idPareja) || { nombre: p.nombrePareja || '—' };
         const secundaria = estado.otraPuesta;
-        const comboTag = secundaria ? `<span class="combo-tag" style="font-size:0.6rem;background:rgba(255,152,0,0.15);color:var(--naranja);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:2px 8px;font-weight:700;letter-spacing:0.5px;margin-left:6px;">+ ${secundaria.idPuesta || secundaria.detalle} combinada</span>` : '';
         const idPuestaTxt = p.idPuesta || p.detalle || '—';
-        const huevosTxt = secundaria ? `${p.cant} + ${secundaria.cant} huevos` : `${p.cant} huevos`;
-        const fechasTxt = secundaria ? `puestas ${p.fecha} y ${secundaria.fecha}` : `puesta ${p.fecha}`;
+        const abierta = window._pyn2Abierta === p.id;
+        const color = getColorEspecie(p.especie);
+        const huevos = (parseInt(p.cant) || 0) + (secundaria ? (parseInt(secundaria.cant) || 0) : 0);
+        const nacidos = estado.todosNacs.reduce((s, n) => s + (parseInt(n.cant) || 0), 0);
+        const esRadiata = estado.citesInfo.aplica;
+        const certUrl = (estado.todosNacs.find(n => n.certVetFirmadoUrl) || {}).certVetFirmadoUrl || '';
+        const conFecha = estado.todosNacs.find(n => n.fechaMarcado);
+        const bloqueadoChip = estado.pasoNacimiento && estado.nacsSinChip.length > 0;
+        const listaSinChip = estado.nacsSinChip.map(n => `${n.fecha} (${n.cant} cría${n.cant == 1 ? '' : 's'})`).join(', ');
 
+        // ── Pasos (en orden) y cuál es el siguiente ──
         const pasos = [];
-
-        pasos.push(estado.pasoNotificada
-            ? pyn2PasoHecho('Puesta notificada a MITECO', `Marcada el ${p.fechaNotificadoPyN || '—'}`)
-            : pyn2PasoActual('Notificar puesta a MITECO', '', `<button class="btn-mini" onclick="pyn2GenerarNotificacion('${p.idPareja}','${p.id}',false)">📄 GENERAR Y MARCAR ENVIADA</button>`)
-        );
+        let siguiente = null; // { txt, tipo: 'ambar' | 'rojo' | 'verde' | 'gris' }
+        const marcarSig = (txt, tipo) => { if (!siguiente) siguiente = { txt, tipo: tipo || 'ambar' }; };
 
         if (estado.cerradaSinCrias) {
-            pasos.push(pyn2PasoHecho('Puesta cerrada sin crías', estado.pasoNacimiento ? 'Todas las crías causaron baja' : 'No eclosionó ningún huevo'));
-        } else if (!estado.pasoNacimiento) {
-            pasos.push(pyn2PasoActual('Esperando eclosión', p.fechaEclosionEstimada ? `Estimada 🌡️ ${p.fechaEclosionEstimada}` : '', `<button class="btn-mini verde" onclick="abrirModalNacimiento('${p.id}')">🐢 REGISTRAR NACIMIENTO</button>`));
-        } else if (!estado.pasoActualizada) {
-            pasos.push(pyn2PasoActual(`Nacimiento registrado · ${estado.totalNacidos} cría(s)`, 'Falta actualizar la notificación PyN con la eclosión', `<button class="btn-mini" onclick="pyn2GenerarNotificacion('${p.idPareja}','${p.id}',true)">🔄 ACTUALIZAR NOTIFICACIÓN CON LA ECLOSIÓN</button>`));
+            pasos.push(pyn2Paso('hecho', 'Puesta cerrada sin crías', estado.pasoNacimiento ? 'Todas las crías causaron baja' : 'No eclosionó ningún huevo'));
+            siguiente = { txt: 'Puesta cerrada sin crías', tipo: 'gris' };
         } else {
-            pasos.push(pyn2PasoHecho(`Nacimiento registrado · ${estado.totalNacidos} cría(s)`, 'Notificación PyN actualizada con la eclosión'));
-        }
+            // 1. Notificar puesta a MITECO (se puede hacer en cualquier momento)
+            if (estado.pasoNotificada) pasos.push(pyn2Paso('hecho', 'Puesta notificada a MITECO', `Marcada el ${p.fechaNotificadoPyN || '—'}`));
+            else { pasos.push(pyn2Paso('actual', 'Notificar puesta a MITECO', '', `<button class="btn-mini" onclick="pyn2GenerarNotificacion('${p.idPareja}','${p.id}',false)">📄 GENERAR Y MARCAR ENVIADA</button>`)); marcarSig('Notificar puesta a MITECO'); }
 
-        if (estado.pasoNacimiento && !estado.cerradaSinCrias) {
-            if (estado.nacsSinChip.length > 0) {
-                // 24/09/2026 (decisión de Patry): sin chip no se puede avanzar
-                const lista = estado.nacsSinChip.map(n => `${n.fecha} (${n.cant} cría${n.cant==1?'':'s'})`).join(', ');
-                pasos.push(pyn2PasoActual('Certificado veterinario', `<span style="color:var(--rojo);font-weight:700;">⛔ Bloqueado: nacimiento sin chips asignados — ${lista}. Sin chip no se puede certificar ni enviar a MITECO.</span>`, ''));
-            } else if (!estado.pasoVet) {
+            // 2. Nacimiento
+            if (estado.pasoNacimiento) pasos.push(pyn2Paso('hecho', `Nacimiento registrado · ${estado.totalNacidos} cría(s)`));
+            else {
+                const est = p.fechaEclosionEstimada ? `Eclosión estimada 🌡️ ${p.fechaEclosionEstimada}` : '';
+                pasos.push(pyn2Paso('actual', 'Registrar nacimiento', est, `<button class="btn-mini verde" onclick="abrirModalNacimiento('${p.id}')">🐣 REGISTRAR NACIMIENTO</button>`));
+                marcarSig('Registrar nacimiento' + (p.fechaEclosionEstimada ? ` · eclosión ~${pyn2FechaCorta(p.fechaEclosionEstimada)}` : ''));
+            }
+
+            // 3. Actualizar la notificación con la eclosión
+            if (!estado.pasoNacimiento) pasos.push(pyn2Paso('pend', 'Actualizar notificación con la eclosión'));
+            else if (estado.pasoActualizada) pasos.push(pyn2Paso('hecho', 'Notificación PyN actualizada con la eclosión'));
+            else { pasos.push(pyn2Paso('actual', 'Actualizar notificación con la eclosión', '', `<button class="btn-mini" onclick="pyn2GenerarNotificacion('${p.idPareja}','${p.id}',true)">🔄 ACTUALIZAR NOTIFICACIÓN</button>`)); marcarSig('Actualizar notificación con la eclosión'); }
+
+            // 4. Generar certificado veterinario  ·  5. Subir certificado firmado
+            if (!estado.pasoNacimiento) {
+                pasos.push(pyn2Paso('pend', 'Generar certificado veterinario'));
+                pasos.push(pyn2Paso('pend', 'Subir certificado firmado + fecha de marcado'));
+            } else if (bloqueadoChip) {
+                // Decisión de Patry (24/09/2026): sin chip no se puede avanzar
+                pasos.push(pyn2Paso('bloq', 'Generar certificado veterinario', `<span style="color:var(--rojo);font-weight:700;">⛔ Nacimiento sin chips asignados — ${listaSinChip}. Sin chip no se puede certificar ni enviar a MITECO.</span>`));
+                pasos.push(pyn2Paso('pend', 'Subir certificado firmado + fecha de marcado'));
+                marcarSig('Bloqueado: nacimiento sin chip', 'rojo');
+            } else {
                 const comboBtn = !secundaria ? ` <button class="btn-mini naranja" onclick="pyn2AbrirCombinar('${p.id}')">🔗 JUNTAR CON OTRA PUESTA</button>` : '';
-                pasos.push(pyn2PasoActual('Certificado veterinario', '', `<button class="btn-mini" onclick="abrirModalVet('${p.id}')">🩺 GENERAR CERTIFICADO</button> <button class="btn-mini verde" onclick="pyn2AbrirMarcarVet('${p.id}')">✓ YA FIRMADO</button>${comboBtn}`));
-            } else {
-                const conFecha = estado.todosNacs.find(n => n.fechaMarcado);
-                pasos.push(pyn2PasoHecho('Certificado veterinario', conFecha ? `Marcado ${conFecha.fechaMarcado}` : ''));
+                if (estado.pasoCertEnviado) {
+                    const f = estado.todosNacs.find(n => n.fechaCertVetEnviado);
+                    pasos.push(pyn2Paso('hecho', 'Certificado veterinario generado', f ? `Enviado al veterinario el ${f.fechaCertVetEnviado}` : '', estado.pasoVet ? '' : `<button class="btn-mini" onclick="abrirModalVet('${p.id}')">🩺 VOLVER A GENERAR</button>`));
+                } else {
+                    pasos.push(pyn2Paso('actual', 'Generar certificado veterinario', '', `<button class="btn-mini" onclick="abrirModalVet('${p.id}')">🩺 GENERAR CERTIFICADO</button>${comboBtn}`));
+                    marcarSig('Generar certificado veterinario');
+                }
+                if (estado.pasoVet) {
+                    const verCert = certUrl ? `<a class="btn-mini verde" style="text-decoration:none;" href="${certUrl}" target="_blank">👁️ VER CERTIFICADO FIRMADO</a>` : '';
+                    pasos.push(pyn2Paso('hecho', 'Certificado firmado por el veterinario', (conFecha ? `Fecha de marcado ${conFecha.fechaMarcado}` : '') + (certUrl ? '' : ' · <span style="color:var(--naranja);">sin archivo subido</span>'), verCert));
+                } else {
+                    pasos.push(pyn2Paso('actual', 'Subir certificado firmado + fecha de marcado', '', `<button class="btn-mini verde" onclick="pyn2AbrirMarcarVet('${p.id}', true)">📎 SUBIR CERTIFICADO FIRMADO</button> <button class="btn-mini" onclick="pyn2AbrirMarcarVet('${p.id}', false)">✓ YA FIRMADO (sin subir)</button>`));
+                    marcarSig('Subir certificado firmado del veterinario');
+                }
             }
-        }
 
-        if (estado.pasoVet) {
-            if (!estado.pasoCsv) {
-                pasos.push(pyn2PasoActual('CSV a MITECO', '', `<button class="btn-mini" onclick="abrirModalCSV('${p.id}')">📤 GENERAR CSV</button>`));
-            } else {
-                pasos.push(pyn2PasoHecho('CSV enviado a MITECO', ''));
+            // 6. CSV a MITECO
+            if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar CSV y enviar a MITECO'));
+            else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'CSV enviado a MITECO'));
+            else {
+                const desc = certUrl ? ` <a class="btn-mini verde" style="text-decoration:none;" href="${certUrl}" target="_blank">⬇ CERTIFICADO FIRMADO</a>` : '';
+                pasos.push(pyn2Paso('actual', 'Generar CSV y enviar a MITECO', 'A MITECO se envían juntos el certificado firmado y el CSV', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📤 GENERAR CSV</button>${desc}`));
+                marcarSig('Generar CSV y enviar a MITECO');
             }
-        }
 
-        if (estado.pasoCsv) {
-            if (!estado.pasoPapeles) {
+            // 7. Papeles de MITECO
+            if (!estado.pasoCsv) pasos.push(pyn2Paso('pend', 'Esperar papeles de MITECO'));
+            else if (estado.pasoPapeles) pasos.push(pyn2Paso('hecho', 'Papeles de MITECO recibidos'));
+            else {
                 const dias = pyn2DiasEsperaMiteco(estado.todosNacs);
-                const color = (dias !== null && dias > 30) ? 'var(--naranja)' : 'var(--texto2)';
-                const diasTxt = dias !== null ? `<span style="color:${color};font-weight:700;">⏳ ${dias} día${dias!==1?'s':''} esperando</span>` : '';
-                pasos.push(pyn2PasoActual('Esperando papeles de MITECO', diasTxt, `<button class="btn-mini naranja" onclick="pyn2MarcarPapeles('${p.id}')">✓ MARCAR PAPELES RECIBIDOS</button>`));
-            } else if (estado.citesInfo.aplica && !estado.citesInfo.listo) {
-                // Especie de Apéndice I (hoy solo Radiata): falta el trámite CITES
-                // (Modelo 790 + certificado) antes de poder dar la puesta por cerrada.
-                const chipsBtns = estado.citesInfo.chips.length
-                    ? estado.citesInfo.chips.map(({nacId, chip}) => {
-                        const est = citesEstadoData[nacId + '_' + chip] || {};
-                        const label = CITES_ESTADOS[est.estado || 'sin_solicitar'] ? CITES_ESTADOS[est.estado || 'sin_solicitar'].label : 'Sin solicitar';
-                        return `<button class="btn-mini naranja" onclick="abrirModalEstadoCITES('${nacId}','${chip}','${est.estado || 'sin_solicitar'}','${est.fechaTasa || ''}')">📄 ${chip} · ${label}</button>`;
-                    }).join(' ')
-                    : '<span style="color:var(--rojo);font-size:0.72rem;">Sin chips asignados — asigna el chip antes de tramitar el CITES</span>';
-                pasos.push(pyn2PasoHecho('Papeles de MITECO recibidos', ''));
-                pasos.push(pyn2PasoActual('Certificado CITES pendiente (Radiata)', 'Obligatorio antes de poder ceder: paga la tasa Modelo 790 en AEAT y espera el certificado', chipsBtns));
+                const col = (dias !== null && dias > 30) ? 'var(--naranja)' : 'var(--texto2)';
+                const diasTxt = dias !== null ? `<span style="color:${col};font-weight:700;">⏳ ${dias} día${dias !== 1 ? 's' : ''} esperando</span>` : '';
+                pasos.push(pyn2Paso('actual', 'Esperar papeles de MITECO', diasTxt, `<button class="btn-mini naranja" onclick="pyn2MarcarPapeles('${p.id}')">✓ MARCAR PAPELES RECIBIDOS</button>`));
+                marcarSig('Esperando papeles de MITECO' + (dias !== null ? ` · ${dias} día${dias !== 1 ? 's' : ''}` : ''));
+            }
+
+            // 8. CITES (solo especies de Apéndice I — hoy Radiata)
+            if (esRadiata) {
+                if (!estado.pasoPapeles) pasos.push(pyn2Paso('pend', 'Certificado CITES (Apéndice I)'));
+                else if (estado.citesInfo.listo) pasos.push(pyn2Paso('hecho', 'Certificado CITES recibido'));
+                else {
+                    const chipsBtns = estado.citesInfo.chips.length
+                        ? estado.citesInfo.chips.map(({nacId, chip}) => {
+                            const est = citesEstadoData[nacId + '_' + chip] || {};
+                            const label = CITES_ESTADOS[est.estado || 'sin_solicitar'] ? CITES_ESTADOS[est.estado || 'sin_solicitar'].label : 'Sin solicitar';
+                            return `<button class="btn-mini naranja" onclick="abrirModalEstadoCITES('${nacId}','${chip}','${est.estado || 'sin_solicitar'}','${est.fechaTasa || ''}')">📄 ${chip} · ${label}</button>`;
+                        }).join(' ')
+                        : '<span style="color:var(--rojo);font-size:0.72rem;">Sin chips asignados — asigna el chip antes de tramitar el CITES</span>';
+                    pasos.push(pyn2Paso('actual', 'Certificado CITES pendiente', 'Obligatorio antes de ceder: tasa Modelo 790 en AEAT y esperar el certificado', chipsBtns));
+                    marcarSig('Tramitar certificado CITES');
+                }
+            }
+
+            // 9. Lista para cesión
+            if (estado.completa) {
+                pasos.push(pyn2Paso('hecho', 'Lista para cesión', '', `<button class="btn-mini verde" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
+                if (!siguiente) siguiente = { txt: 'Lista para cesión', tipo: 'verde' };
             } else {
-                pasos.push(pyn2PasoHecho('Papeles de MITECO recibidos', estado.citesInfo.aplica ? 'CITES recibido' : '', `<button class="btn-mini verde" style="margin-top:6px;" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
+                pasos.push(pyn2Paso('pend', 'Lista para cesión'));
+            }
+            if (!siguiente) siguiente = { txt: 'Revisa los pasos pendientes', tipo: 'ambar' };
+            // 27/09/2026: si todas las crías están ya cedidas/vendidas, la puesta está terminada
+            if (estado.cedidaTotal) {
+                pasos.unshift(pyn2Paso('hecho', '✅ Todas las crías cedidas o vendidas', 'Puesta terminada — solo aparece en TODAS'));
+                siguiente = { txt: 'Todas las crías cedidas', tipo: 'verde' };
             }
         }
 
-        // ── Acciones secundarias (editar, plantel, baja, CITES, documentos,
-        // cerrar/eliminar) — antes solo estaban en el PyN antiguo; se ofrecen
-        // aquí también, plegadas, para no recargar la vista principal de pasos.
-        const nacsAccionesHTML = estado.nacsPropios.map(n => `
-            <div style="font-size:0.66rem;color:var(--texto2);margin:8px 0 4px;">🐢 Nacimiento ${n.fecha} · ${n.cant} cría(s)</div>
+        // ── MÁS ACCIONES (igual que antes) ──
+        const nacBtns = (n, sufijo) => `
+            <div style="font-size:0.66rem;color:var(--texto2);margin:8px 0 4px;">🐢 Nacimiento ${n.fecha} · ${n.cant} cría(s)${sufijo || ''}</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
                 <button class="btn-mini" onclick="abrirModalEditNacimiento('${n.id}')">✏️ EDITAR</button>
                 <button class="btn-mini" onclick="abrirModalPlantel('${n.id}')">🐢 PLANTEL</button>
                 <button class="btn-mini" onclick="abrirModalBajaCria('${n.id}', '${n.especie}')">🔻 BAJA</button>
                 <button class="btn-mini" onclick="abrirModalCitesNacimiento('${n.id}')">💉 CITES</button>
                 <button class="btn-mini" onclick="abrirDocsNacimiento('${n.id}')">📎 DOCS</button>
+                <button class="btn-mini verde" onclick="abrirRegularizar('${n.id}')">✅ MARCAR CEDIDAS</button>
                 <button class="btn-mini rojo" onclick="eliminarBio('${n.id}')">🗑️ ELIMINAR NACIMIENTO</button>
-            </div>`).join('');
-
-        // Nacimientos de la puesta secundaria combinada (si la hay) — con las mismas
-        // acciones, para no dejarlos sin PLANTEL/BAJA/CITES/DOCS al estar combinadas.
-        const nacsOtraAccionesHTML = secundaria ? pyn2NacsDePuesta(secundaria).map(n => `
-            <div style="font-size:0.66rem;color:var(--texto2);margin:8px 0 4px;">🐢 Nacimiento ${n.fecha} · ${n.cant} cría(s) · de ${secundaria.idPuesta || secundaria.detalle}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;">
-                <button class="btn-mini" onclick="abrirModalEditNacimiento('${n.id}')">✏️ EDITAR</button>
-                <button class="btn-mini" onclick="abrirModalPlantel('${n.id}')">🐢 PLANTEL</button>
-                <button class="btn-mini" onclick="abrirModalBajaCria('${n.id}', '${n.especie}')">🔻 BAJA</button>
-                <button class="btn-mini" onclick="abrirModalCitesNacimiento('${n.id}')">💉 CITES</button>
-                <button class="btn-mini" onclick="abrirDocsNacimiento('${n.id}')">📎 DOCS</button>
-                <button class="btn-mini rojo" onclick="eliminarBio('${n.id}')">🗑️ ELIMINAR NACIMIENTO</button>
-            </div>`).join('') : '';
-
+            </div>`;
+        const nacsAccionesHTML = estado.nacsPropios.map(n => nacBtns(n)).join('');
+        const nacsOtraAccionesHTML = secundaria ? pyn2NacsDePuesta(secundaria).map(n => nacBtns(n, ` · de ${secundaria.idPuesta || secundaria.detalle}`)).join('') : '';
         const puedeCerrar = !p.cerrada && ((parseInt(p.cant)||0) - estado.totalNacidos) > 0;
         const accionesHTML = `
             <div style="margin-top:6px;">
-                <div onclick="pyn2ToggleAcciones('${p.id}')" style="cursor:pointer;font-size:0.66rem;color:var(--texto2);font-weight:700;letter-spacing:1px;padding:6px 0;border-top:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;">
+                <div onclick="pyn2ToggleAcciones('${p.id}')" style="cursor:pointer;font-size:0.66rem;color:var(--texto2);font-weight:700;letter-spacing:1px;padding:8px 0 4px;border-top:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;">
                     <span>⚙️ MÁS ACCIONES</span>
                     <span id="pyn2-flecha-acc-${p.id}">▶</span>
                 </div>
@@ -3132,13 +3365,26 @@
                 </div>
             </div>`;
 
-        return `<div id="pyn2-card-${p.id}" style="background:var(--tarjeta2);border:1px solid var(--borde);border-left:4px solid var(--azul);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
-            <div style="margin-bottom:8px;">
-                <div style="font-weight:700;font-size:0.88rem;color:var(--azul);">🥚 ${idPuestaTxt}${comboTag}</div>
-                <div style="font-size:0.72rem;color:var(--texto2);margin-top:2px;">${pareja.nombre} · ${huevosTxt} · ${fechasTxt}</div>
+        // ── Cifras de la derecha ──
+        const cifraNac = estado.pasoNacimiento || estado.cerradaSinCrias
+            ? `<div class="pyn2-cifra"><b style="color:var(--verde);">${nacidos}🐣</b><span>nacidos</span></div>`
+            : `<div class="pyn2-cifra est"><b>🌡️ ${pyn2FechaCorta(p.fechaEclosionEstimada) || '—'}</b><span>eclosión</span></div>`;
+        const icoSig = { ambar: '▶', rojo: '⛔', verde: '✅', gris: '🔒' }[siguiente.tipo];
+        const combo = secundaria ? `<br><span class="pyn2-combo">🔗 junta con ${secundaria.idPuesta || secundaria.detalle}</span>` : '';
+
+        return `<div id="pyn2-card-${p.id}" class="pyn2-card ${abierta ? 'abierta' : ''}">
+            <div class="pyn2-cab" onclick="pyn2ToggleCard('${p.id}')">
+                <div style="flex:1;min-width:0;">
+                    <div class="pyn2-idp"><span class="pyn2-dot" style="background:${color};"></span>${idPuestaTxt}</div>
+                    <div class="pyn2-sub">${pareja.nombre} · ${p.fecha || '—'}${combo}</div>
+                </div>
+                <div class="pyn2-cifras">
+                    <div class="pyn2-cifra"><b>${huevos}🥚</b><span>huevos</span></div>
+                    ${cifraNac}
+                </div>
             </div>
-            ${pasos.join('')}
-            ${accionesHTML}
+            <div class="pyn2-siguiente ${siguiente.tipo}" onclick="pyn2ToggleCard('${p.id}')">${icoSig} ${siguiente.txt}<span class="pyn2-flecha">›</span></div>
+            ${abierta ? `<div class="pyn2-detalle">${pasos.join('')}${accionesHTML}</div>` : ''}
         </div>`;
     }
 
@@ -3171,6 +3417,7 @@
         // contenga esa puesta — si no, cámbiala a la suya antes de pintar nada.
         const puestaScrollId = window._pyn2ScrollAPuestaId;
         if (puestaScrollId) {
+            window._pyn2Abierta = puestaScrollId; // 27/09/2026: se abre directamente esa tarjeta
             const fila = filas.find(f => f.p.id === puestaScrollId);
             if (fila && filtro !== 'todas' && filtro !== fila.fase) {
                 filtro = fila.fase;
@@ -3179,16 +3426,17 @@
         }
 
         if (tabsEl) {
-            tabsEl.innerHTML = PYN2_FASES.map(f => {
+            const activa = PYN2_FASES.find(f => f.id === filtro) || PYN2_FASES[0];
+            tabsEl.innerHTML = `<div class="pyn2-tabs-iconos">` + PYN2_FASES.map(f => {
                 const n = f.id === 'todas' ? filas.length : filas.filter(x => x.fase === f.id).length;
-                return `<div class="pyn2-tab ${f.id === filtro ? 'activa' : ''}" onclick="setPyn2Filtro('${f.id}')">${f.label} <span class="pyn2-tab-contador">${n}</span></div>`;
-            }).join('');
+                return `<div class="pyn2-ti ${f.id === filtro ? 'activa' : ''}" onclick="setPyn2Filtro('${f.id}')"><div class="ic">${f.ic}</div><div class="n">${n}</div></div>`;
+            }).join('') + `</div><div class="pyn2-tab-nombre">${activa.label}</div>`;
         }
 
         let filtradas = filtro === 'todas' ? filas : filas.filter(f => f.fase === filtro);
 
         if (filtradas.length === 0) {
-            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', miteco: 'Sin certificados pendientes de enviar a MITECO', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
+            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin certificados pendientes de enviar a MITECO', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
             cont.innerHTML = `<p class="msg-vacio">${msgs[filtro] || 'Sin puestas'}</p>`;
             return;
         }
@@ -3227,12 +3475,27 @@
         } catch(err) { alert('Error: ' + err.message); }
     };
 
+    // 27/09/2026 (decisión de Patry): se puede generar el CSV sin haber subido el certificado
+    // firmado, pero con un aviso de confirmación.
+    window.pyn2AbrirCSV = function(puestaId) {
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return;
+        const est = pyn2EstadoPuesta(p);
+        const tieneCert = est.todosNacs.some(n => n.certVetFirmadoUrl);
+        if (!tieneCert && !confirm('⚠️ Vas a generar el CSV para MITECO SIN haber subido el certificado veterinario firmado de esta puesta.\n\n¿Quieres continuar de todas formas?')) return;
+        abrirModalCSV(puestaId);
+    };
+
     window.pyn2AbrirCombinar = function(puestaId) {
         abrirModalVet(puestaId);
     };
 
     window._pyn2VetPuestaId = null;
-    window.pyn2AbrirMarcarVet = function(puestaId) {
+    window.pyn2AbrirMarcarVet = function(puestaId, conArchivo) {
+        window._pyn2VetConArchivo = !!conArchivo;
+        const g = document.getElementById('pyn2-vet-archivo-grupo'); if (g) g.style.display = conArchivo ? 'block' : 'none';
+        const a = document.getElementById('pyn2-vet-archivo'); if (a) a.value = '';
+        const pr = document.getElementById('pyn2-vet-progreso'); if (pr) pr.style.display = 'none';
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar el certificado veterinario.'); // 24/09/2026: permisos Martín
         window._pyn2VetPuestaId = puestaId;
         const p = histBio.find(x => x.id === puestaId);
@@ -3254,17 +3517,37 @@
         const pVet = histBio.find(x => x.id === puestaId);
         const puestaIds = (pVet && pVet.combinadaCon) ? [puestaId, pVet.combinadaCon]
             : ((window._vetPuestaIds && window._vetPuestaIds.includes(puestaId)) ? window._vetPuestaIds : [puestaId]);
+        const inputArch = document.getElementById('pyn2-vet-archivo');
+        const archivo = (window._pyn2VetConArchivo && inputArch && inputArch.files[0]) ? inputArch.files[0] : null;
+        if (window._pyn2VetConArchivo && !archivo) return alert('Elige la foto o el PDF del certificado firmado (o cancela y usa "YA FIRMADO (sin subir)").');
         try {
             const animales = getAnimalesPorPuestas(puestaIds);
             const nacIds = [...new Set(animales.map(a => a.nacId))];
+            if (!nacIds.length) return alert('Esta puesta no tiene crías con chip — no hay nada que certificar.');
+            // 27/09/2026: subir el certificado firmado (una sola vez, aunque se junten 2 puestas)
+            // a la carpeta de documentos del primer nacimiento, y guardar el enlace en todos.
+            let certVetFirmadoUrl = '';
+            if (archivo) {
+                const pr = document.getElementById('pyn2-vet-progreso');
+                if (pr) { pr.style.display = 'block'; pr.textContent = '⏳ Subiendo certificado...'; }
+                const esPdf = archivo.type === 'application/pdf';
+                let datos = archivo, ext = esPdf ? 'pdf' : 'jpg';
+                if (!esPdf) {
+                    const dataUrl = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = e => ok(e.target.result); r.onerror = ko; r.readAsDataURL(archivo); });
+                    datos = new Uint8Array(await comprimirImagen(dataUrl, archivo.type));
+                }
+                const refArch = ref(storage, `docs_vet/${nacIds[0]}/certificado_firmado_${Date.now()}.${ext}`);
+                await uploadBytes(refArch, datos, { contentType: esPdf ? 'application/pdf' : 'image/jpeg' });
+                certVetFirmadoUrl = await getDownloadURL(refArch);
+            }
             for (const nacId of nacIds) {
-                await updateDoc(doc(db, 'bio', nacId), { certVetGenerado: true, fechaMarcado: fecha });
+                await updateDoc(doc(db, 'bio', nacId), { certVetGenerado: true, fechaMarcado: fecha, ...(certVetFirmadoUrl ? { certVetFirmadoUrl } : {}) });
             }
             if (puestaIds.length === 2) {
                 await updateDoc(doc(db, 'bio', puestaIds[0]), { combinadaCon: puestaIds[1] });
                 await updateDoc(doc(db, 'bio', puestaIds[1]), { combinadaCon: puestaIds[0] });
             }
-            registrarAuditoria('edicion', 'bio', `Certificado veterinario confirmado · fecha de marcado ${fecha}`);
+            registrarAuditoria('edicion', 'bio', `Certificado veterinario confirmado · fecha de marcado ${fecha}${certVetFirmadoUrl ? ' · certificado firmado subido' : ' · sin subir archivo'}`);
             document.getElementById('modal-pyn2-vet').classList.remove('active');
         } catch(err) { alert('Error: ' + err.message); }
     };
@@ -3411,20 +3694,25 @@
 
     window.eliminarBio = async function(id) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede eliminar registros biológicos.');
-        if(!confirm('¿Eliminar este registro?')) return;
+        const registro = histBio.find(x => x.id === id);
+        // 27/09/2026 (Patry): un chip usado JAMÁS vuelve a estar libre. Al eliminar un nacimiento,
+        // sus chips quedan como usados y ANULADOS (no salen para vender ni ceder, ni se pueden reutilizar).
+        let aviso = '¿Eliminar este registro?';
+        if (registro && registro.tipo === 'nacimiento' && (registro.chipsAsignados || []).length) {
+            const cedidos = chipsData.filter(c => registro.chipsAsignados.includes(c.numero) && c.cedido).length;
+            aviso = `¿Eliminar este nacimiento?\n\nSus ${registro.chipsAsignados.length} chip(s) quedarán ANULADOS: seguirán como usados y NUNCA volverán a estar libres.` +
+                (cedidos ? `\n\n⚠️ ${cedidos} de estas crías ya están cedidas/vendidas. Si solo quieres dejar de verlas como pendientes, usa "✅ MARCAR CEDIDAS" en vez de eliminar.` : '') +
+                (registro.certVetGenerado || registro.csvExportado ? '\n\n⚠️ Este nacimiento ya tiene certificado veterinario y/o CSV enviado a MITECO.' : '');
+        }
+        if(!confirm(aviso)) return;
         try {
-            // Si es un nacimiento con chips asignados, liberarlos
-            const registro = histBio.find(x => x.id === id);
             if(registro) registrarAuditoria('borrado','bio',`${registro.tipo==='nacimiento'?'Nacimiento':'Puesta'} eliminado: ${registro.cant||''} ${registro.especie||''} · ${registro.fecha||''}`);
             if (registro && registro.tipo === 'nacimiento' && registro.chipsAsignados && registro.chipsAsignados.length > 0) {
                 for (const numChip of registro.chipsAsignados) {
-                    try {
-                        await updateDoc(doc(db, 'chips', numChip), {
-                            usado: false,
-                            fechaUso: null,
-                            idPuesta: null
-                        });
-                    } catch(e) { /* chip puede haber sido borrado manualmente, ignorar */ }
+                    const c = chipsData.find(x => x.numero === numChip);
+                    if (c && !c.cedido) {
+                        try { await updateDoc(doc(db, 'chips', c.id), { usado: true, anulado: true, motivoAnulado: 'Nacimiento eliminado' }); } catch(e) {}
+                    }
                 }
             }
             await deleteDoc(doc(db,'bio',id));
@@ -3798,6 +4086,13 @@
         if (chipsUnicos.size < chipsAsignados.length) {
             return alert('Hay chips repetidos. Revisa la asignación.');
         }
+        // 27/09/2026 (Patry): confirmar los chips antes de guardar — un chip usado no vuelve a estar libre nunca
+        if (!puesta.esPrueba) {
+            const txtChips = chipsAsignados.length
+                ? `¿Estos son los chips que has puesto?\n\n${chipsAsignados.map((c, i) => `Animal ${i+1}: ${fmtChip(c)}`).join('\n')}\n\nUna vez guardados quedan usados para siempre.`
+                : `⚠️ Vas a guardar el nacimiento SIN chips.\n\nSin chip no podrá avanzar en PyN (certificado, CSV, cesión). ¿Continuar?`;
+            if (!confirm(txtChips)) return;
+        }
 
         try {
             // 1. Guardar el nacimiento en bio
@@ -4038,6 +4333,8 @@
         });
         renderChips();
         actualizarContadorChips();
+        const fi = document.getElementById('form-ingreso'); if (fi && fi.style.display !== 'none') renderVentaChips();
+        const pc = document.getElementById('pantalla-cesion'); if (pc && pc.style.display !== 'none') renderCesionPendientes();
         // 24/09/2026: una baja por fallecimiento marca el chip y cambia el estado de PyN NUEVO
         if (document.getElementById('pantalla-pyn2') && document.getElementById('pantalla-pyn2').style.display !== 'none') renderPynNuevo();
     });
@@ -4473,6 +4770,22 @@
         // del documento (se ve e imprime igual, pero el texto no es seleccionable/copiable).
         descargarPdfCertificadoVet(contenido, titulo);
         guardarCombinacionVet(idsVet);
+        marcarCertEnviadoVet(idsVet);
+    }
+
+    // 27/09/2026: al generar el certificado, sus nacimientos pasan a "enviado al veterinario"
+    // (pestaña VETERINARIO de PyN) hasta que se suba/marque firmado.
+    async function marcarCertEnviadoVet(ids) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin' || !ids.length) return;
+        try {
+            const hoy = new Date();
+            const f = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+            const nacIds = [...new Set(getAnimalesPorPuestas(ids).map(a => a.nacId))];
+            for (const nacId of nacIds) {
+                const n = histBio.find(x => x.id === nacId);
+                if (n && !n.certVetEnviado) await updateDoc(doc(db, 'bio', nacId), { certVetEnviado: true, fechaCertVetEnviado: f });
+            }
+        } catch (e) { console.warn('No se pudo marcar el certificado como enviado:', e); }
     }
 
     // 24/09/2026 (decisión de Patry): la unión de 2 puestas en un mismo certificado se guarda
@@ -5456,9 +5769,11 @@
         const yaExisten = new Set(chipsData.map(c => c.numero));
         let añadidos = 0, duplicados = 0;
         const batch = [];
+        let yaUsados = 0;
         for(let n = numDesde; n <= numHasta; n++) {
             const num = n.toString();
             if(yaExisten.has(num)) { duplicados++; continue; }
+            if(chipUsadoEnAnimal(num)) { yaUsados++; continue; } // 27/09/2026: nunca reutilizar un chip usado
             batch.push(num);
         }
         try {
@@ -5468,7 +5783,7 @@
             }
             document.getElementById('chip-desde').value = '';
             document.getElementById('chip-hasta').value = '';
-            alert(`✅ ${añadidos} chips añadidos${duplicados > 0 ? `. ${duplicados} ya existían y se omitieron.` : '.'}`);
+            alert(`✅ ${añadidos} chips añadidos${duplicados > 0 ? `. ${duplicados} ya existían y se omitieron.` : '.'}${yaUsados > 0 ? `\n⛔ ${yaUsados} ya se usaron en algún animal y NO se han añadido.` : ''}`);
         } catch(err) { alert('Error: ' + err.message); }
     }
 
@@ -5478,6 +5793,7 @@
         const num = limpiarNumChip(raw);
         if(!num || num.length < 10) return alert('Número de chip no válido');
         if(chipsData.find(c => c.numero === num)) return alert('Ese chip ya existe en la base de datos');
+        if(chipUsadoEnAnimal(num)) return alert('⛔ Ese chip ya se usó en un animal y no se puede volver a dar de alta.');
         try {
             await setDoc(doc(db, 'chips', num), { numero: num, usado: false, fechaUso: null, idPuesta: null });
             document.getElementById('chip-uno').value = '';
@@ -5494,17 +5810,10 @@
         catch(err) { alert('Error: ' + err.message); }
     }
 
-    window.borrarChipUsado = async function(id) {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede gestionar chips.');
-        const chip = chipsData.find(c => c.id === id);
-        if(!chip) return;
-        const fmt = chip.numero.length === 15
-            ? chip.numero.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
-            : chip.numero;
-        if(!confirm('⚠️ Este chip está asignado a un animal (' + fmt + ').\n\nSolo para limpiar datos de prueba.\n\n¿Eliminar igualmente?')) return;
-        if(!confirm('Segunda confirmación: ¿seguro que quieres eliminar el chip ' + fmt + '?')) return;
-        try { await deleteDoc(doc(db, 'chips', id)); }
-        catch(err) { alert('Error: ' + err.message); }
+    // 27/09/2026 (Patry): un chip usado no se puede borrar nunca (si se borrara, al volver a
+    // añadir un rango que lo incluya reaparecería como libre).
+    window.borrarChipUsado = function() {
+        alert('⛔ Un chip usado no se puede borrar: quedaría la puerta abierta a que vuelva a estar libre.');
     }
 
     window.verTabChip = function(t) {
@@ -5529,7 +5838,9 @@
                 ? num.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
                 : num;
             if(c.usado) {
-                return '<div class="chip-item usado"><div><div class="chip-num">' + fmt + '</div><div class="chip-meta">Asignado · ' + (c.fechaUso || '—') + (c.idPuesta ? ' · ' + c.idPuesta : '') + '</div></div><button class="btn-borrar-chip" onclick="borrarChipUsado(\'' + c.id + '\')">🗑️</button></div>';
+                // 27/09/2026: estado del chip usado; sin botón de borrar (un chip usado no se borra nunca)
+                const estadoChip = c.anulado ? '🚫 Anulado' : c.bajaMuerte ? '✝️ Fallecida' : c.vendido ? ('💶 Vendida' + (c.docCesionPendiente ? ' · falta documento' : '')) : c.cedido ? '📄 Cedida' : c.origen === 'compra' ? '🛒 Comprada' : 'Asignado';
+                return '<div class="chip-item usado"><div><div class="chip-num">' + fmt + '</div><div class="chip-meta">' + estadoChip + ' · ' + (c.fechaCesion || c.fechaUso || '—') + (c.idPuesta ? ' · ' + c.idPuesta : '') + (c.compradorNombre ? ' · ' + c.compradorNombre : '') + '</div></div></div>';
             } else {
                 return '<div class="chip-item"><div class="chip-num">' + fmt + '</div><button class="btn-borrar-chip" onclick="borrarChip(\'' + c.id + '\')">🗑️</button></div>';
             }
@@ -5640,6 +5951,241 @@
     }
 
 
+    // ══════════════════════════════════════════════════════════════
+    // 27/09/2026 — VENTAS CON CHIPS, CESIÓN, COMPRAS CON CHIPS Y REGULARIZACIÓN
+    // Reglas acordadas con Patry:
+    //  · Una venta de animales (CAJA → ＋ INGRESO) exige marcar los chips vendidos;
+    //    la cantidad sale sola. El stock se descuenta UNA vez (por el ingreso de caja)
+    //    y los chips quedan como vendidos/cedidos.
+    //  · CESIÓN de crías es solo para cesiones SIN venta: ahí el stock se descuenta
+    //    con un registro en "bajas" (motivo 'cesion').
+    //  · Un chip usado JAMÁS vuelve a estar libre.
+    // ══════════════════════════════════════════════════════════════
+
+    function fmtChip(num) {
+        const n = String(num || '');
+        return n.length === 15 ? n.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5') : n;
+    }
+
+    // ¿Este número de chip se ha usado alguna vez en un animal (nacimiento, plantel o compra)?
+    function chipUsadoEnAnimal(num) {
+        const n = limpiarNumChip(num);
+        if (!n) return false;
+        if (histBio.some(b => b.tipo === 'nacimiento' && (b.chipsAsignados || []).some(c => limpiarNumChip(c) === n))) return true;
+        if (parentalesData.some(p => p.marca && limpiarNumChip(p.marca) === n)) return true;
+        return chipsData.some(c => c.numero === n && (c.usado || c.origen === 'compra'));
+    }
+
+    // Datos de un chip usado: especie, año de nacimiento y grupo (nacimiento o compra)
+    function infoChip(numero) {
+        const nac = histBio.find(b => b.tipo === 'nacimiento' && (b.chipsAsignados || []).includes(numero));
+        if (nac) {
+            const anyo = nac.fecha ? (nac.fecha.split('/')[2] || '') : '';
+            return { especie: nac.especie, anyo, fechaNac: nac.fecha || '', grupoId: nac.id,
+                     grupoLabel: `${nac.idPuesta || nac.nombrePareja || nac.especie} · nac. ${nac.fecha || '—'}`, orden: nac.timestamp || 0 };
+        }
+        const c = chipsData.find(x => x.numero === numero);
+        if (c && c.origen === 'compra') {
+            return { especie: c.especie, anyo: c.anyoNacimiento || '', fechaNac: '', grupoId: 'compra:' + (c.idCompra || ''),
+                     grupoLabel: `Compra · ${c.fechaUso || '—'}`, orden: 0 };
+        }
+        return null;
+    }
+
+    // Crías disponibles para vender/ceder (chip usado, no cedido, no fallecido, no anulado,
+    // y que no haya pasado al plantel de reproductores).
+    function chipsDisponiblesCria(especie) {
+        const enPlantel = new Set(parentalesData.filter(p => p.marca && !p.bajaMotivo).map(p => limpiarNumChip(p.marca)));
+        return chipsData
+            .filter(c => c.usado && !c.cedido && !c.bajaMuerte && !c.anulado && !enPlantel.has(c.numero))
+            .map(c => ({ c, ...(infoChip(c.numero) || {}) }))
+            .filter(x => x.especie && x.especie !== 'PRUEBA' && (!especie || x.especie === especie))
+            .sort((a, b) => (a.orden - b.orden) || a.c.numero.localeCompare(b.c.numero, undefined, { numeric: true }));
+    }
+
+    // ── Selector de chips en NUEVO INGRESO ──
+    window._ventaChipsSel = new Set();
+    function renderVentaChips() {
+        const bloque = document.getElementById('i-venta-chips');
+        const cont = document.getElementById('i-venta-grupos');
+        if (!bloque || !cont) return;
+        const especie = document.getElementById('i-especie').value;
+        const esAnimal = especie && especie !== 'Otros';
+        bloque.style.display = esAnimal ? 'block' : 'none';
+        const gCant = document.getElementById('grupo-i-cant'); if (gCant) gCant.style.display = 'none';
+        if (!esAnimal) return;
+        const disp = chipsDisponiblesCria(especie);
+        // quitar de la selección lo que ya no esté disponible (o sea de otra especie)
+        const numsDisp = new Set(disp.map(x => x.c.numero));
+        [...window._ventaChipsSel].forEach(n => { if (!numsDisp.has(n)) window._ventaChipsSel.delete(n); });
+        if (!disp.length) {
+            cont.innerHTML = `<div style="font-size:0.8rem;color:var(--rojo);text-align:center;font-weight:700;">No hay crías de ${especie} con chip disponibles para vender.</div>`;
+        } else {
+            const grupos = [];
+            disp.forEach(x => { let g = grupos.find(g => g.id === x.grupoId); if (!g) { g = { id: x.grupoId, label: x.grupoLabel, items: [] }; grupos.push(g); } g.items.push(x); });
+            cont.innerHTML = grupos.map((g, gi) => `
+                <div style="background:var(--tarjeta2);border-radius:12px;padding:9px 10px;margin-bottom:8px;text-align:left;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:7px;">
+                        <b style="font-size:0.8rem;">🥚 ${g.label}</b>
+                        <span onclick="ventaToggleGrupo(${gi})" style="font-size:0.68rem;color:var(--azul);cursor:pointer;font-weight:700;white-space:nowrap;">TODA LA PUESTA</span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                        ${g.items.map(x => { const on = window._ventaChipsSel.has(x.c.numero); return `<div onclick="ventaToggleChip('${x.c.numero}')" style="border:1px solid ${on ? 'var(--verde)' : 'var(--borde)'};background:${on ? 'rgba(76,175,80,0.18)' : 'var(--fondo)'};color:${on ? 'var(--verde)' : 'var(--texto2)'};border-radius:8px;padding:5px 8px;font-size:0.74rem;font-weight:700;cursor:pointer;user-select:none;">💉 …${fmtChip(x.c.numero).slice(-7)}</div>`; }).join('')}
+                    </div>
+                </div>`).join('');
+            window._ventaGrupos = grupos;
+        }
+        const n = document.getElementById('i-venta-n'); if (n) n.textContent = window._ventaChipsSel.size;
+    }
+    window.ventaToggleChip = function(num) {
+        if (window._ventaChipsSel.has(num)) window._ventaChipsSel.delete(num); else window._ventaChipsSel.add(num);
+        renderVentaChips();
+    };
+    window.ventaToggleGrupo = function(gi) {
+        const g = (window._ventaGrupos || [])[gi]; if (!g) return;
+        const todos = g.items.every(x => window._ventaChipsSel.has(x.c.numero));
+        g.items.forEach(x => todos ? window._ventaChipsSel.delete(x.c.numero) : window._ventaChipsSel.add(x.c.numero));
+        renderVentaChips();
+    };
+
+    // ── Generador único de documentos de cesión (PDF por animal + CSV de baja MITECO) ──
+    // items: [{ c: chipDoc, especie, anyo }]; opciones.sinVenta → descuenta stock (bajas 'cesion')
+    async function generarDocsCesion(items, comprador, opciones) {
+        opciones = opciones || {};
+        if (!items.length) return false;
+        const anyoActualNum = new Date().getFullYear();
+        const sinAnyo = items.filter(x => !x.anyo || String(x.anyo).length !== 4);
+        if (sinAnyo.length) { alert(`⚠️ ${sinAnyo.length} animal(es) sin año de nacimiento válido (${sinAnyo.map(x => x.c.numero).join(', ')}). Corrige la fecha del nacimiento antes de generar la cesión.`); return false; }
+        const raros = [...new Set(items.map(x => x.anyo).filter(a => parseInt(a) < anyoActualNum - 1 || parseInt(a) > anyoActualNum))];
+        if (raros.length && !confirm(`⚠️ AVISO: AÑO DE NACIMIENTO INUSUAL\n\nSe imprimirá el año ${raros.join(', ')} en los documentos (año actual ${anyoActualNum}).\n\n¿Es correcto?`)) return false;
+        try {
+            const resp = await fetch('DOCUMENTO CESION.pdf');
+            if (!resp.ok) throw new Error('No se pudo cargar DOCUMENTO CESION.pdf del repositorio.');
+            const templateBytes = await resp.arrayBuffer();
+            const hoy = new Date();
+            const fechaHoy = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+            const fechaHoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+            const { PDFDocument, StandardFonts, rgb } = PDFLib;
+            for (const it of items) {
+                const pdfDoc = await PDFDocument.load(templateBytes);
+                const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                const page = pdfDoc.getPages()[0];
+                const txt = (x, y, t, size = 10) => { if (t) page.drawText(String(t), { x, y, size, font, color: rgb(0,0,0) }); };
+                // ── Coordenadas calibradas (plantilla 571x808 pt) ──
+                txt(100, 452, comprador.nombre); txt(75, 435, comprador.dni); txt(120, 420, comprador.direccion);
+                txt(120, 405, comprador.nCriador); txt(155, 390, comprador.nucleoZoologico);
+                const nombreCesion = ((MITECO_ESPECIES[it.especie] && MITECO_ESPECIES[it.especie].nombreCompleto) || it.especie || '').toUpperCase();
+                txt(100, 329, nombreCesion); txt(155, 313, '1'); txt(175, 283, String(it.anyo));
+                txt(100, 267, it.c.cites || ''); txt(145, 252, String(it.c.numero));
+                txt(110, 160, 'LORCA'); txt(390, 160, fechaHoy);
+                const blob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url;
+                a.download = `Cesion_${it.especie}_chip${it.c.numero}_${fechaHoy.replace(/\//g,'-')}.pdf`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            }
+            for (const it of items) {
+                await updateDoc(doc(db, 'chips', it.c.id), { cedido: true, fechaCesion: it.c.fechaCesion || fechaHoy, compradorNombre: comprador.nombre || it.c.compradorNombre || 'Sin datos', docCesionGenerado: true, docCesionPendiente: false });
+                if (opciones.sinVenta) {
+                    await addDoc(collection(db, 'bajas'), { chip: it.c.numero, especie: it.especie, motivo: 'cesion', motivoTexto: 'Cesión sin venta', origen: 'cria', fecha: fechaHoy, fechaIso: fechaHoyIso, timestamp: Date.now(), registradoPor: usuarioActual.nombre });
+                }
+            }
+            registrarAuditoria('nuevo', 'cesion', `Cesión${opciones.sinVenta ? ' sin venta' : ' (venta)'}: ${items.length} animal(es) · ${comprador.nombre || 'Sin comprador'} · ${items.map(x => x.c.numero).join(', ')}`);
+            // CSV de baja MITECO
+            const filas = items.map(it => {
+                const m = MITECO_ESPECIES[it.especie] || { genero: (it.especie||'').toUpperCase(), especie: (it.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
+                return [MITECO_CRIADOR, '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '', 'D', 'C', '', '',
+                    'MICROCHIP Nº: ' + fmtChip(it.c.numero), '', '', '', '', '', '', 'B', fechaHoy, 'CE', '', '', fechaHoy, '', '', comprador.nombre || ''].join(';');
+            });
+            const csv = [MITECO_CSV_HEADERS, ...filas].join('\r\n');
+            const latin1 = new Uint8Array([...csv].map(ch => { const code = ch.charCodeAt(0); return code <= 255 ? code : 63; }));
+            const csvUrl = URL.createObjectURL(new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' }));
+            const esp = [...new Set(items.map(x => x.especie))].join('-');
+            const csvA = document.createElement('a'); csvA.href = csvUrl;
+            csvA.download = `MITECO_BAJA_CESION_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.csv`;
+            document.body.appendChild(csvA); csvA.click(); document.body.removeChild(csvA);
+            setTimeout(() => URL.revokeObjectURL(csvUrl), 5000);
+            alert(`✅ Documento(s) de cesión generado(s).\n📋 CSV de baja MITECO descargado (${items.length} animal${items.length > 1 ? 'es' : ''}).`);
+            return true;
+        } catch (err) { alert('Error al generar la cesión: ' + err.message); return false; }
+    }
+
+    function compradorDesdeCliente(nombre) {
+        const cl = clientes.find(c => c.nombre === nombre);
+        return cl ? { nombre: cl.nombre || '', dni: cl.dni || '', direccion: cl.direccion || '', nCriador: cl.nCriador || '', nucleoZoologico: cl.nucleoZoologico || '' }
+                  : { nombre: nombre && nombre !== 'Sin cliente' ? nombre : '', dni: '', direccion: '', nCriador: '', nucleoZoologico: '' };
+    }
+
+    // Ventas con documento de cesión pendiente (en la pantalla CESIÓN)
+    function renderCesionPendientes() {
+        const cont = document.getElementById('cesion-pendientes');
+        if (!cont) return;
+        const pend = chipsData.filter(c => c.docCesionPendiente && c.idVenta);
+        if (!pend.length) { cont.innerHTML = ''; return; }
+        const porVenta = {};
+        pend.forEach(c => { (porVenta[c.idVenta] = porVenta[c.idVenta] || []).push(c); });
+        cont.innerHTML = `<div style="background:rgba(239,83,80,0.08);border:1px solid rgba(239,83,80,0.45);border-radius:12px;padding:10px 12px;margin-bottom:12px;text-align:left;">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--rojo);margin-bottom:6px;">🧾 VENDIDOS SIN DOCUMENTO DE CESIÓN (${pend.length})</div>
+            ${Object.entries(porVenta).map(([idVenta, cs]) => {
+                const v = historico.find(h => h.id === idVenta);
+                const esp = v ? v.especie : ((infoChip(cs[0].numero) || {}).especie || '');
+                return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--borde);">
+                    <span style="font-size:0.78rem;">${v ? v.cliente : (cs[0].compradorNombre || '—')} · ${cs.length} ${esp} · ${v ? v.fecha : (cs[0].fechaCesion || '')}</span>
+                    <button class="btn-mini" onclick="generarCesionDeVenta('${idVenta}')">📄 GENERAR</button>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
+    window.generarCesionDeVenta = async function(idVenta) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede generar documentos de cesión.');
+        const v = historico.find(h => h.id === idVenta);
+        const items = chipsData.filter(c => c.idVenta === idVenta && c.docCesionPendiente)
+            .map(c => ({ c, ...(infoChip(c.numero) || {}) })).filter(x => x.especie);
+        if (!items.length) return alert('No quedan chips pendientes de documento en esta venta.');
+        await generarDocsCesion(items, compradorDesdeCliente(v ? v.cliente : (items[0].c.compradorNombre || '')), { sinVenta: false });
+        renderCesionPendientes();
+    };
+
+    // ── Regularizar: marcar crías como cedidas fuera de la app ──
+    window.abrirRegularizar = function(nacId) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar crías como cedidas.');
+        const nac = histBio.find(x => x.id === nacId);
+        if (!nac) return;
+        const disp = chipsDisponiblesCria(nac.especie).filter(x => x.grupoId === nacId);
+        if (!disp.length) return alert('Este nacimiento no tiene crías pendientes de ceder (ya están cedidas, fallecidas, en el plantel o sin chip).');
+        window._regularizarNacId = nacId;
+        document.getElementById('regularizar-info').innerHTML = `🐢 <b>${nac.especie}</b> · nacimiento ${nac.fecha} · ${disp.length} cría(s) pendientes de ceder`;
+        document.getElementById('regularizar-lista').innerHTML = disp.map(x => `<label style="display:flex;align-items:center;gap:5px;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:6px;padding:5px 8px;font-size:0.75rem;font-weight:600;cursor:pointer;"><input type="checkbox" checked value="${x.c.id}"> ${fmtChip(x.c.numero)}</label>`).join('');
+        document.getElementById('regularizar-comprador').value = '';
+        document.getElementById('regularizar-stock').checked = false;
+        document.getElementById('modal-regularizar').classList.add('active');
+    };
+
+    window.confirmarRegularizar = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar crías como cedidas.');
+        const nac = histBio.find(x => x.id === window._regularizarNacId);
+        const ids = Array.from(document.querySelectorAll('#regularizar-lista input:checked')).map(i => i.value);
+        if (!nac || !ids.length) return alert('Marca al menos una cría.');
+        const comprador = document.getElementById('regularizar-comprador').value.trim() || 'Cedida fuera de la app';
+        const descontar = document.getElementById('regularizar-stock').checked;
+        if (!confirm(`¿Marcar ${ids.length} cría(s) de ${nac.especie} como cedidas?${descontar ? '\n\nSe DESCONTARÁN también del stock.' : '\n\nNO se tocará el stock (la venta ya está en caja).'}`)) return;
+        const hoy = new Date();
+        const f = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+        const fIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+        try {
+            for (const id of ids) {
+                const c = chipsData.find(x => x.id === id);
+                await updateDoc(doc(db, 'chips', id), { cedido: true, regularizado: true, fechaCesion: f, compradorNombre: comprador });
+                if (descontar && c) await addDoc(collection(db, 'bajas'), { chip: c.numero, especie: nac.especie, motivo: 'cesion', motivoTexto: 'Cesión regularizada', origen: 'cria', fecha: f, fechaIso: fIso, timestamp: Date.now(), registradoPor: usuarioActual.nombre });
+            }
+            registrarAuditoria('edicion', 'cesion', `Regularización: ${ids.length} ${nac.especie} marcadas como cedidas fuera de la app (${comprador})${descontar ? ' · descontadas del stock' : ''}`);
+            document.getElementById('modal-regularizar').classList.remove('active');
+            alert(`✅ ${ids.length} cría(s) marcadas como cedidas.`);
+        } catch (err) { alert('Error: ' + err.message); }
+    };
+
     // ── MÓDULO DOCUMENTO DE CESIÓN ────────────────────────────────
 
     let _cesionNacimientoId = null;
@@ -5652,30 +6198,15 @@
         const sel = document.getElementById('cesion-nacimiento');
         if (!sel) return;
 
-        // Chips usados no cedidos = chips con usado:true y sin cedido:true
-        const chipsCedibles = chipsData.filter(c => c.usado && !c.cedido && !c.bajaMuerte); // 24/09/2026: sin crías fallecidas
-
-        // Agrupar por nacimiento usando idPuesta string
-        // Cada nacimiento en histBio tiene campo idPuesta (el string)
-        const nacimientos = histBio.filter(b => b.tipo === 'nacimiento');
-
-        // Para cada chip, encontrar su nacimiento por idPuesta
-        const porNac = {};
-        chipsCedibles.forEach(c => {
-            // Buscar nacimiento cuyo idPuesta coincide con el del chip
-            const nac = nacimientos.find(n => n.idPuesta === c.idPuesta || n.idPuestaOrigen === c.idPuesta);
-            const nid = nac ? nac.id : (c.idPuesta || 'sin-nac');
-            if (!porNac[nid]) porNac[nid] = { chips: [], nac };
-            porNac[nid].chips.push(c);
-        });
-
-        sel.innerHTML = '<option value="">— Selecciona nacimiento —</option>';
-        Object.entries(porNac).forEach(([nid, { chips, nac }]) => {
-            const label = nac
-                ? `${nac.especie} · ${nac.fecha} · ${chips.length} chip${chips.length>1?'s':''} disponibles`
-                : `Puesta: ${nid} · ${chips.length} chips`;
-            sel.innerHTML += `<option value="${nid}">${label}</option>`;
-        });
+        // 27/09/2026: mismas crías disponibles que en las ventas (chip usado, no cedido, no
+        // fallecido, no anulado, no en el plantel), agrupadas por nacimiento o por compra.
+        const disp = chipsDisponiblesCria();
+        const grupos = [];
+        disp.forEach(x => { let g = grupos.find(g => g.id === x.grupoId); if (!g) { g = { id: x.grupoId, label: `${x.especie} · ${x.grupoLabel}`, n: 0 }; grupos.push(g); } g.n++; });
+        sel.innerHTML = '<option value="">— Selecciona nacimiento —</option>' +
+            grupos.map(g => `<option value="${g.id}">${g.label} · ${g.n} disponible${g.n > 1 ? 's' : ''}</option>`).join('');
+        document.getElementById('cesion-chips-panel').style.display = 'none';
+        renderCesionPendientes();
 
         // Poblar selector de clientes
         const selC = document.getElementById('cesion-cliente-select');
@@ -5757,14 +6288,8 @@
             return;
         }
 
-        // Encontrar el nacimiento seleccionado
-        const nac = histBio.find(b => b.id === nid);
-        // Chips disponibles: usados, no cedidos, cuyo idPuesta coincide con el nacimiento
-        _cesionChipsDisponibles = chipsData.filter(c => {
-            if (!c.usado || c.cedido || c.bajaMuerte) return false; // 24/09/2026: sin crías fallecidas
-            if (!nac) return false;
-            return c.idPuesta === nac.idPuesta || c.idPuesta === nac.idPuestaOrigen;
-        }).sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, {numeric: true}));
+        // 27/09/2026: items {c, especie, anyo} del grupo elegido (nacimiento o compra)
+        _cesionChipsDisponibles = chipsDisponiblesCria().filter(x => x.grupoId === nid);
 
         const n = _cesionChipsDisponibles.length;
         document.getElementById('cesion-chips-disponibles-txt').textContent =
@@ -5772,7 +6297,8 @@
 
         // Renderizar checkboxes — todos marcados por defecto
         const lista = document.getElementById('cesion-chips-lista');
-        lista.innerHTML = _cesionChipsDisponibles.map((c, i) => {
+        lista.innerHTML = _cesionChipsDisponibles.map((x, i) => {
+            const c = x.c;
             const cf = c.numero && c.numero.length === 15
                 ? c.numero.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
                 : (c.numero || c.id);
@@ -5966,165 +6492,17 @@
         }
     };
 
+    // 27/09/2026: cesión de CRÍAS desde esta pantalla = cesión SIN venta (regalo, intercambio…).
+    // Usa el generador único y descuenta el stock (bajas 'cesion'), porque no hay cobro en caja.
     window.generarDocumentoCesion = async function() {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede generar documentos de cesión.');
-
-        // Validar nacimiento
         if (!_cesionNacimientoId) return alert('Selecciona un nacimiento');
-        const chipsACeder = cesionGetChipsSeleccionados();
-        if (chipsACeder.length === 0) return alert('Selecciona al menos un chip para ceder');
-
-        // Datos del nacimiento
-        const nac = histBio.find(b => b.id === _cesionNacimientoId);
-        if (!nac) return alert('Error: nacimiento no encontrado');
-        const nAnimales = chipsACeder.length;
-
-        // Datos comprador según tab activo
-        const comprador = cesionLeerComprador();
-
-        // Año de nacimiento
-        const anyoNac = nac.fecha ? (nac.fecha.split('/')[2] || nac.fecha.split('-')[0] || '') : '';
-
-        // ── VALIDACIÓN AÑO DE NACIMIENTO ──────────────────────────────────────────
-        // Comprueba que el año extraído sea coherente antes de generar los PDFs
-        const anyoNum = parseInt(anyoNac, 10);
-        const anyoActualNum = new Date().getFullYear();
-
-        if (!anyoNac || anyoNac.length !== 4 || isNaN(anyoNum)) {
-            alert(`⚠️ El nacimiento seleccionado no tiene una fecha válida guardada.\n\nFecha en base de datos: "${nac.fecha || '(vacía)'}"\nAño extraído: "${anyoNac}"\n\nCorrige la fecha del nacimiento en Firebase antes de generar la cesión.`);
-            return;
-        }
-
-        if (anyoNum < anyoActualNum - 1 || anyoNum > anyoActualNum) {
-            const confirmar = confirm(
-                `⚠️ AVISO: AÑO DE NACIMIENTO INUSUAL\n\n` +
-                `El año que se imprimirá en los documentos es: ${anyoNac}\n` +
-                `Año actual: ${anyoActualNum}\n\n` +
-                `La fecha guardada en la base de datos es: "${nac.fecha}"\n\n` +
-                `¿Es correcto el año ${anyoNac}?\n\n` +
-                `Pulsa ACEPTAR para continuar de todas formas.\n` +
-                `Pulsa CANCELAR para abortar y corregir la fecha.`
-            );
-            if (!confirmar) return;
-        }
-        // ── FIN VALIDACIÓN ────────────────────────────────────────────────────────
-
-        // NºCITES: construir con prefijo 243LA + número chip
-        const nCites = chipsACeder.map(c => `243LA${String(c.numero).padStart(6,'0')}`).join(', ');
-        const microchips = chipsACeder.map(c => c.numero).join(', ');
-
-        try {
-            const resp = await fetch('DOCUMENTO CESION.pdf');
-            if (!resp.ok) throw new Error('No se pudo cargar DOCUMENTO CESION.pdf del repositorio.');
-            const templateBytes = await resp.arrayBuffer();
-
-            const hoy = new Date();
-            const fechaHoy = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
-
-            // ── Un documento PDF por cada animal ──
-            for (const chip of chipsACeder) {
-                const { PDFDocument, StandardFonts, rgb } = PDFLib;
-                const pdfDoc = await PDFDocument.load(templateBytes);
-                const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-                const page   = pdfDoc.getPages()[0];
-                const negro  = rgb(0,0,0);
-
-                function txt(x, y, t, size=10) {
-                    if (!t) return;
-                    page.drawText(String(t), { x, y, size, font, color: negro });
-                }
-
-                // ── Coordenadas calibradas (plantilla 571x808 pt) ──
-                // COMPRADOR
-                txt(100, 452, comprador.nombre);
-                txt(75,  435, comprador.dni);
-                txt(120, 420, comprador.direccion);
-                txt(120, 405, comprador.nCriador);
-                txt(155, 390, comprador.nucleoZoologico);
-
-                // EJEMPLAR (1 animal por documento)
-                const nCitesChip = chip.cites || '';
-                // Nombre científico completo para la cesión (misma fuente única que el resto
-                // de documentos oficiales — certificado veterinario, CSV MITECO, CITES —
-                // para que nunca se quede desactualizada al añadir una especie nueva)
-                const nombreCesion = ((MITECO_ESPECIES[nac.especie] && MITECO_ESPECIES[nac.especie].nombreCompleto) || nac.especie || '').toUpperCase();
-                txt(100, 329, nombreCesion);
-                txt(155, 313, '1');
-                txt(85,  297, nac.sexo || '');
-                txt(175, 283, anyoNac);
-                txt(100, 267, nCitesChip);
-                txt(145, 252, String(chip.numero));
-
-                // LUGAR y FECHA
-                txt(110, 160, 'LORCA');
-                txt(390, 160, fechaHoy);
-
-                const pdfBytes = await pdfDoc.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                a.href     = url;
-                a.download = `Cesion_${nac.especie}_chip${chip.numero}_${fechaHoy.replace(/\//g,'-')}.pdf`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
-            }
-
-            // Marcar chips como cedidos en Firebase
-            for (const chip of chipsACeder) {
-                await updateDoc(doc(db, 'chips', chip.id), { cedido: true, fechaCesion: fechaHoy, compradorNombre: comprador.nombre || 'Sin datos' });
-            }
-            registrarAuditoria('nuevo', 'cesion', `Cesión: ${nAnimales} ${nac.especie} · ${comprador.nombre || 'Sin comprador'} · ${microchips}`);
-
-            // ── BAJA AUTOMÁTICA MITECO ──────────────────────────────
-            const espBaja = nac.especie || '';
-            const mBaja = MITECO_ESPECIES[espBaja] ||
-                          MITECO_ESPECIES[Object.keys(MITECO_ESPECIES).find(k => k.toLowerCase() === espBaja.toLowerCase())] ||
-                          { genero: espBaja.toUpperCase(), especie: espBaja.toUpperCase(), apendice: 'II', anexo: 'B' };
-
-            const headers = MITECO_CSV_HEADERS;
-
-            const filasBaja = chipsACeder.map(chip => {
-                const chipFmt = chip.numero && chip.numero.length === 15
-                    ? chip.numero.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
-                    : (chip.numero || '');
-                return [
-                    MITECO_CRIADOR, '', mBaja.genero, mBaja.especie, '',
-                    mBaja.apendice, mBaja.anexo, '', '', '', '',
-                    'D', 'C', '', '',
-                    'MICROCHIP Nº: ' + chipFmt,
-                    '', '', '', '', '', '',
-                    'B',        // Situación Actual = Baja
-                    fechaHoy,   // Fecha Situacion
-                    'CE',       // Motivo = Cesión
-                    '', '',
-                    fechaHoy,   // Fecha Cesión
-                    '', '',
-                    comprador.nombre || ''
-                ].join(';');
-            });
-
-            const csvContent = [headers, ...filasBaja].join('\r\n');
-            const latin1 = new Uint8Array([...csvContent].map(c => {
-                const code = c.charCodeAt(0);
-                return code <= 255 ? code : 63;
-            }));
-            const csvBlob = new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' });
-            const csvUrl  = URL.createObjectURL(csvBlob);
-            const csvA    = document.createElement('a');
-            csvA.href     = csvUrl;
-            csvA.download = `MITECO_BAJA_CESION_${espBaja}_${fechaHoy.replace(/\//g,'-')}_${nAnimales}animales.csv`;
-            document.body.appendChild(csvA); csvA.click(); document.body.removeChild(csvA);
-            setTimeout(() => URL.revokeObjectURL(csvUrl), 5000);
-            // ────────────────────────────────────────────────────────
-
-            alert(`✅ Documento de cesión generado.\n📋 CSV de baja MITECO descargado (${nAnimales} animal${nAnimales>1?'es':''}).`);
-
-        } catch(err) {
-            alert('Error al generar PDF: ' + err.message);
-        }
+        const items = cesionGetChipsSeleccionados();
+        if (items.length === 0) return alert('Selecciona al menos un chip para ceder');
+        if (!confirm(`Vas a ceder ${items.length} cría(s) SIN VENTA (regalo, intercambio…).\nSe descontarán del stock.\n\nSi es una VENTA, cancela y hazla desde CAJA → ＋ INGRESO.\n\n¿Continuar?`)) return;
+        const ok = await generarDocsCesion(items, cesionLeerComprador(), { sinVenta: true });
+        if (ok) iniciarPantallaCesion();
     };
-
-
 
     // ── MÓDULO CITES POR NACIMIENTO ───────────────────────────────
     let _citesNacimientoId = null;
