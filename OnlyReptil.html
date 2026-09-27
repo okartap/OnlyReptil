@@ -1488,7 +1488,7 @@
         if(id === 'form-puesta') { setFechaHoy('p-fecha'); const selP=document.getElementById('p-pareja'); if(selP) selP.value=''; cargarTodasParejas(); }
         if(id === 'pantalla-miteco') { switchTabMiteco('miteco'); renderMiteco(); }
         if(id === 'pantalla-cesion') { iniciarPantallaCesion(); }
-        if(id === 'pantalla-pyn2') { renderPynNuevo(); }
+        if(id === 'pantalla-pyn2') { if (!window._pyn2ScrollAPuestaId) { window._pyn2Filtro = 'puesta'; window._pyn2Abierta = null; } renderPynNuevo(); } // 27/09/2026: al entrar, pestaña PUESTA
     }
     window.toggleEspecies = function() {
         const pantalla = document.getElementById('pantalla-especies');
@@ -3063,13 +3063,13 @@
     // 27/09/2026: 7 pestañas en una fila, solo icono + contador (el nombre de la activa
     // se muestra debajo). Nueva pestaña VETERINARIO: certificado enviado, esperando firmado.
     const PYN2_FASES = [
-        { id: 'todas',       ic: '🗂️', label: 'TODAS' },
         { id: 'puesta',      ic: '🥚', label: 'PUESTA' },
         { id: 'nacimiento',  ic: '🐣', label: 'NACIMIENTO' },
         { id: 'veterinario', ic: '🩺', label: 'VETERINARIO' },
         { id: 'miteco',      ic: '📤', label: 'MITECO' },
         { id: 'esperando',   ic: '⏳', label: 'ESPERANDO' },
         { id: 'cesion',      ic: '✅', label: 'CESIÓN' },
+        { id: 'todas',       ic: '🗂️', label: 'TODAS' }, // 27/09/2026: TODAS la última (petición de Patry)
     ];
     function pyn2Fase(estado) {
         if (estado.cerradaSinCrias) return 'cerrada'; // 24/09/2026: fuera de las pestañas activas (solo en TODAS)
@@ -3081,7 +3081,7 @@
         return 'esperando';
     }
 
-    window._pyn2Filtro = 'todas';
+    window._pyn2Filtro = 'puesta'; // 27/09/2026: PyN abre siempre en PUESTA
     window.setPyn2Filtro = function(f) {
         window._pyn2Filtro = f;
         window._pyn2Abierta = null;
@@ -3408,7 +3408,7 @@
         const tabsEl = document.getElementById('pyn2-tabs');
         const cont = document.getElementById('pyn2-lista');
         if (!cont) return;
-        let filtro = window._pyn2Filtro || 'todas';
+        let filtro = window._pyn2Filtro || 'puesta';
 
         const puestas = histBio.filter(b => b.tipo === 'puesta' && !pyn2EsSecundaria(b));
         const filas = puestas.map(p => { const estado = pyn2EstadoPuesta(p); return { p, estado, fase: pyn2Fase(estado) }; });
@@ -3426,7 +3426,7 @@
         }
 
         if (tabsEl) {
-            const activa = PYN2_FASES.find(f => f.id === filtro) || PYN2_FASES[0];
+            const activa = PYN2_FASES.find(f => f.id === filtro) || PYN2_FASES.find(f => f.id === 'puesta');
             tabsEl.innerHTML = `<div class="pyn2-tabs-iconos">` + PYN2_FASES.map(f => {
                 const n = f.id === 'todas' ? filas.length : filas.filter(x => x.fase === f.id).length;
                 return `<div class="pyn2-ti ${f.id === filtro ? 'activa' : ''}" onclick="setPyn2Filtro('${f.id}')"><div class="ic">${f.ic}</div><div class="n">${n}</div></div>`;
