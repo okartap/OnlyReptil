@@ -1186,7 +1186,7 @@
         <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:8px;">ANIMALES A INCLUIR</div>
         <div id="csv-animales-lista" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
         <div id="csv-warning" style="font-size:0.78rem;color:var(--naranja);margin-bottom:8px;display:none;">⚠️ Algunos animales no tienen chip asignado y no se incluirán</div>
-        <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="exportarCSV()">⬇️ DESCARGAR CSV</button>
+        <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="exportarCSV()">⬇️ DESCARGAR CSV Y EXCEL</button>
         <button class="btn-cancelar" onclick="cerrarModalCSV()">CANCELAR</button>
     </div>
 </div>
@@ -1345,6 +1345,29 @@
 
         <button class="btn-save" style="background:var(--rojo);color:#fff;" id="baja-btn-confirmar" onclick="confirmarBaja()" disabled>🔻 CONFIRMAR BAJA Y DESCARGAR CSV</button>
         <button class="btn-cancelar" onclick="cerrarModalBaja()">CANCELAR</button>
+    </div>
+</div>
+
+<!-- 29/09/2026: JUSTIFICANTE DE LA RED SARA -->
+<div class="modal-overlay" id="modal-sara">
+    <div class="modal-box azul" style="max-height:92vh;overflow-y:auto;">
+        <div class="modal-titulo azul">🧾 JUSTIFICANTE RED SARA</div>
+        <div id="sara-info" style="font-size:0.85rem;text-align:center;margin:-6px 0 12px;"></div>
+        <div class="form-group">
+            <label>Justificante de presentación (PDF)</label>
+            <input type="file" id="sara-file" accept="application/pdf" onchange="saraLeerArchivo(this)" style="width:100%;color:var(--texto);font-family:Rajdhani,sans-serif;">
+            <div id="sara-ya" style="display:none;font-size:0.72rem;color:var(--verde);margin-top:3px;">✓ Ya hay un justificante — elige otro solo si quieres sustituirlo</div>
+        </div>
+        <div id="sara-leido"></div>
+        <div class="form-group"><label>Nº de registro</label><input type="text" id="sara-numreg" placeholder="Ej: REGAGE26e00081966379"></div>
+        <div class="form-group">
+            <label>Fecha de presentación (empieza a contar la espera)</label>
+            <div class="fecha-row"><select class="fecha-sel" id="sara-fecha-d"></select><select class="fecha-sel" id="sara-fecha-m"></select><select class="fecha-sel" id="sara-fecha-y"></select></div>
+        </div>
+        <div id="sara-extras" style="margin-bottom:8px;"></div>
+        <div id="sara-progreso" style="display:none;font-size:0.8rem;color:var(--naranja);margin-bottom:8px;text-align:center;"></div>
+        <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="saraGuardar()">GUARDAR JUSTIFICANTE</button>
+        <button class="btn-cancelar" onclick="document.getElementById('modal-sara').classList.remove('active')">CANCELAR</button>
     </div>
 </div>
 
@@ -3130,7 +3153,7 @@
         if (estado.completa) return 'cesion';
         if (!estado.pasoNacimiento) return 'puesta';
         if (!estado.pasoVet) return estado.pasoCertEnviado ? 'veterinario' : 'nacimiento';
-        if (!estado.pasoCsv) return 'miteco';
+        if (!estado.pasoSara) return 'miteco'; // 29/09/2026: sin CSV o sin justificante de la red SARA → sigue en MITECO
         return 'esperando';
     }
 
@@ -3205,7 +3228,11 @@
         // 27/09/2026: certificado ya generado y enviado al veterinario (esperando que vuelva firmado)
         const pasoCertEnviado = nacsActivos.length > 0 && nacsSinChip.length === 0 && nacsActivos.every(n => n.certVetEnviado || n.certVetGenerado);
         const pasoCsv         = pasoVet && nacsActivos.every(n => n.csvExportado);
-        const pasoPapeles     = pasoCsv && nacsActivos.every(n => n.papelesMitecoRecibidos);
+        // 29/09/2026: la documentación se presenta por la RED SARA (la presenta Martín con su firma
+        // electrónica) y hay que subir el justificante. Las puestas cuyos papeles ya llegaron (enviadas
+        // antes por email) no lo necesitan.
+        const pasoSara        = pasoCsv && nacsActivos.every(n => n.saraJustificanteUrl || n.papelesMitecoRecibidos);
+        const pasoPapeles     = pasoSara && nacsActivos.every(n => n.papelesMitecoRecibidos);
         const citesInfo       = pyn2CitesEstado(nacsActivos);
         const completa = pasoNotificada && pasoNacimiento && pasoActualizada && pasoVet && pasoCsv && pasoPapeles && citesInfo.listo;
         // 24/09/2026 (decisión de Patry): puesta cerrada sin ninguna cría viva (no eclosionó
@@ -3219,15 +3246,15 @@
         const cedidaTotal = !cerradaSinCrias && chipsVivos.length > 0 && nacsSinChip.length === 0 &&
             chipsVivos.every(c => enPlantel.has(c) || chipsData.some(cd => cd.numero === c && cd.cedido));
 
-        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoCertEnviado, pasoVet, pasoCsv, pasoPapeles, citesInfo, completa, todosNacs, otraPuesta, nacsSinChip, cerradaSinCrias, cedidaTotal };
+        return { nacsPropios, totalNacidos, pasoNotificada, pasoNacimiento, pasoActualizada, pasoCertEnviado, pasoVet, pasoCsv, pasoSara, pasoPapeles, citesInfo, completa, todosNacs, otraPuesta, nacsSinChip, cerradaSinCrias, cedidaTotal };
     }
 
     // Días transcurridos desde que se envió el CSV a MITECO (el más antiguo de los
     // nacimientos implicados), para el aviso de "llevan esperando mucho".
     function pyn2DiasEsperaMiteco(todosNacs) {
-        // 23/09/2026: se cuenta desde el día en que se generó el CSV (fechaEnvioCSV). Para CSV
-        // exportados antes de este cambio solo existe la fecha de marcado (fechaCSVExportado).
-        const fechas = todosNacs.map(n => n.fechaEnvioCSV || n.fechaCSVExportado).filter(Boolean);
+        // 29/09/2026: se cuenta desde la FECHA DE PRESENTACIÓN del justificante de la red SARA.
+        // (Antes: desde el día del CSV — fechaEnvioCSV —, que queda solo como respaldo.)
+        const fechas = todosNacs.map(n => n.saraFechaPresentacion || n.fechaEnvioCSV || n.fechaCSVExportado).filter(Boolean);
         if (!fechas.length) return null;
         const toTs = f => { const [d,m,y] = f.split('/'); return new Date(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}T12:00:00`).getTime(); };
         const masAntigua = Math.min(...fechas.map(toTs));
@@ -3339,18 +3366,30 @@
                 }
             }
 
-            // 6. CSV a MITECO
-            if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar CSV y enviar a MITECO'));
-            else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'CSV enviado a MITECO'));
+            // 6. CSV / Excel para MITECO (29/09/2026: se genera en .csv y en .xlsx a la vez)
+            if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar CSV para MITECO'));
+            else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'CSV generado'));
             else {
-                const desc = (dCert.hoja ? ` <button class="btn-mini verde" onclick="descargarArchivo('${dCert.hoja}')">⬇ HOJA FIRMADA</button>` : '') +
-                    (dCert.oficial ? ` <button class="btn-mini verde" onclick="descargarArchivo('${dCert.oficial}')">⬇ CERTIFICADO OFICIAL</button>` : '');
-                pasos.push(pyn2Paso('actual', 'Generar CSV y enviar a MITECO', 'A MITECO se envían juntos el certificado firmado y el CSV', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📤 GENERAR CSV</button>${desc}`));
-                marcarSig('Generar CSV y enviar a MITECO');
+                pasos.push(pyn2Paso('actual', 'Generar CSV para MITECO', 'Se descarga en .csv y en .xlsx (Excel). Después se presenta todo por la red SARA', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📤 GENERAR CSV</button>`));
+                marcarSig('Generar CSV para MITECO');
+            }
+
+            // 6b. Presentación por la RED SARA (29/09/2026) — la hace Martín con su firma electrónica
+            const nacSara = estado.todosNacs.find(n => n.saraJustificanteUrl);
+            if (!estado.pasoCsv) pasos.push(pyn2Paso('pend', 'Presentar en red SARA y subir justificante'));
+            else if (estado.pasoSara) {
+                pasos.push(pyn2Paso('hecho', 'Presentado en red SARA',
+                    nacSara ? [nacSara.saraNumRegistro ? `Registro <b>${nacSara.saraNumRegistro}</b>` : '', nacSara.saraFechaPresentacion ? `presentado ${nacSara.saraFechaPresentacion}` : ''].filter(Boolean).join(' · ') : 'Enviado por email (antes de la red SARA)',
+                    nacSara ? `<button class="btn-mini verde" onclick="verArchivo('${nacSara.saraJustificanteUrl}')">🧾 JUSTIFICANTE</button> <button class="btn-mini" onclick="abrirJustificanteSara('${p.id}')">🔄 CAMBIAR</button>` : ''));
+            } else {
+                pasos.push(pyn2Paso('actual', 'Presentar en red SARA y subir justificante',
+                    'Prepara la documentación y pásasela a Martín: la presenta él con su firma electrónica. Sube aquí el justificante que devuelve SARA',
+                    `<button class="btn-mini" onclick="pyn2PrepararSara('${p.id}')">📦 PREPARAR PARA SARA</button> <button class="btn-mini verde" onclick="abrirJustificanteSara('${p.id}')">📥 SUBIR JUSTIFICANTE</button>`));
+                marcarSig('Presentar en red SARA y subir justificante');
             }
 
             // 7. Papeles de MITECO
-            if (!estado.pasoCsv) pasos.push(pyn2Paso('pend', 'Esperar papeles de MITECO'));
+            if (!estado.pasoSara) pasos.push(pyn2Paso('pend', 'Esperar papeles de MITECO'));
             else if (estado.pasoPapeles) pasos.push(pyn2Paso('hecho', 'Papeles de MITECO recibidos'));
             else {
                 const dias = pyn2DiasEsperaMiteco(estado.todosNacs);
@@ -3496,7 +3535,7 @@
         let filtradas = filtro === 'todas' ? filas : filas.filter(f => f.fase === filtro);
 
         if (filtradas.length === 0) {
-            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin certificados pendientes de enviar a MITECO', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
+            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin puestas pendientes de CSV o de presentar en la red SARA', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
             cont.innerHTML = `<p class="msg-vacio">${msgs[filtro] || 'Sin puestas'}</p>`;
             return;
         }
@@ -4131,6 +4170,273 @@
             }
             registrarAuditoria('edicion', 'bio', 'Papeles de MITECO marcados como recibidos');
         } catch(err) { alert('Error: ' + err.message); }
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // 29/09/2026 — PRESENTACIÓN POR LA RED SARA (acordado con Patry)
+    // La documentación de cada puesta ya no se envía por email: la presenta Martín por la red
+    // SARA (Registro Electrónico General) con su firma electrónica. Patry prepara los archivos
+    // (📦 PREPARAR PARA SARA) y después sube el justificante (📥 SUBIR JUSTIFICANTE). El contador
+    // de espera de MITECO empieza en la FECHA DE PRESENTACIÓN del justificante.
+    // ⚠️ PUNTO MARCADO: el PDF conjunto lleva DENTRO la hoja firmada del veterinario. Se sigue
+    // viendo firmada, pero la firma electrónica solo es verificable en el archivo original.
+    // Patry decidió probar así; si MITECO lo rechaza → poner SARA_HOJA_APARTE = true (la hoja
+    // firmada original se descarga como archivo aparte y no se mete en el PDF conjunto).
+    // ══════════════════════════════════════════════════════════════
+    const SARA_HOJA_APARTE = false;
+
+    function blobADataUrl(blob) {
+        return new Promise((ok, ko) => { const r = new FileReader(); r.onload = e => ok(e.target.result); r.onerror = ko; r.readAsDataURL(blob); });
+    }
+    async function leerArchivoCualquiera(refStr) {
+        if (String(refStr).startsWith('fs:')) return await leerArchivoFS(refStr);
+        const r = await fetch(refStr); // archivo antiguo de Storage
+        if (!r.ok) throw new Error('no se puede descargar el archivo antiguo');
+        const blob = await r.blob();
+        return { blob, tipo: blob.type, nombre: 'documento' };
+    }
+    // Páginas de un PDF como imágenes (solo si pdf-lib no puede copiarlas tal cual)
+    async function pdfPaginasComoImagen(pdfFinal, bytes) {
+        const pdfjs = await cargarPdfJs();
+        const pdf = await pdfjs.getDocument({ data: bytes.slice() }).promise;
+        for (let n = 1; n <= pdf.numPages; n++) {
+            const page = await pdf.getPage(n);
+            const vp1 = page.getViewport({ scale: 1 });
+            const vp = page.getViewport({ scale: 2 });
+            const cv = document.createElement('canvas');
+            cv.width = vp.width; cv.height = vp.height;
+            const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+            const jpg = new Uint8Array(await (await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.88))).arrayBuffer());
+            const img = await pdfFinal.embedJpg(jpg);
+            const pg = pdfFinal.addPage([vp1.width, vp1.height]);
+            pg.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+        }
+    }
+    async function anadirAlPdfConjunto(pdfFinal, refStr, etiqueta, avisos) {
+        const { PDFDocument } = PDFLib;
+        const a = await leerArchivoCualquiera(refStr);
+        const bytes = new Uint8Array(await a.blob.arrayBuffer());
+        const esPdf = a.tipo === 'application/pdf' || String.fromCharCode(...bytes.slice(0, 4)) === '%PDF';
+        if (esPdf) {
+            try {
+                const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+                const pages = await pdfFinal.copyPages(src, src.getPageIndices());
+                pages.forEach(pg => pdfFinal.addPage(pg));
+            } catch (e) {
+                await pdfPaginasComoImagen(pdfFinal, bytes);
+                avisos.push(`${etiqueta}: se ha añadido como imagen`);
+            }
+        } else {
+            const jpg = await comprimirImagen(await blobADataUrl(a.blob), a.tipo);
+            const img = await pdfFinal.embedJpg(jpg);
+            const pg = pdfFinal.addPage([595, 842]);
+            const { width, height } = img.scaleToFit(555, 802);
+            pg.drawImage(img, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
+        }
+    }
+
+    function saraPanel(titulo, html) {
+        document.getElementById('visor-titulo').textContent = titulo;
+        document.getElementById('visor-contenido').innerHTML = html;
+        document.getElementById('visor-descargar').style.display = 'none';
+        document.getElementById('modal-visor').classList.add('active');
+    }
+
+    window.pyn2PrepararSara = async function(puestaId) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede preparar la documentación.');
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return;
+        const puestaIds = p.combinadaCon ? [puestaId, p.combinadaCon] : [puestaId];
+        const est = pyn2EstadoPuesta(p);
+        const d = pyn2DatosCert(est.todosNacs);
+        const animales = getAnimalesPorPuestas(puestaIds);
+        if (!animales.length) return alert('Esta puesta no tiene crías con chip.');
+        const conFecha = est.todosNacs.find(n => n.fechaMarcado);
+        if (!conFecha) return alert('Falta la fecha de marcado del certificado veterinario. Súbelo o márcalo como firmado antes.');
+        const faltan = [!d.hoja ? '📄 la hoja de la app firmada' : '', !d.oficial ? '📜 el certificado oficial del Colegio' : ''].filter(Boolean);
+        if (faltan.length && !confirm(`⚠️ Falta por subir:\n\n${faltan.join('\n')}\n\nEl PDF saldrá sin ello. ¿Continuar?`)) return;
+        const idTxt = p.idPuesta || p.detalle || 'PUESTA';
+        saraPanel('📦 PREPARANDO…', '<div style="text-align:center;color:var(--texto2);padding:30px 0;">⏳ Montando el PDF con toda la documentación…</div>');
+        try {
+            const { PDFDocument } = PDFLib;
+            const pdfFinal = await PDFDocument.create();
+            const avisos = [];
+            // 1) PyN de la temporada (actualizado con la eclosión)
+            const pynBytes = await generarPDFPyN(p.idPareja, puestaId, { soloBytes: true });
+            if (!pynBytes) { cerrarVisor(); return; }
+            const pyn = await PDFDocument.load(pynBytes);
+            (await pdfFinal.copyPages(pyn, pyn.getPageIndices())).forEach(pg => pdfFinal.addPage(pg));
+            // 2) Hoja firmada del veterinario  3) Certificado oficial
+            if (d.hoja && !SARA_HOJA_APARTE) await anadirAlPdfConjunto(pdfFinal, d.hoja, 'Hoja firmada', avisos);
+            if (d.oficial) await anadirAlPdfConjunto(pdfFinal, d.oficial, 'Certificado oficial', avisos);
+            const nombrePdf = `SARA_${idTxt}_documentacion.pdf`;
+            descargarBlob(new Blob([await pdfFinal.save()], { type: 'application/pdf' }), nombrePdf);
+            // 4) Fichero MITECO en .csv y .xlsx (mismo contenido que el que se generó)
+            const fechaMarcado = conFecha.fechaMarcado;
+            const { csv, xlsx } = await construirMitecoCsvXlsx(filasMitecoAlta(animales, fechaMarcado));
+            const nombres = [nombrePdf];
+            setTimeout(() => descargarBlob(csv, `MITECO_${idTxt}.csv`), 600);
+            nombres.push(`MITECO_${idTxt}.csv`);
+            if (xlsx) { setTimeout(() => descargarBlob(xlsx, `MITECO_${idTxt}.xlsx`), 1200); nombres.push(`MITECO_${idTxt}.xlsx`); }
+            if (d.hoja && SARA_HOJA_APARTE) { const h = await leerArchivoCualquiera(d.hoja); setTimeout(() => descargarBlob(h.blob, h.nombre || `Hoja_firmada_${idTxt}.pdf`), 1800); nombres.push('Hoja firmada (original)'); }
+            registrarAuditoria('nuevo', 'miteco', `Documentación para red SARA preparada: ${idTxt} · ${animales.length} animal(es)`);
+            saraPanel('📦 DOCUMENTACIÓN PREPARADA', `
+                <div style="font-size:0.85rem;line-height:1.6;text-align:left;">
+                    Se han descargado:<br>${nombres.map(n => `✅ <b>${n}</b>`).join('<br>')}
+                    ${avisos.length ? `<div style="color:var(--naranja);margin-top:8px;">⚠️ ${avisos.join('<br>⚠️ ')}</div>` : ''}
+                    <div style="margin-top:10px;color:var(--texto2);">Pásaselo a Martín para presentarlo en la red SARA: el <b>PDF</b> y <b>uno</b> de los dos ficheros MITECO (.csv o .xlsx). Cuando te devuelva el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>
+                    ${!xlsx ? '<div style="color:var(--rojo);margin-top:8px;">No se ha podido generar el .xlsx (revisa la conexión).</div>' : ''}
+                </div>`);
+        } catch (err) {
+            saraPanel('📦 ERROR', `<div style="color:var(--rojo);text-align:center;padding:20px 0;font-weight:700;">No se ha podido preparar: ${err.message}</div>`);
+        }
+    };
+
+    // ── Justificante de la red SARA ──
+    window._sara = null;
+    async function leerJustificanteSara(file) {
+        const pdfjs = await cargarPdfJs();
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+        let texto = '';
+        for (let n = 1; n <= pdf.numPages; n++) {
+            const page = await pdf.getPage(n);
+            texto += ' ' + (await page.getTextContent()).items.map(i => i.str).join(' ');
+        }
+        texto = texto.replace(/\s+/g, ' ');
+        const mNum = texto.match(/\b(REG[A-Z]{0,4}\d{2}[a-z]\d{6,})\b/) || texto.match(/N[úu]mero de registro:\s*([A-Za-z0-9]{8,})/i);
+        let mF = texto.match(/Fecha y hora de presentaci[óo]n:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}:\d{2}(?::\d{2})?)/i)
+              || texto.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}:\d{2}:\d{2})/);
+        const anexos = [...texto.matchAll(/Nombre:\s*(.+?\.(?:pdf|xlsx|xls|csv|jpe?g|png|zip|odt|ods|docx?))(?=\s|$)/gi)].map(m => m[1].trim());
+        return {
+            esJustificante: /Justificante de Presentaci/i.test(texto),
+            num: mNum ? mNum[1] : '',
+            fecha: mF ? `${mF[1].padStart(2, '0')}/${mF[2].padStart(2, '0')}/${mF[3]}` : '',
+            hora: mF ? mF[4] : '',
+            anexos,
+            // identificador de puesta en los ficheros MITECO anexados (MITECO_SUL01-260517.xlsx / …_24-09-2026.csv)
+            idsPuesta: [...new Set(anexos.map(a => (a.match(/^MITECO_(.+?)\.(?:csv|xlsx|xls)$/i) || [])[1]).filter(Boolean).map(x => x.replace(/_\d{2}-\d{2}-\d{4}$/, '')))]
+        };
+    }
+    window.leerJustificanteSara = leerJustificanteSara;
+
+    // Puestas (principales) pendientes de justificante cuyo identificador coincide
+    function saraPuestaPorId(idTxt) {
+        const p = histBio.find(b => b.tipo === 'puesta' && (b.idPuesta || b.detalle) === idTxt);
+        if (!p) return null;
+        return (pyn2EsSecundaria(p) && histBio.find(x => x.id === p.combinadaCon)) || p;
+    }
+
+    window.abrirJustificanteSara = function(puestaId) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir el justificante.');
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return;
+        const est = pyn2EstadoPuesta(p);
+        if (!est.pasoCsv) return alert('Primero genera el CSV de esta puesta.');
+        const nacSara = est.todosNacs.find(n => n.saraJustificanteUrl);
+        window._sara = { puestaId, file: null, hora: nacSara ? (nacSara.saraHoraPresentacion || '') : '', extras: [], avisoRojo: '' };
+        const ids = [p.idPuesta || p.detalle].concat(est.otraPuesta ? [est.otraPuesta.idPuesta || est.otraPuesta.detalle] : []);
+        document.getElementById('sara-info').innerHTML = `🥚 <b>${ids.join(' + ')}</b>`;
+        document.getElementById('sara-file').value = '';
+        document.getElementById('sara-ya').style.display = nacSara ? 'block' : 'none';
+        document.getElementById('sara-leido').innerHTML = '';
+        document.getElementById('sara-extras').innerHTML = '';
+        document.getElementById('sara-progreso').style.display = 'none';
+        document.getElementById('sara-numreg').value = nacSara ? (nacSara.saraNumRegistro || '') : '';
+        poblarSelectFecha('sara-fecha');
+        const f = nacSara && nacSara.saraFechaPresentacion;
+        if (f && f.split('/').length === 3) { const [dd, mm, yy] = f.split('/'); setFechaFromIso('sara-fecha', `${yy}-${mm}-${dd}`); }
+        else setFechaHoy('sara-fecha');
+        document.getElementById('modal-sara').classList.add('active');
+    };
+
+    window.saraLeerArchivo = async function(input) {
+        const S = window._sara; if (!S) return;
+        const file = input.files && input.files[0];
+        const cont = document.getElementById('sara-leido');
+        S.file = null; S.extras = []; S.avisoRojo = '';
+        document.getElementById('sara-extras').innerHTML = '';
+        if (!file) { cont.innerHTML = ''; return; }
+        if (!(file.type === 'application/pdf' || /\.pdf$/i.test(file.name))) { input.value = ''; cont.innerHTML = ''; return alert('El justificante debe ser el PDF que devuelve la red SARA.'); }
+        S.file = file;
+        cont.innerHTML = '<div style="color:var(--texto2);font-size:0.78rem;">⏳ Leyendo el justificante…</div>';
+        let L;
+        try { L = await leerJustificanteSara(file); }
+        catch (e) { cont.innerHTML = '<div style="color:var(--naranja);font-size:0.78rem;">No se ha podido leer el PDF: escribe tú el nº de registro y la fecha.</div>'; return; }
+        if (L.num) document.getElementById('sara-numreg').value = L.num;
+        if (L.fecha) { const [dd, mm, yy] = L.fecha.split('/'); setFechaFromIso('sara-fecha', `${yy}-${mm}-${dd}`); }
+        S.hora = L.hora || '';
+        const p = histBio.find(x => x.id === S.puestaId);
+        const est = pyn2EstadoPuesta(p);
+        const esperados = [p.idPuesta || p.detalle].concat(est.otraPuesta ? [est.otraPuesta.idPuesta || est.otraPuesta.detalle] : []);
+        const lineas = [];
+        if (!L.esJustificante) { S.avisoRojo = 'Este PDF no parece un justificante de la red SARA.'; lineas.push(`<div style="color:var(--rojo);font-weight:700;">⚠️ ${S.avisoRojo}</div>`); }
+        lineas.push(`<div>📅 Presentado: <b>${L.fecha || '—'}</b>${L.hora ? ' ' + L.hora : ''} · Nº <b>${L.num || '—'}</b></div>`);
+        if (L.anexos.length) lineas.push(`<div style="color:var(--texto2);">Anexos: ${L.anexos.join(', ')}</div>`);
+        if (!L.idsPuesta.length) {
+            lineas.push('<div style="color:var(--naranja);font-weight:700;">⚠️ No aparece ningún fichero MITECO_… en los anexos: no puedo comprobar de qué puesta es.</div>');
+        } else if (esperados.some(e => L.idsPuesta.includes(e))) {
+            lineas.push(`<div style="color:var(--verde);font-weight:700;">✓ Incluye el fichero MITECO de ${esperados.filter(e => L.idsPuesta.includes(e)).join(' y ')}</div>`);
+        } else {
+            S.avisoRojo = `Los ficheros MITECO anexados son de ${L.idsPuesta.join(', ')}, no de ${esperados.join(' + ')}.`;
+            lineas.push(`<div style="color:var(--rojo);font-weight:700;">⚠️ ${S.avisoRojo}</div>`);
+        }
+        cont.innerHTML = `<div style="background:var(--tarjeta2);border-radius:10px;padding:8px 10px;font-size:0.76rem;line-height:1.55;text-align:left;margin-bottom:10px;">${lineas.join('')}</div>`;
+        // Otras puestas incluidas en el mismo justificante (pendientes de justificante)
+        const extras = [];
+        L.idsPuesta.filter(i => !esperados.includes(i)).forEach(i => {
+            const q = saraPuestaPorId(i);
+            if (!q || q.id === S.puestaId || extras.some(x => x.id === q.id)) return;
+            const eq = pyn2EstadoPuesta(q);
+            if (eq.pasoCsv && !eq.pasoSara) extras.push({ id: q.id, txt: q.idPuesta || q.detalle });
+        });
+        S.extras = extras;
+        document.getElementById('sara-extras').innerHTML = extras.length
+            ? `<div style="font-size:0.74rem;color:#ffb547;font-weight:700;margin-bottom:4px;">Este justificante incluye también:</div>` +
+              extras.map(x => `<label style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.8rem;margin-bottom:4px;cursor:pointer;"><input type="checkbox" class="sara-extra" value="${x.id}" checked style="width:16px;height:16px;"> Asignarlo también a <b>${x.txt}</b></label>`).join('')
+            : '';
+    };
+
+    window.saraGuardar = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir el justificante.');
+        const S = window._sara; if (!S) return;
+        const p = histBio.find(x => x.id === S.puestaId);
+        if (!p) return;
+        const numReg = (document.getElementById('sara-numreg').value || '').trim();
+        const fecha = isoAEs(getFechaIso('sara-fecha'));
+        const estP = pyn2EstadoPuesta(p);
+        const yaTiene = estP.todosNacs.some(n => n.saraJustificanteUrl);
+        if (!S.file && !yaTiene) return alert('Elige el PDF del justificante.');
+        if (S.avisoRojo && !confirm(`⚠️ ${S.avisoRojo}\n\n¿Guardarlo de todas formas en esta puesta?`)) return;
+        const extrasSel = Array.from(document.querySelectorAll('#sara-extras .sara-extra:checked')).map(i => i.value);
+        const puestas = [p].concat(extrasSel.map(id => histBio.find(x => x.id === id)).filter(Boolean));
+        const nacs = [];
+        puestas.forEach(q => pyn2EstadoPuesta(q).todosNacs.forEach(n => { if (!nacs.some(x => x.id === n.id)) nacs.push(n); }));
+        if (!nacs.length) return alert('Esta puesta no tiene nacimientos.');
+        const pr = document.getElementById('sara-progreso');
+        try {
+            const cambios = { saraNumRegistro: numReg, saraFechaPresentacion: fecha, saraHoraPresentacion: S.hora || '' };
+            const anteriores = [...new Set(nacs.map(n => n.saraJustificanteUrl).filter(Boolean))];
+            if (S.file) {
+                pr.style.display = 'block'; pr.textContent = '⏳ Guardando el justificante…';
+                cambios.saraJustificanteUrl = await guardarArchivoFS(S.file, { nombre: S.file.name, tipo: 'application/pdf', carpeta: `docs_sara/${S.puestaId}` });
+            }
+            for (const n of nacs) {
+                if (!S.file && !n.saraJustificanteUrl) continue; // sin archivo nuevo solo se corrigen nº/fecha de los que ya lo tienen
+                await updateDoc(doc(db, 'bio', n.id), cambios);
+            }
+            // Justificante sustituido: se borra si ya no lo usa ningún otro nacimiento
+            if (S.file) {
+                for (const ref0 of anteriores) {
+                    const otro = histBio.some(n => n.tipo === 'nacimiento' && n.saraJustificanteUrl === ref0 && !nacs.some(x => x.id === n.id));
+                    if (!otro) { try { await borrarArchivoFS(ref0); } catch (e) {} }
+                }
+            }
+            registrarAuditoria('edicion', 'miteco', `Justificante red SARA ${numReg || ''} · presentado ${fecha} · ${puestas.map(q => q.idPuesta || q.detalle).join(', ')}`);
+            document.getElementById('modal-sara').classList.remove('active');
+            window._sara = null;
+            alert(`✅ Justificante guardado${puestas.length > 1 ? ` en ${puestas.length} puestas` : ''}. El contador de espera de MITECO empieza el ${fecha}.`);
+        } catch (err) { pr.style.display = 'none'; alert(mensajeErrorSubida(err)); }
     };
 
     // ── DATOS DE PRUEBA (PyN NUEVO) ─────────────────────────────
@@ -5978,6 +6284,77 @@
         document.getElementById('modal-csv').classList.remove('active');
     }
 
+    // ── 29/09/2026: filas del fichero de ALTA para MITECO (31 columnas oficiales) ──
+    // Una sola definición para el CSV/Excel del modal y para el paquete "PREPARAR PARA SARA".
+    function filasMitecoAlta(animales, fechaMarcado) {
+        return animales.map(a => {
+            const m = MITECO_ESPECIES[a.especie] || { genero: a.especie.toUpperCase(), especie: a.especie.toUpperCase(), apendice: 'II', anexo: 'B' };
+            const chipFmt = a.chip.length === 15 ? a.chip.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5') : a.chip;
+            let fechaNacFmt = a.fechaNac || '';
+            if (a.fechaNacIso && !String(a.fechaNac || '').includes('/')) {
+                const [y,mo,d] = a.fechaNacIso.split('-');
+                fechaNacFmt = `${d}/${mo}/${y}`;
+            }
+            return [
+                MITECO_CRIADOR, '', m.genero, m.especie, '',          // Criador, Id cría, Género, Especie, Subespecie
+                m.apendice, m.anexo, '', '', '', '',                   // Apéndice, Anexo, Doc CITES, País, Otros doc (2)
+                'D', 'C', '', '',                                      // Sexo, Tipo Spp., Procedencia 1 y 2
+                'MICROCHIP Nº: ' + chipFmt, fechaMarcado, fechaNacFmt, // Código marcado, Fecha marcado, Fecha nacimiento
+                '', '', '', '',                                        // Alta inicial, Comunicación, Repeticiones, Observaciones
+                'A', '', '',                                           // Situación actual, Fecha y motivo situación
+                a.idEspecimenHembra || '', a.idEspecimenMacho || '',   // Nº orden madre / padre
+                '', '', '', ''                                         // Cesión (4 columnas)
+            ];
+        });
+    }
+
+    function cargarSheetJS() {
+        if (window.XLSX) return Promise.resolve(window.XLSX);
+        return new Promise((ok, ko) => {
+            const sc = document.createElement('script');
+            sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            sc.onload = () => ok(window.XLSX);
+            sc.onerror = () => ko(new Error('No se pudo cargar el generador de Excel'));
+            document.head.appendChild(sc);
+        });
+    }
+
+    // Devuelve { csv: Blob, xlsx: Blob|null } con el contenido del fichero MITECO
+    async function construirMitecoCsvXlsx(filas) {
+        const cabecera = MITECO_CSV_HEADERS.split(';');
+        const csvContent = [MITECO_CSV_HEADERS, ...filas.map(f => f.join(';'))].join('\r\n');
+        // CSV en latin-1 para máxima compatibilidad con MITECO (igual que siempre)
+        const latin1 = new Uint8Array([...csvContent].map(c => { const code = c.charCodeAt(0); return code <= 255 ? code : 63; }));
+        const csv = new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' });
+        let xlsx = null;
+        try {
+            const X = await cargarSheetJS();
+            const ws = X.utils.aoa_to_sheet([cabecera, ...filas]);
+            // Todo como TEXTO, para que Excel no convierta chips ni fechas
+            Object.keys(ws).forEach(k => { if (k[0] !== '!') { ws[k].t = 's'; ws[k].v = String(ws[k].v); ws[k].z = '@'; } });
+            ws['!cols'] = cabecera.map((h, i) => ({ wch: i === 15 ? 34 : Math.max(10, Math.min(24, h.length + 2)) }));
+            const wb = X.utils.book_new();
+            X.utils.book_append_sheet(wb, ws, 'MITECO');
+            xlsx = new Blob([X.write(wb, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        } catch (e) { console.warn('Excel no generado:', e); }
+        return { csv, xlsx };
+    }
+
+    function descargarBlob(blob, nombre) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nombre;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    async function descargarMitecoCsvXlsx(filas, nombreBase) {
+        const { csv, xlsx } = await construirMitecoCsvXlsx(filas);
+        descargarBlob(csv, nombreBase + '.csv');
+        if (xlsx) setTimeout(() => descargarBlob(xlsx, nombreBase + '.xlsx'), 600);
+        else alert('⚠️ Se ha descargado el CSV, pero no se ha podido generar el Excel (.xlsx). Revisa la conexión y vuelve a intentarlo si lo necesitas.');
+    }
+
     window.exportarCSV = async function() {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede exportar el CSV a MITECO.'); // 24/09/2026: permisos Martín
         const animales = window._csvAnimales || [];
@@ -5994,73 +6371,11 @@
         const [ym, mm, dm] = fechaMarcadoIso.split('-');
         const fechaMarcado = `${dm}/${mm}/${ym}`;
 
-        // Headers oficiales MITECO (31 columnas)
-        const headers = MITECO_CSV_HEADERS;
-
-        const filas = seleccionados.map(a => {
-            const m = MITECO_ESPECIES[a.especie] || { genero: a.especie.toUpperCase(), especie: a.especie.toUpperCase(), apendice: 'II', anexo: 'B' };
-            // Formato chip: con puntos cada 3 dígitos
-            const chipFmt = a.chip.length === 15
-                ? a.chip.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
-                : a.chip;
-            // Fecha nacimiento DD/MM/AAAA
-            let fechaNacFmt = a.fechaNac || '';
-            if (a.fechaNacIso && !a.fechaNac.includes('/')) {
-                const [y,mo,d] = a.fechaNacIso.split('-');
-                fechaNacFmt = `${d}/${mo}/${y}`;
-            }
-            return [
-                MITECO_CRIADOR,   // Identificador Criador
-                '',               // Identificador Cría
-                m.genero,         // Género
-                m.especie,        // Especie
-                '',               // Subespecie
-                m.apendice,       // Apéndice CITES
-                m.anexo,          // Anexo CE
-                '',               // Documento CITES
-                '',               // País Documento CITES
-                '',               // Otros Doc - Identificación
-                '',               // Otros Doc - Denominación
-                'D',              // Sexo
-                'C',              // Tipo Spp.
-                '',               // Procedencia 1
-                '',               // Procedencia 2
-                'MICROCHIP Nº: ' + chipFmt,  // Código Marcado
-                fechaMarcado,     // Fecha Marcado
-                fechaNacFmt,      // Fecha Nacimiento
-                '',               // Fecha Alta Inicial
-                '',               // Fecha Comunicación
-                '',               // Repeticiones
-                '',               // Observaciones
-                'A',              // Situación Actual
-                '',               // Fecha Situacion
-                '',               // Motivo Situacion
-                a.idEspecimenHembra || '',  // Nº Orden Madre
-                a.idEspecimenMacho  || '',  // Nº Orden Padre
-                '',               // Fecha Cesión
-                '',               // Identificador Otro Criador Cesión
-                '',               // Nombre Otro Criador Cesión
-                ''                // Nombre Particular Cesión
-            ].join(';');
-        });
-
-        const csvContent = [headers, ...filas].join('\r\n');
-
-        // Encoding latin-1 para máxima compatibilidad con MITECO
-        const latin1 = new Uint8Array([...csvContent].map(c => {
-            const code = c.charCodeAt(0);
-            return code <= 255 ? code : 63; // 63 = '?'
-        }));
-        const blob = new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
+        // 29/09/2026: el mismo contenido se descarga en .csv y en .xlsx (Excel) a la vez
         const puestaId = document.getElementById('csv-puesta-id').value;
         const puesta   = histBio.find(x => x.id === puestaId);
-        const nombre   = puesta ? `MITECO_${puesta.idPuesta || puesta.especie}_${fechaMarcado.replace(/\//g,'-')}.csv` : 'MITECO_export.csv';
-        a.href     = url;
-        a.download = nombre;
-        a.click();
-        URL.revokeObjectURL(url);
+        const nombreBase = puesta ? `MITECO_${puesta.idPuesta || puesta.especie}` : 'MITECO_export';
+        await descargarMitecoCsvXlsx(filasMitecoAlta(seleccionados, fechaMarcado), nombreBase);
 
         // Marcar como "CSV exportado" los nacimientos cuyos chips se han incluido POR COMPLETO
         // en este envío (si solo se ha exportado una parte, se deja pendiente para no dar por
@@ -7308,7 +7623,7 @@
         return temporadas;
     }
 
-    window.generarPDFPyN = async function(parejaId, puestaRefId) {
+    window.generarPDFPyN = async function(parejaId, puestaRefId, opciones) { // 29/09/2026: opciones.soloBytes → devuelve el PDF sin descargarlo (para PREPARAR PARA SARA)
         try {
             const pareja = parejasData.find(p => p.id === parejaId);
             if (!pareja) { alert('Pareja no encontrada'); return false; }
@@ -7414,6 +7729,7 @@
 
             // Descargar
             const pdfBytes = await pdfDoc.save();
+            if (opciones && opciones.soloBytes) return pdfBytes;
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url  = URL.createObjectURL(blob);
             const a    = document.createElement('a');
