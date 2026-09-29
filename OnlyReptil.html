@@ -4244,7 +4244,8 @@
     }
 
     window.pyn2PrepararSara = async function(puestaId) {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede preparar la documentación.');
+        // 29/09/2026: abierto también a Martín (es quien presenta en SARA). Solo descarga archivos, no marca nada.
+        if (!usuarioActual) return;
         const p = histBio.find(x => x.id === puestaId);
         if (!p) return;
         const puestaIds = p.combinadaCon ? [puestaId, p.combinadaCon] : [puestaId];
