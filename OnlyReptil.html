@@ -609,6 +609,7 @@
         <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🧪 PyN NUEVO · PRUEBA</div>
         <div style="font-size:0.7rem;color:var(--texto2);margin:-8px 0 12px;line-height:1.5;">Pantalla de prueba: reúne aquí la notificación a MITECO, el nacimiento, el certificado veterinario, el CSV y los papeles de cada puesta, ordenadas por fecha. El PyN de siempre sigue funcionando igual.</div>
         <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button class="btn-mini verde" onclick="abrirSubidaCertificados()">📥 SUBIR CERTIFICADOS</button>
             <button class="btn-mini" onclick="pyn2CrearPruebaPuesta()">🧪 CREAR PUESTA DE PRUEBA</button>
             <button class="btn-mini naranja" onclick="pyn2BorrarPruebas()">🗑️ BORRAR TODO LO DE PRUEBA</button>
         </div>
@@ -618,6 +619,33 @@
         <div class="pyn2-tabs-grid" id="pyn2-tabs"></div>
         <div id="pyn2-lista"></div>
         <button class="btn-cancelar" onclick="irA('pantalla-inicio')">← VOLVER</button>
+    </div>
+
+    <!-- 29/09/2026: Modal — subida en bloque de certificados veterinarios -->
+    <div class="modal-overlay" id="modal-subida-certs">
+        <div class="modal-box azul" style="max-height:92vh;overflow-y:auto;">
+            <div class="modal-titulo azul">📥 SUBIR CERTIFICADOS</div>
+            <div id="bulk-sub" style="font-size:0.76rem;color:var(--texto2);text-align:center;margin:-8px 0 12px;"></div>
+            <!-- 29/09/2026: carpeta recordada (solo ordenador con Chrome/Edge) -->
+            <div id="bulk-carpeta" style="display:none;background:var(--tarjeta2);border-radius:12px;padding:10px 12px;margin-bottom:12px;text-align:center;">
+                <button class="btn-mini verde" id="bulk-carpeta-leer" onclick="bulkLeerCarpetaGuardada()" style="font-size:0.8rem;padding:8px 14px;">📁 ELEGIR CARPETA</button>
+                <div style="font-size:0.7rem;color:var(--texto2);margin-top:6px;"><span id="bulk-carpeta-nombre"></span> · <span onclick="bulkElegirCarpeta()" style="color:var(--azul);cursor:pointer;font-weight:700;">cambiar carpeta</span></div>
+            </div>
+            <div class="form-group">
+                <label>…o elige los archivos a mano</label>
+                <input type="file" id="bulk-files" multiple accept="application/pdf,image/*" onchange="bulkCargarArchivos(this)" style="width:100%;color:var(--texto);font-family:Rajdhani,sans-serif;">
+            </div>
+            <div style="font-size:0.7rem;letter-spacing:2px;font-weight:700;color:#ffb547;margin:10px 0 6px;text-align:center;">1 · FECHA DE MARCADO (COMÚN)</div>
+            <div class="fecha-row"><select class="fecha-sel" id="bulk-fecha-d"></select><select class="fecha-sel" id="bulk-fecha-m"></select><select class="fecha-sel" id="bulk-fecha-y"></select></div>
+            <div style="font-size:0.66rem;color:var(--texto2);text-align:center;margin-top:4px;">Si una hoja firmada trae otra fecha escrita, esa puesta usa la suya.</div>
+            <div style="font-size:0.7rem;letter-spacing:2px;font-weight:700;color:#ffb547;margin:14px 0 6px;text-align:center;">2 · ARCHIVOS</div>
+            <div id="bulk-archivos"></div>
+            <div style="font-size:0.7rem;letter-spacing:2px;font-weight:700;color:#ffb547;margin:14px 0 6px;text-align:center;">3 · RESUMEN POR PUESTA</div>
+            <div id="bulk-resumen"></div>
+            <div id="bulk-progreso" style="display:none;font-size:0.8rem;color:var(--naranja);margin:8px 0;text-align:center;"></div>
+            <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="bulkGuardar()">GUARDAR TODO</button>
+            <button class="btn-cancelar" onclick="document.getElementById('modal-subida-certs').classList.remove('active')">CANCELAR</button>
+        </div>
     </div>
 
     <!-- 27/09/2026: Modal — marcar crías como cedidas fuera de la app (regularización) -->
@@ -643,9 +671,24 @@
             <div class="modal-titulo azul">🩺 CONFIRMAR CERTIFICADO FIRMADO</div>
             <div id="pyn2-vet-info" style="font-size:0.8rem;color:var(--texto2);margin-bottom:12px;"></div>
             <!-- 27/09/2026: subir el certificado firmado (foto o PDF) — opcional -->
-            <div class="form-group" id="pyn2-vet-archivo-grupo">
-                <label>Certificado firmado (foto o PDF)</label>
-                <input type="file" id="pyn2-vet-archivo" accept="image/*,application/pdf" style="width:100%;color:var(--texto);font-family:Rajdhani,sans-serif;">
+            <!-- 29/09/2026: el veterinario devuelve DOS documentos: la hoja de la app firmada
+                 electrónicamente (PDF, se guarda SIN TOCAR para no invalidar la firma) y el
+                 certificado oficial del Colegio (foto o PDF). -->
+            <div id="pyn2-vet-archivo-grupo">
+                <div class="form-group">
+                    <label>📄 Hoja de la app firmada (PDF)</label>
+                    <input type="file" id="pyn2-vet-hoja" accept="application/pdf" style="width:100%;color:var(--texto);font-family:Rajdhani,sans-serif;">
+                    <div id="pyn2-vet-hoja-ya" style="display:none;font-size:0.72rem;color:var(--verde);margin-top:3px;">✓ Ya subida — elige otra solo si quieres sustituirla</div>
+                </div>
+                <div class="form-group">
+                    <label>📜 Certificado oficial del Colegio (foto o PDF)</label>
+                    <input type="file" id="pyn2-vet-oficial" accept="image/*,application/pdf" style="width:100%;color:var(--texto);font-family:Rajdhani,sans-serif;">
+                    <div id="pyn2-vet-oficial-ya" style="display:none;font-size:0.72rem;color:var(--verde);margin-top:3px;">✓ Ya subido — elige otro solo si quieres sustituirlo</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Nº certificado oficial (Serie + número)</label>
+                <input type="text" id="pyn2-vet-numcert" placeholder="Ej: A 024116" style="text-transform:uppercase;">
             </div>
             <div id="pyn2-vet-progreso" style="display:none;font-size:0.8rem;color:var(--naranja);margin-bottom:8px;"></div>
             <div class="form-group">
@@ -3222,7 +3265,8 @@
         const huevos = (parseInt(p.cant) || 0) + (secundaria ? (parseInt(secundaria.cant) || 0) : 0);
         const nacidos = estado.todosNacs.reduce((s, n) => s + (parseInt(n.cant) || 0), 0);
         const esRadiata = estado.citesInfo.aplica;
-        const certUrl = (estado.todosNacs.find(n => n.certVetFirmadoUrl) || {}).certVetFirmadoUrl || '';
+        const dCert = pyn2DatosCert(estado.todosNacs); // 29/09/2026: hoja firmada + certificado oficial + nº
+        const certUrl = dCert.hoja || dCert.oficial;
         const conFecha = estado.todosNacs.find(n => n.fechaMarcado);
         const bloqueadoChip = estado.pasoNacimiento && estado.nacsSinChip.length > 0;
         const listaSinChip = estado.nacsSinChip.map(n => `${n.fecha} (${n.cant} cría${n.cant == 1 ? '' : 's'})`).join(', ');
@@ -3272,8 +3316,13 @@
                     marcarSig('Generar certificado veterinario');
                 }
                 if (estado.pasoVet) {
-                    const verCert = certUrl ? `<a class="btn-mini verde" style="text-decoration:none;" href="${certUrl}" target="_blank">👁️ VER CERTIFICADO FIRMADO</a>` : '';
-                    pasos.push(pyn2Paso('hecho', 'Certificado firmado por el veterinario', (conFecha ? `Fecha de marcado ${conFecha.fechaMarcado}` : '') + (certUrl ? '' : ' · <span style="color:var(--naranja);">sin archivo subido</span>'), verCert));
+                    const verCert = (dCert.hoja ? `<a class="btn-mini verde" style="text-decoration:none;" href="${dCert.hoja}" target="_blank">📄 HOJA FIRMADA</a> ` : '') +
+                        (dCert.oficial ? `<a class="btn-mini verde" style="text-decoration:none;" href="${dCert.oficial}" target="_blank">📜 CERTIFICADO OFICIAL</a> ` : '') +
+                        ((!dCert.hoja || !dCert.oficial) ? `<button class="btn-mini naranja" onclick="pyn2AbrirMarcarVet('${p.id}', true)">📎 AÑADIR LO QUE FALTA</button>` : '');
+                    const faltan = [!dCert.hoja ? 'hoja firmada' : '', !dCert.oficial ? 'certificado oficial' : ''].filter(Boolean);
+                    const det = [dCert.num ? `Nº <b>${dCert.num}</b>` : '', conFecha ? `Marcado ${conFecha.fechaMarcado}` : ''].filter(Boolean).join(' · ') +
+                        (faltan.length ? `<br><span style="color:var(--naranja);">Falta: ${faltan.join(' y ')}</span>` : '');
+                    pasos.push(pyn2Paso('hecho', 'Certificado firmado por el veterinario', det, verCert));
                 } else {
                     pasos.push(pyn2Paso('actual', 'Subir certificado firmado + fecha de marcado', '', `<button class="btn-mini verde" onclick="pyn2AbrirMarcarVet('${p.id}', true)">📎 SUBIR CERTIFICADO FIRMADO</button> <button class="btn-mini" onclick="pyn2AbrirMarcarVet('${p.id}', false)">✓ YA FIRMADO (sin subir)</button>`));
                     marcarSig('Subir certificado firmado del veterinario');
@@ -3284,7 +3333,8 @@
             if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar CSV y enviar a MITECO'));
             else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'CSV enviado a MITECO'));
             else {
-                const desc = certUrl ? ` <a class="btn-mini verde" style="text-decoration:none;" href="${certUrl}" target="_blank">⬇ CERTIFICADO FIRMADO</a>` : '';
+                const desc = (dCert.hoja ? ` <a class="btn-mini verde" style="text-decoration:none;" href="${dCert.hoja}" target="_blank" download>⬇ HOJA FIRMADA</a>` : '') +
+                    (dCert.oficial ? ` <a class="btn-mini verde" style="text-decoration:none;" href="${dCert.oficial}" target="_blank" download>⬇ CERTIFICADO OFICIAL</a>` : '');
                 pasos.push(pyn2Paso('actual', 'Generar CSV y enviar a MITECO', 'A MITECO se envían juntos el certificado firmado y el CSV', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📤 GENERAR CSV</button>${desc}`));
                 marcarSig('Generar CSV y enviar a MITECO');
             }
@@ -3376,7 +3426,7 @@
             <div class="pyn2-cab" onclick="pyn2ToggleCard('${p.id}')">
                 <div style="flex:1;min-width:0;">
                     <div class="pyn2-idp"><span class="pyn2-dot" style="background:${color};"></span>${idPuestaTxt}</div>
-                    <div class="pyn2-sub">${pareja.nombre} · ${p.fecha || '—'}${combo}</div>
+                    <div class="pyn2-sub">${pareja.nombre} · ${p.fecha || '—'}${dCert.num ? ` · <span style="color:var(--azul);">📜 ${dCert.num}</span>` : ''}${combo}</div>
                 </div>
                 <div class="pyn2-cifras">
                     <div class="pyn2-cifra"><b>${huevos}🥚</b><span>huevos</span></div>
@@ -3481,8 +3531,10 @@
         const p = histBio.find(x => x.id === puestaId);
         if (!p) return;
         const est = pyn2EstadoPuesta(p);
-        const tieneCert = est.todosNacs.some(n => n.certVetFirmadoUrl);
-        if (!tieneCert && !confirm('⚠️ Vas a generar el CSV para MITECO SIN haber subido el certificado veterinario firmado de esta puesta.\n\n¿Quieres continuar de todas formas?')) return;
+        // 29/09/2026 (Patry): avisar si falta CUALQUIERA de los dos documentos
+        const d = pyn2DatosCert(est.todosNacs);
+        const faltan = [!d.hoja ? '📄 la hoja de la app firmada' : '', !d.oficial ? '📜 el certificado oficial del Colegio' : ''].filter(Boolean);
+        if (faltan.length && !confirm(`⚠️ Vas a generar el CSV para MITECO sin haber subido:\n\n${faltan.join('\n')}\n\n¿Quieres continuar de todas formas?`)) return;
         abrirModalCSV(puestaId);
     };
 
@@ -3491,65 +3543,377 @@
     };
 
     window._pyn2VetPuestaId = null;
+    // Puestas que comparten certificado con esta (la unión guardada o la del modal veterinario)
+    function pyn2PuestasDelCertificado(puestaId) {
+        const pVet = histBio.find(x => x.id === puestaId);
+        return (pVet && pVet.combinadaCon) ? [puestaId, pVet.combinadaCon]
+            : ((window._vetPuestaIds && window._vetPuestaIds.includes(puestaId)) ? window._vetPuestaIds : [puestaId]);
+    }
+    // Datos de certificado ya guardados en los nacimientos de esas puestas
+    function pyn2DatosCert(nacs) {
+        const f = campo => (nacs.find(n => n[campo]) || {})[campo] || '';
+        return { hoja: f('certVetHojaUrl') || f('certVetFirmadoUrl'), oficial: f('certVetOficialUrl'), num: f('numCertVet'), fecha: f('fechaMarcado') };
+    }
+
     window.pyn2AbrirMarcarVet = function(puestaId, conArchivo) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar el certificado veterinario.');
         window._pyn2VetConArchivo = !!conArchivo;
-        const g = document.getElementById('pyn2-vet-archivo-grupo'); if (g) g.style.display = conArchivo ? 'block' : 'none';
-        const a = document.getElementById('pyn2-vet-archivo'); if (a) a.value = '';
-        const pr = document.getElementById('pyn2-vet-progreso'); if (pr) pr.style.display = 'none';
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar el certificado veterinario.'); // 24/09/2026: permisos Martín
         window._pyn2VetPuestaId = puestaId;
+        const nacs = histBio.filter(n => n.tipo === 'nacimiento' && pyn2PuestasDelCertificado(puestaId).some(pid => n.idPuestaOrigen === pid));
+        const d = pyn2DatosCert(nacs);
+        const g = document.getElementById('pyn2-vet-archivo-grupo'); if (g) g.style.display = conArchivo ? 'block' : 'none';
+        ['pyn2-vet-hoja','pyn2-vet-oficial'].forEach(id => { const a = document.getElementById(id); if (a) a.value = ''; });
+        document.getElementById('pyn2-vet-hoja-ya').style.display = d.hoja ? 'block' : 'none';
+        document.getElementById('pyn2-vet-oficial-ya').style.display = d.oficial ? 'block' : 'none';
+        document.getElementById('pyn2-vet-numcert').value = d.num || '';
+        const pr = document.getElementById('pyn2-vet-progreso'); if (pr) pr.style.display = 'none';
         const p = histBio.find(x => x.id === puestaId);
         const info = document.getElementById('pyn2-vet-info');
         if (info) info.innerHTML = `🥚 ${p ? (p.idPuesta || p.detalle) : ''}`;
         poblarSelectFecha('pyn2-vet-fecha');
-        setFechaHoy('pyn2-vet-fecha');
+        if (d.fecha && d.fecha.split('/').length === 3) { const [dd, mm, yy] = d.fecha.split('/'); setFechaFromIso('pyn2-vet-fecha', `${yy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`); }
+        else setFechaHoy('pyn2-vet-fecha');
         document.getElementById('modal-pyn2-vet').classList.add('active');
     };
 
+    async function pyn2SubirArchivoCert(archivo, carpetaNacId, nombreBase, comprimir) {
+        const esPdf = archivo.type === 'application/pdf';
+        let datos = archivo, ext = esPdf ? 'pdf' : 'jpg', tipo = esPdf ? 'application/pdf' : 'image/jpeg';
+        if (!esPdf && comprimir) {
+            const dataUrl = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = e => ok(e.target.result); r.onerror = ko; r.readAsDataURL(archivo); });
+            datos = new Uint8Array(await comprimirImagen(dataUrl, archivo.type));
+        }
+        const refArch = ref(storage, `docs_vet/${carpetaNacId}/${nombreBase}_${Date.now()}.${ext}`);
+        await uploadBytes(refArch, datos, { contentType: tipo }); // el PDF firmado se sube TAL CUAL (no se toca)
+        return await getDownloadURL(refArch);
+    }
+
     window.pyn2ConfirmarVet = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar el certificado veterinario.'); // 24/09/2026: permisos Martín
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar el certificado veterinario.');
         const puestaId = window._pyn2VetPuestaId;
         if (!puestaId) return;
         const fecha = isoAEs(getFechaIso('pyn2-vet-fecha'));
-        // Si al generar el certificado se marcó combinar con otra puesta, window._vetPuestaIds
-        // recuerda cuáles se incluyeron; si no, se aplica solo a esta.
-        // 24/09/2026: primero la unión guardada en la base de datos (al generar el certificado)
-        const pVet = histBio.find(x => x.id === puestaId);
-        const puestaIds = (pVet && pVet.combinadaCon) ? [puestaId, pVet.combinadaCon]
-            : ((window._vetPuestaIds && window._vetPuestaIds.includes(puestaId)) ? window._vetPuestaIds : [puestaId]);
-        const inputArch = document.getElementById('pyn2-vet-archivo');
-        const archivo = (window._pyn2VetConArchivo && inputArch && inputArch.files[0]) ? inputArch.files[0] : null;
-        if (window._pyn2VetConArchivo && !archivo) return alert('Elige la foto o el PDF del certificado firmado (o cancela y usa "YA FIRMADO (sin subir)").');
+        const numCert = (document.getElementById('pyn2-vet-numcert').value || '').trim().toUpperCase();
+        const puestaIds = pyn2PuestasDelCertificado(puestaId);
+        const hoja = window._pyn2VetConArchivo ? (document.getElementById('pyn2-vet-hoja').files[0] || null) : null;
+        const oficial = window._pyn2VetConArchivo ? (document.getElementById('pyn2-vet-oficial').files[0] || null) : null;
+        const nacsPrev = histBio.filter(n => n.tipo === 'nacimiento' && puestaIds.some(pid => n.idPuestaOrigen === pid));
+        const prev = pyn2DatosCert(nacsPrev);
+        if (window._pyn2VetConArchivo && !hoja && !oficial && !prev.hoja && !prev.oficial) return alert('Elige al menos uno de los dos documentos (o cancela y usa "YA FIRMADO (sin subir)").');
+        if (hoja && hoja.type !== 'application/pdf') return alert('La hoja firmada debe ser el PDF que te manda el veterinario (no una foto), para conservar su firma electrónica.');
+        // Control: el nombre del PDF firmado lleva la pareja y la puesta (Cert_Veter_SUL05_P1…)
+        if (hoja) {
+            const m = hoja.name.match(/Cert_Veter_([A-Za-z0-9-]+)_P([\dy]+)/i);
+            const principal = histBio.find(x => x.id === puestaIds[0]);
+            const ords = puestaIds.map(id => getOrdinalPuesta(id)).filter(n => n !== null).sort((a, b) => a - b);
+            const esperado = principal ? `${(principal.nombrePareja || '').toUpperCase()}_P${ords.join('y')}` : '';
+            if (m && esperado && `${m[1].toUpperCase()}_P${m[2].toLowerCase()}` !== esperado) {
+                if (!confirm(`⚠️ OJO: el PDF se llama "${hoja.name}" (parece de ${m[1].toUpperCase()} · P${m[2]}), pero lo estás subiendo en ${esperado.replace('_', ' · ')}.\n\n¿Seguro que es el certificado de esta puesta?`)) return;
+            }
+        }
         try {
             const animales = getAnimalesPorPuestas(puestaIds);
             const nacIds = [...new Set(animales.map(a => a.nacId))];
             if (!nacIds.length) return alert('Esta puesta no tiene crías con chip — no hay nada que certificar.');
-            // 27/09/2026: subir el certificado firmado (una sola vez, aunque se junten 2 puestas)
-            // a la carpeta de documentos del primer nacimiento, y guardar el enlace en todos.
-            let certVetFirmadoUrl = '';
-            if (archivo) {
-                const pr = document.getElementById('pyn2-vet-progreso');
-                if (pr) { pr.style.display = 'block'; pr.textContent = '⏳ Subiendo certificado...'; }
-                const esPdf = archivo.type === 'application/pdf';
-                let datos = archivo, ext = esPdf ? 'pdf' : 'jpg';
-                if (!esPdf) {
-                    const dataUrl = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = e => ok(e.target.result); r.onerror = ko; r.readAsDataURL(archivo); });
-                    datos = new Uint8Array(await comprimirImagen(dataUrl, archivo.type));
-                }
-                const refArch = ref(storage, `docs_vet/${nacIds[0]}/certificado_firmado_${Date.now()}.${ext}`);
-                await uploadBytes(refArch, datos, { contentType: esPdf ? 'application/pdf' : 'image/jpeg' });
-                certVetFirmadoUrl = await getDownloadURL(refArch);
-            }
-            for (const nacId of nacIds) {
-                await updateDoc(doc(db, 'bio', nacId), { certVetGenerado: true, fechaMarcado: fecha, ...(certVetFirmadoUrl ? { certVetFirmadoUrl } : {}) });
-            }
+            const pr = document.getElementById('pyn2-vet-progreso');
+            if ((hoja || oficial) && pr) { pr.style.display = 'block'; pr.textContent = '⏳ Subiendo documentos...'; }
+            // Se suben una sola vez (aunque se junten 2 puestas) y el enlace se guarda en todos sus nacimientos
+            const cambios = { certVetGenerado: true, fechaMarcado: fecha };
+            if (numCert) cambios.numCertVet = numCert;
+            if (hoja) cambios.certVetHojaUrl = await pyn2SubirArchivoCert(hoja, nacIds[0], 'hoja_firmada', false);
+            if (oficial) cambios.certVetOficialUrl = await pyn2SubirArchivoCert(oficial, nacIds[0], 'certificado_oficial', true);
+            for (const nacId of nacIds) await updateDoc(doc(db, 'bio', nacId), cambios);
             if (puestaIds.length === 2) {
                 await updateDoc(doc(db, 'bio', puestaIds[0]), { combinadaCon: puestaIds[1] });
                 await updateDoc(doc(db, 'bio', puestaIds[1]), { combinadaCon: puestaIds[0] });
             }
-            registrarAuditoria('edicion', 'bio', `Certificado veterinario confirmado · fecha de marcado ${fecha}${certVetFirmadoUrl ? ' · certificado firmado subido' : ' · sin subir archivo'}`);
+            registrarAuditoria('edicion', 'bio', `Certificado veterinario${numCert ? ' ' + numCert : ''} · marcado ${fecha}${hoja ? ' · hoja firmada subida' : ''}${oficial ? ' · certificado oficial subido' : ''}`);
             document.getElementById('modal-pyn2-vet').classList.remove('active');
+            const faltan = [!(hoja || prev.hoja) ? 'la hoja firmada' : '', !(oficial || prev.oficial) ? 'el certificado oficial' : ''].filter(Boolean);
+            if (window._pyn2VetConArchivo && faltan.length) alert(`✅ Guardado. Falta por subir ${faltan.join(' y ')} — puedes añadirlo desde la tarjeta.`);
         } catch(err) { alert('Error: ' + err.message); }
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // 29/09/2026 — SUBIDA EN BLOQUE DE CERTIFICADOS VETERINARIOS (maqueta aprobada por Patry)
+    //  · Hojas de la app firmadas (PDF "…Cert_Veter_<PAREJA>_P<n>…"): se asignan SOLAS por el
+    //    nombre, y de sus anotaciones se leen el nº de certificado y la fecha de marcado.
+    //    El PDF se sube TAL CUAL (conserva la firma electrónica).
+    //  · Certificados oficiales (foto/PDF): se asignan tocando el nº de crías que pone el
+    //    certificado; si dos puestas tienen el mismo nº, la casilla muestra también la pareja.
+    //  · Si se va a sustituir algo (otra foto ya asignada a esa puesta, o un documento ya
+    //    subido antes), la app AVISA y pide confirmación — nunca sustituye en silencio.
+    // ══════════════════════════════════════════════════════════════
+    window._bulk = null;
+
+    function cargarPdfJs() {
+        if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+        return new Promise((ok, ko) => {
+            const sc = document.createElement('script');
+            sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(window.pdfjsLib); };
+            sc.onerror = () => ko(new Error('No se pudo cargar el lector de PDF'));
+            document.head.appendChild(sc);
+        });
+    }
+
+    // Lee de la hoja firmada lo que el veterinario escribe encima: nº de certificado y fecha de marcado
+    async function leerDatosHojaFirmada(file) {
+        try {
+            const pdfjs = await cargarPdfJs();
+            const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+            const page = await pdf.getPage(1);
+            const textos = [];
+            const anots = await page.getAnnotations();
+            const firmada = anots.some(a => a.fieldType === 'Sig' || /^Signature/i.test(a.fieldName || ''));
+            anots.forEach(a => { const t = (a.contentsObj && a.contentsObj.str) || a.contents || a.fieldValue; if (t) textos.push(String(t).trim()); });
+            let num = '', fecha = '';
+            textos.forEach(t => {
+                const mN = t.match(/^([A-Z])\s*[-.]?\s*(\d{5,8})$/i);
+                if (mN && !num) num = `${mN[1].toUpperCase()} ${mN[2]}`;
+                const mF = t.match(/^(\d{1,2})\D+(\d{1,2})\D+(\d{4})$/);
+                if (mF && !fecha) {
+                    const d = parseInt(mF[1]), m = parseInt(mF[2]), y = parseInt(mF[3]);
+                    if (d >= 1 && d <= 31 && m >= 1 && m <= 12) fecha = `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+                }
+            });
+            return { num, fecha, firmada };
+        } catch (e) { console.warn('No se pudo leer la hoja firmada:', e); return { num: '', fecha: '', firmada: null }; }
+    }
+
+    // Puestas que esperan certificado (o a las que les falta alguno de los dos documentos)
+    function bulkCandidatas() {
+        const cands = [];
+        histBio.filter(b => b.tipo === 'puesta' && !pyn2EsSecundaria(b)).forEach(p => {
+            const est = pyn2EstadoPuesta(p);
+            if (!est.pasoNacimiento || est.nacsSinChip.length || est.cerradaSinCrias || est.cedidaTotal) return;
+            const d = pyn2DatosCert(est.todosNacs);
+            if (est.pasoVet && d.hoja && d.oficial) return;
+            const puestaIds = pyn2PuestasDelCertificado(p.id);
+            const animales = getAnimalesPorPuestas(puestaIds);
+            if (!animales.length) return;
+            const ords = puestaIds.map(id => getOrdinalPuesta(id)).filter(n => n !== null).sort((a, b) => a - b);
+            cands.push({ id: p.id, puestaIds, pareja: (p.nombrePareja || '').toUpperCase(), ords: 'P' + ords.join('y'),
+                especie: p.especie, color: getColorEspecie(p.especie), n: animales.length,
+                nacIds: [...new Set(animales.map(a => a.nacId))], ya: d });
+        });
+        return cands.sort((a, b) => a.n - b.n);
+    }
+
+    window.abrirSubidaCertificados = function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir certificados.');
+        const cands = bulkCandidatas();
+        if (!cands.length) return alert('No hay ninguna puesta esperando certificado veterinario.');
+        window._bulk = { cands, archivos: [], nums: {} };
+        document.getElementById('bulk-files').value = '';
+        poblarSelectFecha('bulk-fecha'); setFechaHoy('bulk-fecha');
+        document.getElementById('bulk-progreso').style.display = 'none';
+        renderBulk();
+        pintarCarpetaBulk();
+        document.getElementById('modal-subida-certs').classList.add('active');
+    };
+
+    // ── 29/09/2026: CARPETA RECORDADA (solo ordenador con Chrome/Edge) ──
+    // El navegador no deja abrir una ruta escrita (C:\...), por seguridad: la carpeta se elige
+    // UNA vez con el selector de Windows y la app la recuerda (en este navegador). Después, un
+    // toque lee de esa carpeta (y sus subcarpetas) los archivos "…Cert_Veter_<PAREJA>_P<n>…"
+    // de las puestas que están esperando certificado, y los clasifica como la subida normal.
+    const CARPETA_SOPORTADA = typeof window.showDirectoryPicker === 'function';
+    function idbCarpeta(modo, valor) {
+        return new Promise((ok, ko) => {
+            const req = indexedDB.open('onlyreptil_local', 1);
+            req.onupgradeneeded = () => req.result.createObjectStore('ajustes');
+            req.onerror = () => ko(req.error);
+            req.onsuccess = () => {
+                const tx = req.result.transaction('ajustes', modo === 'get' ? 'readonly' : 'readwrite');
+                const st = tx.objectStore('ajustes');
+                const r = modo === 'get' ? st.get('carpetaCertificados') : st.put(valor, 'carpetaCertificados');
+                r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+            };
+        });
+    }
+    async function pintarCarpetaBulk() {
+        const cont = document.getElementById('bulk-carpeta');
+        if (!cont) return;
+        if (!CARPETA_SOPORTADA) { cont.style.display = 'none'; return; }
+        cont.style.display = 'block';
+        let h = null; try { h = await idbCarpeta('get'); } catch (e) {}
+        document.getElementById('bulk-carpeta-nombre').textContent = h ? `📁 ${h.name}` : 'Ninguna carpeta elegida todavía';
+        document.getElementById('bulk-carpeta-leer').textContent = h ? `📁 LEER CARPETA ${h.name.toUpperCase()}` : '📁 ELEGIR CARPETA';
+    }
+    window.bulkElegirCarpeta = async function() {
+        try {
+            const h = await window.showDirectoryPicker({ id: 'certificados', mode: 'read' });
+            await idbCarpeta('put', h);
+            await pintarCarpetaBulk();
+            await bulkLeerCarpeta(h);
+        } catch (e) { if (e.name !== 'AbortError') alert('No se pudo elegir la carpeta: ' + e.message); }
+    };
+    window.bulkLeerCarpetaGuardada = async function() {
+        let h = null; try { h = await idbCarpeta('get'); } catch (e) {}
+        if (!h) return bulkElegirCarpeta();
+        try {
+            let perm = await h.queryPermission({ mode: 'read' });
+            if (perm !== 'granted') perm = await h.requestPermission({ mode: 'read' });
+            if (perm !== 'granted') return alert('Sin permiso para leer la carpeta. Pulsa de nuevo y acepta.');
+            await bulkLeerCarpeta(h);
+        } catch (e) { alert('No se pudo abrir la carpeta (¿la has movido o renombrado?). Elígela otra vez.\n\n' + e.message); }
+    };
+    async function bulkLeerCarpeta(dirHandle) {
+        const B = window._bulk; if (!B) return;
+        const pr = document.getElementById('bulk-progreso');
+        pr.style.display = 'block'; pr.textContent = '⏳ Buscando certificados en la carpeta...';
+        const claves = new Set(B.cands.map(c => `${c.pareja}_${c.ords}`.toUpperCase()));
+        const encontrados = [];
+        async function recorrer(dir, nivel) {
+            for await (const entrada of dir.values()) {
+                if (entrada.kind === 'directory') { if (nivel < 3) await recorrer(entrada, nivel + 1); continue; }
+                const m = entrada.name.match(/Cert_Veter_([A-Za-z0-9-]+)_P([\dy]+)/i);
+                if (m && claves.has(`${m[1]}_P${m[2]}`.toUpperCase())) encontrados.push(await entrada.getFile());
+            }
+        }
+        try { await recorrer(dirHandle, 0); }
+        catch (e) { pr.textContent = '❌ Error leyendo la carpeta: ' + e.message; return; }
+        if (!encontrados.length) { pr.textContent = 'No hay en la carpeta certificados de las puestas que están esperando (los archivos deben llevar "Cert_Veter_PAREJA_P1" en el nombre).'; return; }
+        pr.textContent = `⏳ Clasificando ${encontrados.length} archivo(s)...`;
+        await bulkCargarArchivos({ files: encontrados, value: '' });
+        pr.textContent = `✓ ${encontrados.length} archivo(s) leídos de la carpeta`;
+    }
+
+    window.bulkCargarArchivos = async function(input) {
+        const B = window._bulk; if (!B) return;
+        const files = Array.from(input.files || []);
+        input.value = '';
+        // 29/09/2026 (Patry): si el archivo se llama como la puesta ("34 Cert_Veter_SUL07_P1_signed.pdf/.jpeg"),
+        // se asigna SOLO — tanto la hoja firmada como el certificado oficial. PDF con firma electrónica =
+        // hoja firmada; foto (o PDF sin firma) = certificado oficial. El número del principio (nº de crías)
+        // se comprueba contra la puesta. Si no se reconoce el nombre, se elige a mano como antes.
+        for (const f of files) {
+            if (B.archivos.some(a => a.file.name === f.name && a.file.size === f.size)) continue;
+            const esPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+            const m = f.name.match(/Cert_Veter_([A-Za-z0-9-]+)_P([\dy]+)/i);
+            let tipo = 'oficial', leido = { num: '', fecha: '', firmada: null };
+            if (esPdf) {
+                leido = await leerDatosHojaFirmada(f);
+                tipo = (leido.firmada === true || (leido.firmada === null && m)) ? 'hoja' : 'oficial';
+            }
+            const a = { file: f, tipo, asig: null, auto: false, num: tipo === 'hoja' ? leido.num : '', fecha: tipo === 'hoja' ? leido.fecha : '', nota: '' };
+            if (m) {
+                const c = B.cands.find(c => c.pareja === m[1].toUpperCase() && c.ords.toLowerCase() === ('p' + m[2]).toLowerCase());
+                const nombreDoc = tipo === 'hoja' ? 'hoja firmada' : 'certificado oficial';
+                if (!c) a.nota = `No encuentro ninguna puesta ${m[1].toUpperCase()} · P${m[2]} esperando certificado — elígela a mano`;
+                else if (B.archivos.some(x => x.tipo === tipo && x.asig === c.id)) a.nota = `⚠️ Ya hay otro ${nombreDoc} para ${c.pareja} · ${c.ords} — revisa cuál es el bueno y asígnalo a mano`;
+                else if (tipo === 'hoja' ? c.ya.hoja : c.ya.oficial) a.nota = `⚠️ ${c.pareja} · ${c.ords} ya tenía ${nombreDoc} subido de antes — tócala para sustituirlo`;
+                else {
+                    a.asig = c.id; a.auto = true;
+                    if (a.num && !B.nums[c.id]) B.nums[c.id] = a.num;
+                    const mN = f.name.match(/^\s*(\d+)/);
+                    if (mN && parseInt(mN[1]) !== c.n) a.aviso = `⚠️ El archivo dice ${mN[1]} crías y la puesta tiene ${c.n} con chip — revísalo`;
+                }
+            }
+            B.archivos.push(a);
+        }
+        // Fecha común: la leída de las hojas, si todas coinciden
+        const fechas = [...new Set(B.archivos.filter(a => a.fecha).map(a => a.fecha))];
+        if (fechas.length === 1) { const [d, m, y] = fechas[0].split('/'); setFechaFromIso('bulk-fecha', `${y}-${m}-${d}`); }
+        renderBulk();
+    };
+
+    window.bulkAsignar = function(idx, candId) {
+        const B = window._bulk; if (!B) return;
+        const a = B.archivos[idx]; if (!a) return;
+        if (a.asig === candId) { a.asig = null; a.auto = false; renderBulk(); return; }
+        const c = B.cands.find(x => x.id === candId);
+        const nombreDoc = a.tipo === 'hoja' ? 'la hoja firmada' : 'el certificado oficial';
+        const otro = B.archivos.find((x, j) => j !== idx && x.tipo === a.tipo && x.asig === candId);
+        if (otro && !confirm(`⚠️ ${c.pareja} · ${c.ords} (${c.n} crías) ya tiene asignado ${nombreDoc}:\n"${otro.file.name}"\n\nRevisa el nº de tortugas del certificado antes de seguir.\n\n¿Quieres sustituirlo por "${a.file.name}"?`)) return;
+        const yaSubido = a.tipo === 'hoja' ? c.ya.hoja : c.ya.oficial;
+        if (!otro && yaSubido && !confirm(`⚠️ ${c.pareja} · ${c.ords} ya tiene ${nombreDoc} subido de antes.\n\n¿Quieres sustituirlo por "${a.file.name}"?`)) return;
+        if (otro) otro.asig = null;
+        a.asig = candId; a.nota = ''; a.auto = false; a.aviso = '';
+        if (a.tipo === 'hoja' && a.num && !B.nums[candId]) B.nums[candId] = a.num;
+        renderBulk();
+    };
+
+    window.bulkNum = function(candId, v) { if (window._bulk) window._bulk.nums[candId] = v.trim().toUpperCase(); };
+
+    function renderBulk() {
+        const B = window._bulk; if (!B) return;
+        const repetido = n => B.cands.filter(c => c.n === n).length > 1;
+        const botones = (i, a) => `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${B.cands.map(c => {
+            const on = a.asig === c.id;
+            return `<div onclick="bulkAsignar(${i},'${c.id}')" style="border:1px solid ${on ? 'var(--verde)' : 'var(--borde)'};background:${on ? 'rgba(76,175,80,0.16)' : 'var(--fondo)'};border-radius:10px;padding:6px 10px;cursor:pointer;text-align:center;min-width:72px;">
+                <b style="font-size:1.2rem;display:block;line-height:1.1;">${c.n}🐣</b><span style="font-size:0.62rem;color:${on ? 'var(--verde)' : 'var(--texto2)'};">${repetido(c.n) ? c.pareja + ' · ' + c.especie : c.especie}</span></div>`;
+        }).join('')}</div>`;
+        document.getElementById('bulk-sub').textContent = `${B.archivos.length} archivo(s) · ${B.cands.length} puesta(s) esperando certificado`;
+        document.getElementById('bulk-archivos').innerHTML = B.archivos.length ? B.archivos.map((a, i) => {
+            const c = B.cands.find(x => x.id === a.asig);
+            const cab = `<div style="display:flex;align-items:center;gap:8px;"><div style="font-size:1.3rem;">${a.tipo === 'hoja' ? '📄' : '📜'}</div><div style="min-width:0;">
+                <div style="font-size:0.76rem;font-weight:700;word-break:break-all;">${a.file.name}</div>
+                <div style="font-size:0.64rem;color:var(--texto2);letter-spacing:0.5px;">${a.tipo === 'hoja' ? 'HOJA DE LA APP FIRMADA' : 'CERTIFICADO OFICIAL'}</div></div>
+                <span onclick="bulkQuitar(${i})" style="margin-left:auto;cursor:pointer;color:var(--rojo);font-size:0.9rem;">✕</span></div>`;
+            let cuerpo;
+            if (a.auto && c) cuerpo = `<div style="margin-top:7px;font-size:0.76rem;font-weight:700;color:var(--verde);background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.4);border-radius:8px;padding:5px 8px;">✓ Automático → ${c.pareja} · ${c.ords} · ${c.n}🐣 ${c.especie}${a.num ? ' · ' + a.num : ''}${a.fecha ? ' · marcado ' + a.fecha : ''} <span onclick="bulkDesasignar(${i})" style="float:right;color:var(--texto2);cursor:pointer;font-weight:600;">cambiar</span></div>${a.aviso ? `<div style="margin-top:5px;font-size:0.72rem;color:var(--rojo);font-weight:700;">${a.aviso}</div>` : ''}`;
+            else cuerpo = `${a.nota ? `<div style="margin-top:6px;font-size:0.72rem;color:var(--rojo);font-weight:700;">${a.nota}</div>` : ''}<div style="margin-top:7px;font-size:0.72rem;color:#ffb547;font-weight:700;">${a.tipo === 'hoja' ? '¿De qué puesta es?' : '¿Cuántas tortugas pone el certificado?'}</div>${botones(i, a)}`;
+            return `<div style="background:var(--tarjeta2);border-radius:12px;padding:10px 12px;margin-bottom:8px;text-align:left;">${cab}${cuerpo}</div>`;
+        }).join('') : '<div style="font-size:0.78rem;color:var(--texto2);text-align:center;">Todavía no has elegido archivos</div>';
+        document.getElementById('bulk-resumen').innerHTML = B.cands.map(c => {
+            const hoja = B.archivos.find(a => a.tipo === 'hoja' && a.asig === c.id);
+            const of = B.archivos.find(a => a.tipo === 'oficial' && a.asig === c.id);
+            const est = (nuevo, ya, txt) => nuevo ? `<span style="color:var(--verde);">✓ ${txt}</span>` : ya ? `<span style="color:var(--texto2);">✓ ${txt} (ya subida)</span>` : `<span style="color:var(--rojo);">✗ ${txt}</span>`;
+            const num = B.nums[c.id] !== undefined ? B.nums[c.id] : (c.ya.num || '');
+            return `<div style="background:var(--tarjeta2);border-radius:12px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;text-align:left;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:0.9rem;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c.color};margin-right:5px;"></span>${c.pareja} · ${c.ords}</div>
+                    <div style="font-size:0.72rem;margin-top:2px;">${est(hoja, c.ya.hoja, 'Hoja firmada')} &nbsp; ${est(of, c.ya.oficial, 'Certificado oficial')}</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:5px;font-size:0.7rem;color:var(--texto2);">Nº cert.
+                        <input value="${num}" oninput="bulkNum('${c.id}', this.value)" placeholder="A 0000000" style="flex:1;background:var(--fondo);border:1px solid var(--borde);border-radius:7px;color:var(--texto);padding:4px 8px;font-family:Rajdhani,sans-serif;font-size:0.82rem;text-transform:uppercase;">
+                        ${hoja && hoja.num ? '<span style="font-size:0.6rem;color:var(--verde);">leído de la hoja</span>' : ''}
+                    </div>
+                </div>
+                <div style="text-align:center;background:var(--fondo);border-radius:10px;padding:4px 9px;"><b style="font-size:1.15rem;display:block;line-height:1;">${c.n}🐣</b><span style="font-size:0.58rem;color:var(--texto2);">crías</span></div>
+            </div>`;
+        }).join('');
+    }
+
+    window.bulkDesasignar = function(i) { const a = window._bulk && window._bulk.archivos[i]; if (a) { a.asig = null; a.auto = false; a.aviso = ''; renderBulk(); } };
+    window.bulkQuitar = function(i) { if (window._bulk) { window._bulk.archivos.splice(i, 1); renderBulk(); } };
+
+    window.bulkGuardar = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir certificados.');
+        const B = window._bulk; if (!B) return;
+        const sinAsignar = B.archivos.filter(a => !a.asig);
+        if (sinAsignar.length) return alert(`Hay ${sinAsignar.length} archivo(s) sin asignar a ninguna puesta:\n${sinAsignar.map(a => a.file.name).join('\n')}\n\nAsígnalos o quítalos (✕) antes de guardar.`);
+        const conAlgo = B.cands.filter(c => B.archivos.some(a => a.asig === c.id));
+        if (!conAlgo.length) return alert('No has asignado ningún archivo.');
+        const fechaComun = isoAEs(getFechaIso('bulk-fecha'));
+        const incompletas = conAlgo.filter(c => !(B.archivos.some(a => a.tipo === 'hoja' && a.asig === c.id) || c.ya.hoja) || !(B.archivos.some(a => a.tipo === 'oficial' && a.asig === c.id) || c.ya.oficial));
+        let msg = `Se guardarán los certificados de ${conAlgo.length} puesta(s):\n${conAlgo.map(c => `· ${c.pareja} ${c.ords} (${c.n}🐣)`).join('\n')}\n\nFecha de marcado: ${fechaComun}${B.archivos.some(a => a.fecha && a.fecha !== fechaComun) ? ' (salvo las hojas que traen otra fecha escrita, que usan la suya)' : ''}`;
+        if (incompletas.length) msg += `\n\n⚠️ A estas les faltará un documento:\n${incompletas.map(c => `· ${c.pareja} ${c.ords}`).join('\n')}`;
+        if (!confirm(msg + '\n\n¿Guardar?')) return;
+        const pr = document.getElementById('bulk-progreso');
+        pr.style.display = 'block';
+        try {
+            for (const c of conAlgo) {
+                pr.textContent = `⏳ Subiendo ${c.pareja} ${c.ords}...`;
+                const hoja = B.archivos.find(a => a.tipo === 'hoja' && a.asig === c.id);
+                const of = B.archivos.find(a => a.tipo === 'oficial' && a.asig === c.id);
+                const cambios = { certVetGenerado: true, fechaMarcado: (hoja && hoja.fecha) || fechaComun };
+                const num = B.nums[c.id] !== undefined ? B.nums[c.id] : (c.ya.num || '');
+                if (num) cambios.numCertVet = num;
+                if (hoja) cambios.certVetHojaUrl = await pyn2SubirArchivoCert(hoja.file, c.nacIds[0], 'hoja_firmada', false);
+                if (of) cambios.certVetOficialUrl = await pyn2SubirArchivoCert(of.file, c.nacIds[0], 'certificado_oficial', true);
+                for (const nacId of c.nacIds) await updateDoc(doc(db, 'bio', nacId), cambios);
+                if (c.puestaIds.length === 2) {
+                    await updateDoc(doc(db, 'bio', c.puestaIds[0]), { combinadaCon: c.puestaIds[1] });
+                    await updateDoc(doc(db, 'bio', c.puestaIds[1]), { combinadaCon: c.puestaIds[0] });
+                }
+                registrarAuditoria('edicion', 'bio', `Certificado veterinario (subida en bloque) ${c.pareja} ${c.ords}${num ? ' · ' + num : ''} · marcado ${cambios.fechaMarcado}${hoja ? ' · hoja firmada' : ''}${of ? ' · certificado oficial' : ''}`);
+            }
+            document.getElementById('modal-subida-certs').classList.remove('active');
+            window._bulk = null;
+            alert(`✅ Certificados guardados en ${conAlgo.length} puesta(s).`);
+        } catch (err) { pr.textContent = '❌ Error: ' + err.message; alert('Error al subir: ' + err.message); }
     };
 
     window.pyn2MarcarPapeles = async function(puestaId) {
