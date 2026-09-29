@@ -5298,7 +5298,7 @@
         // 1) Ventana de impresión — igual que hasta ahora. Se abre PRIMERO y de forma
         // síncrona con el clic para que el navegador no la bloquee como popup.
         const ventana = window.open('', '_blank');
-        if (!ventana) { alert('El navegador ha bloqueado la ventana de impresión. Se descargará solo el PDF.'); descargarPdfCertificadoVet(contenido, titulo); return; }
+        if (!ventana) { alert('El navegador ha bloqueado la ventana de impresión. Se descargará solo el PDF.'); descargarPdfCertificadoVet(contenido, titulo); guardarCombinacionVet(idsVet); marcarCertEnviadoVet(idsVet); return; } // 29/09/2026: antes aquí no se guardaba la marca "enviado al veterinario"
         ventana.document.write(`<!DOCTYPE html><html><head>
             <meta charset="UTF-8">
             <title>${titulo}</title>
