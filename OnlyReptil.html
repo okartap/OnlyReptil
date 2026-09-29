@@ -1348,6 +1348,16 @@
     </div>
 </div>
 
+<!-- 29/09/2026: VISOR DE ARCHIVOS (certificados, DOCS, 790) guardados en la base de datos -->
+<div class="modal-overlay" id="modal-visor" style="z-index:300;">
+    <div class="modal-box" style="max-width:720px;max-height:92vh;display:flex;flex-direction:column;">
+        <div class="modal-titulo" id="visor-titulo" style="color:var(--azul);word-break:break-all;margin-bottom:10px;">📄 ARCHIVO</div>
+        <div id="visor-contenido" style="flex:1;overflow-y:auto;min-height:120px;"></div>
+        <button class="btn-save" id="visor-descargar" style="background:var(--azul);color:#0a0a0a;display:none;" onclick="visorDescargar()">⬇ DESCARGAR</button>
+        <button class="btn-cancelar" onclick="cerrarVisor()">CERRAR</button>
+    </div>
+</div>
+
 <nav id="app-nav" style="display:none;">
     <div class="nav-item activo" id="nav-inicio"  onclick="navA('pantalla-inicio')"><span>🏠</span>INICIO</div>
     <div class="nav-item" id="nav-pyn"    onclick="navA('pantalla-pyn')" style="display:none;"><span>🥚</span>PyN</div><!-- desconectado 11/09/2026, ver nota en grid de Inicio -->
@@ -1463,7 +1473,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, setDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, setDoc, getDocs, getDoc, where, Bytes } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -3316,8 +3326,8 @@
                     marcarSig('Generar certificado veterinario');
                 }
                 if (estado.pasoVet) {
-                    const verCert = (dCert.hoja ? `<a class="btn-mini verde" style="text-decoration:none;" href="${dCert.hoja}" target="_blank">📄 HOJA FIRMADA</a> ` : '') +
-                        (dCert.oficial ? `<a class="btn-mini verde" style="text-decoration:none;" href="${dCert.oficial}" target="_blank">📜 CERTIFICADO OFICIAL</a> ` : '') +
+                    const verCert = (dCert.hoja ? `<button class="btn-mini verde" onclick="verArchivo('${dCert.hoja}')">📄 HOJA FIRMADA</button> ` : '') +
+                        (dCert.oficial ? `<button class="btn-mini verde" onclick="verArchivo('${dCert.oficial}')">📜 CERTIFICADO OFICIAL</button> ` : '') +
                         ((!dCert.hoja || !dCert.oficial) ? `<button class="btn-mini naranja" onclick="pyn2AbrirMarcarVet('${p.id}', true)">📎 AÑADIR LO QUE FALTA</button>` : '');
                     const faltan = [!dCert.hoja ? 'hoja firmada' : '', !dCert.oficial ? 'certificado oficial' : ''].filter(Boolean);
                     const det = [dCert.num ? `Nº <b>${dCert.num}</b>` : '', conFecha ? `Marcado ${conFecha.fechaMarcado}` : ''].filter(Boolean).join(' · ') +
@@ -3333,8 +3343,8 @@
             if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar CSV y enviar a MITECO'));
             else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'CSV enviado a MITECO'));
             else {
-                const desc = (dCert.hoja ? ` <a class="btn-mini verde" style="text-decoration:none;" href="${dCert.hoja}" target="_blank" download>⬇ HOJA FIRMADA</a>` : '') +
-                    (dCert.oficial ? ` <a class="btn-mini verde" style="text-decoration:none;" href="${dCert.oficial}" target="_blank" download>⬇ CERTIFICADO OFICIAL</a>` : '');
+                const desc = (dCert.hoja ? ` <button class="btn-mini verde" onclick="descargarArchivo('${dCert.hoja}')">⬇ HOJA FIRMADA</button>` : '') +
+                    (dCert.oficial ? ` <button class="btn-mini verde" onclick="descargarArchivo('${dCert.oficial}')">⬇ CERTIFICADO OFICIAL</button>` : '');
                 pasos.push(pyn2Paso('actual', 'Generar CSV y enviar a MITECO', 'A MITECO se envían juntos el certificado firmado y el CSV', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📤 GENERAR CSV</button>${desc}`));
                 marcarSig('Generar CSV y enviar a MITECO');
             }
@@ -3576,16 +3586,148 @@
         document.getElementById('modal-pyn2-vet').classList.add('active');
     };
 
+    // ══════════════════════════════════════════════════════════════
+    // 29/09/2026 — ARCHIVOS GUARDADOS EN LA BASE DE DATOS (Firestore), sin Firebase Storage
+    // Decisión de Patry: Storage exige el plan de pago "Blaze" (con tarjeta). Los archivos
+    // (certificados, 📎 DOCS, Modelo 790) se guardan ahora dentro de Firestore, que sí es gratis:
+    //  · colección "archivos": una ficha por archivo (nombre, tipo, tamaño, carpeta…)
+    //  · colección "archivos_trozos": el contenido, partido en trozos de 700 KB (cada
+    //    documento de Firestore admite como máximo 1 MB). Se guardan los bytes TAL CUAL
+    //    (sin convertir), así la hoja firmada conserva intacta la firma electrónica.
+    // En los campos de la app (certVetHojaUrl, url790…) se guarda "fs:<id del archivo>".
+    // Los enlaces antiguos de Storage (empiezan por "https://") se siguen abriendo como antes.
+    // ══════════════════════════════════════════════════════════════
+    const ARCH_TROZO = 700 * 1024;
+    const ARCH_MAX   = 10 * 1024 * 1024;
+
+    async function guardarArchivoFS(datos, info) {
+        const bytes = datos instanceof Uint8Array ? datos
+            : (datos instanceof ArrayBuffer ? new Uint8Array(datos) : new Uint8Array(await datos.arrayBuffer()));
+        if (!bytes.length) throw new Error(`El archivo "${info.nombre}" está vacío.`);
+        if (bytes.length > ARCH_MAX) throw new Error(`El archivo "${info.nombre}" pesa ${(bytes.length / 1048576).toFixed(1)} MB y el máximo es 10 MB.`);
+        const nTrozos = Math.ceil(bytes.length / ARCH_TROZO);
+        const archRef = doc(collection(db, 'archivos'));
+        const escritos = [];
+        try {
+            // Primero el contenido y al final la ficha: si algo falla a medias, no queda una ficha "rota"
+            for (let i = 0; i < nTrozos; i++) {
+                const tRef = doc(db, 'archivos_trozos', `${archRef.id}_${i}`);
+                await setDoc(tRef, { archivoId: archRef.id, i, datos: Bytes.fromUint8Array(bytes.subarray(i * ARCH_TROZO, (i + 1) * ARCH_TROZO)) });
+                escritos.push(tRef);
+            }
+            await setDoc(archRef, {
+                nombre: info.nombre, tipo: info.tipo, tamano: bytes.length, nTrozos,
+                carpeta: info.carpeta || '', subidoPor: (usuarioActual && usuarioActual.nombre) || '', timestamp: Date.now()
+            });
+        } catch (err) {
+            for (const r of escritos) { try { await deleteDoc(r); } catch (e) {} }
+            throw err;
+        }
+        return 'fs:' + archRef.id;
+    }
+
+    async function leerArchivoFS(refStr) {
+        const id = String(refStr).replace(/^fs:/, '');
+        const ficha = await getDoc(doc(db, 'archivos', id));
+        if (!ficha.exists()) throw new Error('Este archivo ya no existe (puede que se borrara).');
+        const f = ficha.data();
+        const partes = [];
+        for (let i = 0; i < f.nTrozos; i++) {
+            const t = await getDoc(doc(db, 'archivos_trozos', `${id}_${i}`));
+            if (!t.exists()) throw new Error('El archivo está incompleto (falta una parte).');
+            partes.push(t.data().datos.toUint8Array());
+        }
+        return { blob: new Blob(partes, { type: f.tipo }), nombre: f.nombre, tipo: f.tipo };
+    }
+
+    async function borrarArchivoFS(refStr) {
+        if (!refStr || !String(refStr).startsWith('fs:')) return;
+        const id = String(refStr).slice(3);
+        const ficha = await getDoc(doc(db, 'archivos', id));
+        const n = ficha.exists() ? (ficha.data().nTrozos || 0) : 0;
+        for (let i = 0; i < n; i++) await deleteDoc(doc(db, 'archivos_trozos', `${id}_${i}`));
+        if (ficha.exists()) await deleteDoc(doc(db, 'archivos', id));
+    }
+
+    // Visor dentro de la app (funciona igual en el móvil, en la app instalada y en el ordenador)
+    let _visorUrl = null, _visorNombre = '';
+    window.verArchivo = async function(refStr) {
+        if (!refStr) return;
+        if (/^https?:/i.test(refStr)) { window.open(refStr, '_blank'); return; } // archivo antiguo de Storage
+        const modal = document.getElementById('modal-visor');
+        const cont = document.getElementById('visor-contenido');
+        const tit = document.getElementById('visor-titulo');
+        document.getElementById('visor-descargar').style.display = 'none';
+        tit.textContent = '📄 ABRIENDO...';
+        cont.innerHTML = '<div style="text-align:center;color:var(--texto2);padding:30px 0;">⏳ Cargando archivo...</div>';
+        modal.classList.add('active');
+        try {
+            const a = await leerArchivoFS(refStr);
+            if (_visorUrl) URL.revokeObjectURL(_visorUrl);
+            _visorUrl = URL.createObjectURL(a.blob);
+            _visorNombre = a.nombre;
+            tit.textContent = a.nombre;
+            document.getElementById('visor-descargar').style.display = 'block';
+            if (/^image\//.test(a.tipo)) {
+                cont.innerHTML = `<img src="${_visorUrl}" style="width:100%;border-radius:8px;background:#fff;" alt="">`;
+            } else if (a.tipo === 'application/pdf') {
+                cont.innerHTML = '<div style="text-align:center;color:var(--texto2);padding:30px 0;">⏳ Preparando el PDF...</div>';
+                const pdfjs = await cargarPdfJs();
+                const pdf = await pdfjs.getDocument({ data: new Uint8Array(await a.blob.arrayBuffer()) }).promise;
+                cont.innerHTML = '';
+                const ancho = Math.max(280, cont.clientWidth || 340);
+                for (let n = 1; n <= pdf.numPages; n++) {
+                    const page = await pdf.getPage(n);
+                    const vp1 = page.getViewport({ scale: 1 });
+                    const vp = page.getViewport({ scale: (ancho / vp1.width) * 2 });
+                    const cv = document.createElement('canvas');
+                    cv.width = vp.width; cv.height = vp.height;
+                    cv.style.cssText = 'width:100%;height:auto;display:block;background:#fff;border-radius:6px;margin-bottom:8px;';
+                    await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise; // incluye lo que el veterinario escribe encima y la firma
+                    cont.appendChild(cv);
+                }
+            } else {
+                cont.innerHTML = '<div style="text-align:center;color:var(--texto2);padding:30px 0;">Este tipo de archivo no se puede ver aquí — pulsa DESCARGAR.</div>';
+            }
+        } catch (err) {
+            tit.textContent = '📄 ARCHIVO';
+            cont.innerHTML = `<div style="text-align:center;color:var(--rojo);padding:30px 0;font-weight:700;">No se ha podido abrir: ${err.message}</div>`;
+            if (_visorUrl) document.getElementById('visor-descargar').style.display = 'block';
+        }
+    };
+    window.cerrarVisor = function() {
+        document.getElementById('modal-visor').classList.remove('active');
+        document.getElementById('visor-contenido').innerHTML = '';
+    };
+    function descargarBlobUrl(url, nombre) {
+        const a = document.createElement('a');
+        a.href = url; a.download = nombre || 'archivo';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    window.visorDescargar = function() { if (_visorUrl) descargarBlobUrl(_visorUrl, _visorNombre); };
+    window.descargarArchivo = async function(refStr) {
+        if (!refStr) return;
+        if (/^https?:/i.test(refStr)) { window.open(refStr, '_blank'); return; }
+        try {
+            const a = await leerArchivoFS(refStr);
+            const url = URL.createObjectURL(a.blob);
+            descargarBlobUrl(url, a.nombre);
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } catch (err) { alert('No se ha podido descargar: ' + err.message); }
+    };
+
     async function pyn2SubirArchivoCert(archivo, carpetaNacId, nombreBase, comprimir) {
-        const esPdf = archivo.type === 'application/pdf';
-        let datos = archivo, ext = esPdf ? 'pdf' : 'jpg', tipo = esPdf ? 'application/pdf' : 'image/jpeg';
+        const esPdf = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
+        let datos = archivo, tipo = esPdf ? 'application/pdf' : (archivo.type || 'image/jpeg');
+        let nombre = archivo.name || `${nombreBase}_${Date.now()}.${esPdf ? 'pdf' : 'jpg'}`;
         if (!esPdf && comprimir) {
             const dataUrl = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = e => ok(e.target.result); r.onerror = ko; r.readAsDataURL(archivo); });
             datos = new Uint8Array(await comprimirImagen(dataUrl, archivo.type));
+            tipo = 'image/jpeg';
+            nombre = nombre.replace(/\.[^.]+$/, '') + '.jpg';
         }
-        const refArch = ref(storage, `docs_vet/${carpetaNacId}/${nombreBase}_${Date.now()}.${ext}`);
-        await uploadBytes(refArch, datos, { contentType: tipo }); // el PDF firmado se sube TAL CUAL (no se toca)
-        return await getDownloadURL(refArch);
+        // el PDF firmado se guarda TAL CUAL (no se toca, para no invalidar la firma)
+        return await guardarArchivoFS(datos, { nombre, tipo, carpeta: `docs_vet/${carpetaNacId}` });
     }
 
     window.pyn2ConfirmarVet = async function() {
@@ -3611,6 +3753,10 @@
                 if (!confirm(`⚠️ OJO: el PDF se llama "${hoja.name}" (parece de ${m[1].toUpperCase()} · P${m[2]}), pero lo estás subiendo en ${esperado.replace('_', ' · ')}.\n\n¿Seguro que es el certificado de esta puesta?`)) return;
             }
         }
+        if (hoja) {
+            const avisoHoja = comprobarHojaConPuesta(await leerDatosHojaFirmada(hoja), puestaIds);
+            if (avisoHoja && !confirm(avisoHoja + '\n\n¿Guardar de todas formas?')) return;
+        }
         try {
             const animales = getAnimalesPorPuestas(puestaIds);
             const nacIds = [...new Set(animales.map(a => a.nacId))];
@@ -3623,6 +3769,9 @@
             if (hoja) cambios.certVetHojaUrl = await pyn2SubirArchivoCert(hoja, nacIds[0], 'hoja_firmada', false);
             if (oficial) cambios.certVetOficialUrl = await pyn2SubirArchivoCert(oficial, nacIds[0], 'certificado_oficial', true);
             for (const nacId of nacIds) await updateDoc(doc(db, 'bio', nacId), cambios);
+            // El documento sustituido ya no lo usa nadie: se borra para no ocupar espacio
+            if (hoja && prev.hoja && prev.hoja !== cambios.certVetHojaUrl) { try { await borrarArchivoFS(prev.hoja); } catch (e) {} }
+            if (oficial && prev.oficial && prev.oficial !== cambios.certVetOficialUrl) { try { await borrarArchivoFS(prev.oficial); } catch (e) {} }
             if (puestaIds.length === 2) {
                 await updateDoc(doc(db, 'bio', puestaIds[0]), { combinadaCon: puestaIds[1] });
                 await updateDoc(doc(db, 'bio', puestaIds[1]), { combinadaCon: puestaIds[0] });
@@ -3631,7 +3780,7 @@
             document.getElementById('modal-pyn2-vet').classList.remove('active');
             const faltan = [!(hoja || prev.hoja) ? 'la hoja firmada' : '', !(oficial || prev.oficial) ? 'el certificado oficial' : ''].filter(Boolean);
             if (window._pyn2VetConArchivo && faltan.length) alert(`✅ Guardado. Falta por subir ${faltan.join(' y ')} — puedes añadirlo desde la tarjeta.`);
-        } catch(err) { alert('Error: ' + err.message); }
+        } catch(err) { alert(mensajeErrorSubida(err)); }
     };
 
     // ══════════════════════════════════════════════════════════════
@@ -3677,8 +3826,43 @@
                     if (d >= 1 && d <= 31 && m >= 1 && m <= 12) fecha = `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
                 }
             });
-            return { num, fecha, firmada };
-        } catch (e) { console.warn('No se pudo leer la hoja firmada:', e); return { num: '', fecha: '', firmada: null }; }
+            // 29/09/2026: además, lo que la propia hoja lleva impreso: fecha(s) de puesta, nº de
+            // tortugas y los chips — para comprobar que la hoja corresponde de verdad a la puesta.
+            const texto = (await page.getTextContent()).items.map(i => i.str).join(' ');
+            const fechasPuesta = [...texto.matchAll(/Fecha puesta:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/gi)].map(m => `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`);
+            const mT = texto.match(/siguientes\s+(\d+)\s+tortugas/i);
+            const chips = [...new Set([...texto.matchAll(/\b(\d{3})\.(\d{3})\.(\d{3})\.(\d{3})\.(\d{3})\b/g)].map(m => m.slice(1, 6).join('')))];
+            return { num, fecha, firmada, fechasPuesta, tortugas: mT ? parseInt(mT[1]) : null, chips };
+        } catch (e) { console.warn('No se pudo leer la hoja firmada:', e); return { num: '', fecha: '', firmada: null, fechasPuesta: [], tortugas: null, chips: [] }; }
+    }
+
+    // Compara lo impreso en la hoja firmada con la puesta a la que se va a asignar.
+    // Devuelve '' si cuadra, o el texto del aviso si algo no coincide.
+    function comprobarHojaConPuesta(leido, puestaIds) {
+        if (!leido) return '';
+        const avisos = [];
+        const fechasApp = puestaIds.map(id => { const p = histBio.find(x => x.id === id); return p ? pyn2FechaCompleta(p.fecha) : ''; }).filter(Boolean);
+        if (leido.fechasPuesta && leido.fechasPuesta.length && fechasApp.length) {
+            const noCuadran = leido.fechasPuesta.filter(f => !fechasApp.includes(f));
+            if (noCuadran.length) avisos.push(`fecha de puesta en la hoja ${leido.fechasPuesta.join(' y ')} ≠ en la app ${fechasApp.join(' y ')}`);
+        }
+        if (leido.chips && leido.chips.length) {
+            const chipsApp = new Set();
+            histBio.filter(n => n.tipo === 'nacimiento' && puestaIds.includes(n.idPuestaOrigen)).forEach(n => (n.chipsAsignados || []).forEach(c => chipsApp.add(limpiarNumChip(c))));
+            const ajenos = leido.chips.filter(c => !chipsApp.has(limpiarNumChip(c)));
+            const faltan = [...chipsApp].filter(c => !leido.chips.some(x => limpiarNumChip(x) === c));
+            if (ajenos.length) avisos.push(`${ajenos.length} chip(s) de la hoja no son de esta puesta (${ajenos.slice(0, 3).map(fmtChip).join(', ')}${ajenos.length > 3 ? '…' : ''})`);
+            if (faltan.length) avisos.push(`${faltan.length} chip(s) de esta puesta no aparecen en la hoja`);
+        } else if (leido.tortugas) {
+            const n = getAnimalesPorPuestas(puestaIds).length;
+            if (leido.tortugas !== n) avisos.push(`la hoja dice ${leido.tortugas} tortugas y la puesta tiene ${n} con chip`);
+        }
+        return avisos.length ? '⚠️ No cuadra: ' + avisos.join(' · ') + ' — revísalo' : '';
+    }
+    function pyn2FechaCompleta(f) {
+        if (!f) return '';
+        const pt = f.split('/');
+        return pt.length === 3 ? `${pt[0].padStart(2,'0')}/${pt[1].padStart(2,'0')}/${pt[2]}` : f;
     }
 
     // Puestas que esperan certificado (o a las que les falta alguno de los dos documentos)
@@ -3787,7 +3971,7 @@
         // 29/09/2026 (Patry): si el archivo se llama como la puesta ("34 Cert_Veter_SUL07_P1_signed.pdf/.jpeg"),
         // se asigna SOLO — tanto la hoja firmada como el certificado oficial. PDF con firma electrónica =
         // hoja firmada; foto (o PDF sin firma) = certificado oficial. El número del principio (nº de crías)
-        // se comprueba contra la puesta. Si no se reconoce el nombre, se elige a mano como antes.
+        // es solo una etiqueta de Patry (no se comprueba). Si no se reconoce el nombre, se elige a mano como antes.
         for (const f of files) {
             if (B.archivos.some(a => a.file.name === f.name && a.file.size === f.size)) continue;
             const esPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
@@ -3797,7 +3981,7 @@
                 leido = await leerDatosHojaFirmada(f);
                 tipo = (leido.firmada === true || (leido.firmada === null && m)) ? 'hoja' : 'oficial';
             }
-            const a = { file: f, tipo, asig: null, auto: false, num: tipo === 'hoja' ? leido.num : '', fecha: tipo === 'hoja' ? leido.fecha : '', nota: '' };
+            const a = { file: f, tipo, asig: null, auto: false, num: tipo === 'hoja' ? leido.num : '', fecha: tipo === 'hoja' ? leido.fecha : '', nota: '', leido: tipo === 'hoja' ? leido : null };
             if (m) {
                 const c = B.cands.find(c => c.pareja === m[1].toUpperCase() && c.ords.toLowerCase() === ('p' + m[2]).toLowerCase());
                 const nombreDoc = tipo === 'hoja' ? 'hoja firmada' : 'certificado oficial';
@@ -3807,8 +3991,9 @@
                 else {
                     a.asig = c.id; a.auto = true;
                     if (a.num && !B.nums[c.id]) B.nums[c.id] = a.num;
-                    const mN = f.name.match(/^\s*(\d+)/);
-                    if (mN && parseInt(mN[1]) !== c.n) a.aviso = `⚠️ El archivo dice ${mN[1]} crías y la puesta tiene ${c.n} con chip — revísalo`;
+                    if (a.tipo === 'hoja') a.aviso = comprobarHojaConPuesta(a.leido, c.puestaIds);
+                    // 29/09/2026: ya no se compara el número del principio del nombre — Patry lo usa
+                    // como etiqueta propia (a veces huevos, a veces crías), no sirve para comprobar nada.
                 }
             }
             B.archivos.push(a);
@@ -3830,7 +4015,8 @@
         const yaSubido = a.tipo === 'hoja' ? c.ya.hoja : c.ya.oficial;
         if (!otro && yaSubido && !confirm(`⚠️ ${c.pareja} · ${c.ords} ya tiene ${nombreDoc} subido de antes.\n\n¿Quieres sustituirlo por "${a.file.name}"?`)) return;
         if (otro) otro.asig = null;
-        a.asig = candId; a.nota = ''; a.auto = false; a.aviso = '';
+        a.asig = candId; a.nota = ''; a.auto = false;
+        a.aviso = a.tipo === 'hoja' ? comprobarHojaConPuesta(a.leido, c.puestaIds) : '';
         if (a.tipo === 'hoja' && a.num && !B.nums[candId]) B.nums[candId] = a.num;
         renderBulk();
     };
@@ -3854,7 +4040,7 @@
                 <span onclick="bulkQuitar(${i})" style="margin-left:auto;cursor:pointer;color:var(--rojo);font-size:0.9rem;">✕</span></div>`;
             let cuerpo;
             if (a.auto && c) cuerpo = `<div style="margin-top:7px;font-size:0.76rem;font-weight:700;color:var(--verde);background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.4);border-radius:8px;padding:5px 8px;">✓ Automático → ${c.pareja} · ${c.ords} · ${c.n}🐣 ${c.especie}${a.num ? ' · ' + a.num : ''}${a.fecha ? ' · marcado ' + a.fecha : ''} <span onclick="bulkDesasignar(${i})" style="float:right;color:var(--texto2);cursor:pointer;font-weight:600;">cambiar</span></div>${a.aviso ? `<div style="margin-top:5px;font-size:0.72rem;color:var(--rojo);font-weight:700;">${a.aviso}</div>` : ''}`;
-            else cuerpo = `${a.nota ? `<div style="margin-top:6px;font-size:0.72rem;color:var(--rojo);font-weight:700;">${a.nota}</div>` : ''}<div style="margin-top:7px;font-size:0.72rem;color:#ffb547;font-weight:700;">${a.tipo === 'hoja' ? '¿De qué puesta es?' : '¿Cuántas tortugas pone el certificado?'}</div>${botones(i, a)}`;
+            else cuerpo = `${a.nota ? `<div style="margin-top:6px;font-size:0.72rem;color:var(--rojo);font-weight:700;">${a.nota}</div>` : ''}${a.aviso && a.asig ? `<div style="margin-top:6px;font-size:0.72rem;color:var(--rojo);font-weight:700;">${a.aviso}</div>` : ''}<div style="margin-top:7px;font-size:0.72rem;color:#ffb547;font-weight:700;">${a.tipo === 'hoja' ? '¿De qué puesta es?' : '¿Cuántas tortugas pone el certificado?'}</div>${botones(i, a)}`;
             return `<div style="background:var(--tarjeta2);border-radius:12px;padding:10px 12px;margin-bottom:8px;text-align:left;">${cab}${cuerpo}</div>`;
         }).join('') : '<div style="font-size:0.78rem;color:var(--texto2);text-align:center;">Todavía no has elegido archivos</div>';
         document.getElementById('bulk-resumen').innerHTML = B.cands.map(c => {
@@ -3889,6 +4075,8 @@
         const fechaComun = isoAEs(getFechaIso('bulk-fecha'));
         const incompletas = conAlgo.filter(c => !(B.archivos.some(a => a.tipo === 'hoja' && a.asig === c.id) || c.ya.hoja) || !(B.archivos.some(a => a.tipo === 'oficial' && a.asig === c.id) || c.ya.oficial));
         let msg = `Se guardarán los certificados de ${conAlgo.length} puesta(s):\n${conAlgo.map(c => `· ${c.pareja} ${c.ords} (${c.n}🐣)`).join('\n')}\n\nFecha de marcado: ${fechaComun}${B.archivos.some(a => a.fecha && a.fecha !== fechaComun) ? ' (salvo las hojas que traen otra fecha escrita, que usan la suya)' : ''}`;
+        const noCuadran = B.archivos.filter(a => a.asig && a.aviso);
+        if (noCuadran.length) msg += `\n\n⚠️ ${noCuadran.length} hoja(s) firmada(s) NO cuadran con su puesta (fecha o chips):\n${noCuadran.map(a => '· ' + a.file.name).join('\n')}`;
         if (incompletas.length) msg += `\n\n⚠️ A estas les faltará un documento:\n${incompletas.map(c => `· ${c.pareja} ${c.ords}`).join('\n')}`;
         if (!confirm(msg + '\n\n¿Guardar?')) return;
         const pr = document.getElementById('bulk-progreso');
@@ -3904,6 +4092,8 @@
                 if (hoja) cambios.certVetHojaUrl = await pyn2SubirArchivoCert(hoja.file, c.nacIds[0], 'hoja_firmada', false);
                 if (of) cambios.certVetOficialUrl = await pyn2SubirArchivoCert(of.file, c.nacIds[0], 'certificado_oficial', true);
                 for (const nacId of c.nacIds) await updateDoc(doc(db, 'bio', nacId), cambios);
+                if (hoja && c.ya.hoja && c.ya.hoja !== cambios.certVetHojaUrl) { try { await borrarArchivoFS(c.ya.hoja); } catch (e) {} }
+                if (of && c.ya.oficial && c.ya.oficial !== cambios.certVetOficialUrl) { try { await borrarArchivoFS(c.ya.oficial); } catch (e) {} }
                 if (c.puestaIds.length === 2) {
                     await updateDoc(doc(db, 'bio', c.puestaIds[0]), { combinadaCon: c.puestaIds[1] });
                     await updateDoc(doc(db, 'bio', c.puestaIds[1]), { combinadaCon: c.puestaIds[0] });
@@ -3913,8 +4103,19 @@
             document.getElementById('modal-subida-certs').classList.remove('active');
             window._bulk = null;
             alert(`✅ Certificados guardados en ${conAlgo.length} puesta(s).`);
-        } catch (err) { pr.textContent = '❌ Error: ' + err.message; alert('Error al subir: ' + err.message); }
+        } catch (err) { pr.textContent = '❌ Error: ' + err.message; alert(mensajeErrorSubida(err)); }
     };
+
+    // 29/09/2026: los archivos ya se guardan en la base de datos (Firestore), no en Storage.
+    // Explicación clara si la base de datos rechaza el guardado.
+    function mensajeErrorSubida(err) {
+        const t = String((err && (err.code || '')) + ' ' + (err && err.message || ''));
+        if (/permission-denied|insufficient permissions/i.test(t))
+            return '⛔ No se ha podido guardar: las reglas de seguridad de Firebase no dejan escribir en "archivos" / "archivos_trozos". Hay que añadir esas dos colecciones a las reglas de Firestore (te lo explica Claude). No se ha guardado nada.\n\n(' + t.trim() + ')';
+        if (/resource-exhausted|quota/i.test(t))
+            return '⛔ Se ha superado el límite gratuito diario de Firebase. Vuelve a intentarlo mañana; no se ha guardado nada.\n\n(' + t.trim() + ')';
+        return 'Error al guardar el archivo: ' + (err && err.message || err);
+    }
 
     window.pyn2MarcarPapeles = async function(puestaId) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar los papeles de MITECO.'); // 24/09/2026: permisos Martín
@@ -6048,60 +6249,87 @@
         progress.style.color = 'var(--naranja)';
         progress.textContent = '⏳ Subiendo...';
         try {
-            const nombreArchivo = `doc_${Date.now()}.${ext}`;
             const carpeta = _docsParentalMode ? `docs_plantel/${_docsNacimientoId}` : `docs_vet/${_docsNacimientoId}`;
-            const archivoRef = ref(storage, `${carpeta}/${nombreArchivo}`);
-            await uploadBytes(archivoRef, blob);
+            const esPdf = ext === 'pdf';
+            const nombreArchivo = (blob && blob.name) ? blob.name : `doc_${Date.now()}.${ext}`;
+            await guardarArchivoFS(blob, { nombre: nombreArchivo, tipo: esPdf ? 'application/pdf' : 'image/jpeg', carpeta });
             progress.textContent = '✅ Documento subido correctamente';
             setTimeout(() => { progress.style.display = 'none'; }, 2500);
             await cargarListaDocs(_docsNacimientoId, _docsParentalMode);
         } catch(e) {
             progress.textContent = '❌ Error al subir. Inténtalo de nuevo.';
             progress.style.color = 'var(--rojo)';
+            alert(mensajeErrorSubida(e));
         }
     }
 
     async function cargarListaDocs(nacimientoId, esParental) {
         const lista = document.getElementById('docs-lista');
         lista.innerHTML = '<div style="font-size:0.8rem;color:var(--texto2);text-align:center;padding:12px;">Cargando...</div>';
+        const carpeta = esParental ? `docs_plantel/${nacimientoId}` : `docs_vet/${nacimientoId}`;
+        const items = []; // { nombre, ref, borrar }
+        let errorFS = false, errorAntiguos = false;
+        // 1) Archivos guardados en la base de datos (desde el 29/09/2026)
         try {
-            const carpeta = esParental ? `docs_plantel/${nacimientoId}` : `docs_vet/${nacimientoId}`;
-            const folderRef = ref(storage, carpeta);
-            const resultado = await listAll(folderRef);
-            if (resultado.items.length === 0) {
-                lista.innerHTML = '<div style="font-size:0.8rem;color:var(--texto2);text-align:center;padding:12px;">Sin documentos aún</div>';
-                return;
-            }
-            lista.innerHTML = '';
+            const snap = await getDocs(query(collection(db, 'archivos'), where('carpeta', '==', carpeta)));
+            const fichas = [];
+            snap.forEach(d => fichas.push({ id: d.id, ...d.data() }));
+            fichas.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            fichas.forEach(f => items.push({ nombre: f.nombre, ref: 'fs:' + f.id, borrar: 'fs:' + f.id }));
+        } catch (e) { errorFS = true; }
+        // 2) Archivos antiguos de Firebase Storage (si Firebase todavía deja leerlos)
+        try {
+            const resultado = await listAll(ref(storage, carpeta));
             for (const itemRef of resultado.items) {
-                const url = await getDownloadURL(itemRef);
-                const nombre = itemRef.name;
-                const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(nombre);
-                const div = document.createElement('div');
-                div.style.cssText = 'background:var(--fondo);border-radius:8px;padding:10px 12px;border:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;gap:8px;';
-                div.innerHTML = `
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-size:0.8rem;font-weight:700;color:var(--texto);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esImagen ? '🖼️' : '📄'} ${nombre}</div>
-                    </div>
-                    <div style="display:flex;gap:6px;flex-shrink:0;">
-                        <a href="${url}" target="_blank" style="background:rgba(156,204,101,0.12);color:#9ccc65;border:1px solid rgba(156,204,101,0.3);border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;font-family:'Rajdhani',sans-serif;text-decoration:none;letter-spacing:0.5px;">👁️ VER</a>
-                        <button onclick="borrarDoc('${itemRef.fullPath}','${nacimientoId}',${esParental})" style="background:rgba(239,83,80,0.12);color:var(--rojo);border:1px solid rgba(239,83,80,0.25);border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;font-family:'Rajdhani',sans-serif;cursor:pointer;">🗑️</button>
-                    </div>`;
-                lista.appendChild(div);
+                items.push({ nombre: itemRef.name, ref: await getDownloadURL(itemRef), borrar: itemRef.fullPath, antiguo: true });
             }
-        } catch(e) {
-            lista.innerHTML = '<div style="font-size:0.8rem;color:var(--rojo);text-align:center;padding:12px;">Error al cargar documentos</div>';
+        } catch (e) { errorAntiguos = true; }
+
+        if (!items.length) {
+            lista.innerHTML = errorFS
+                ? '<div style="font-size:0.8rem;color:var(--rojo);text-align:center;padding:12px;">Error al cargar documentos</div>'
+                : '<div style="font-size:0.8rem;color:var(--texto2);text-align:center;padding:12px;">Sin documentos aún</div>';
+            return;
         }
+        lista.innerHTML = '';
+        items.forEach(it => {
+            const esImagen = /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(it.nombre);
+            const div = document.createElement('div');
+            div.style.cssText = 'background:var(--fondo);border-radius:8px;padding:10px 12px;border:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;gap:8px;';
+            div.innerHTML = `
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.8rem;font-weight:700;color:var(--texto);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esImagen ? '🖼️' : '📄'} ${it.nombre}</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button onclick="verArchivo('${it.ref}')" style="background:rgba(156,204,101,0.12);color:#9ccc65;border:1px solid rgba(156,204,101,0.3);border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;font-family:'Rajdhani',sans-serif;cursor:pointer;letter-spacing:0.5px;">👁️ VER</button>
+                    <button onclick="borrarDoc('${it.borrar}','${nacimientoId}',${esParental})" style="background:rgba(239,83,80,0.12);color:var(--rojo);border:1px solid rgba(239,83,80,0.25);border-radius:6px;padding:5px 10px;font-size:0.7rem;font-weight:700;font-family:'Rajdhani',sans-serif;cursor:pointer;">🗑️</button>
+                </div>`;
+            lista.appendChild(div);
+        });
     }
 
     window.borrarDoc = async function(fullPath, nacimientoId, esParental) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede borrar documentos.'); // 24/09/2026: permisos Martín
-        if (!confirm('¿Eliminar este documento?')) return;
+        // 29/09/2026: si el documento es un certificado veterinario, avisar y quitar también su enlace de la puesta
+        const esFS = String(fullPath).startsWith('fs:');
+        const campos = ['certVetHojaUrl', 'certVetOficialUrl', 'certVetFirmadoUrl'];
+        const usados = esFS ? histBio.filter(n => n.tipo === 'nacimiento' && campos.some(c => n[c] === fullPath)) : [];
+        const aviso = usados.length ? `\n\n⚠️ Es el certificado veterinario de ${[...new Set(usados.map(n => n.idPuesta || n.especie))].join(', ')}: dejará de aparecer en su tarjeta de PyN.` : '';
+        if (!confirm('¿Eliminar este documento?' + aviso)) return;
         try {
-            await deleteObject(ref(storage, fullPath));
+            if (esFS) {
+                for (const n of usados) {
+                    const cambios = {};
+                    campos.forEach(c => { if (n[c] === fullPath) cambios[c] = ''; });
+                    await updateDoc(doc(db, 'bio', n.id), cambios);
+                }
+                await borrarArchivoFS(fullPath);
+            } else {
+                await deleteObject(ref(storage, fullPath));
+            }
             await cargarListaDocs(nacimientoId, esParental);
         } catch(e) {
-            alert('Error al eliminar el documento.');
+            alert('Error al eliminar el documento: ' + (e && e.message || e));
         }
     }
     // ─────────────────────────────────────────────────────────────
@@ -7423,7 +7651,7 @@
             </div>
             ${tiene790 ? `<div style="background:rgba(249,168,37,0.08);border:1px solid rgba(249,168,37,0.25);border-radius:6px;padding:6px 10px;font-size:0.72rem;color:#f9a825;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
                 <span>📋 790 subido</span>
-                <a href="${est.url790}" target="_blank" style="color:#f9a825;font-weight:700;text-decoration:none;font-size:0.7rem;">⬇ DESCARGAR</a>
+                <a href="#" onclick="verArchivo('${est.url790}');return false;" style="color:#f9a825;font-weight:700;text-decoration:none;font-size:0.7rem;">⬇ VER / DESCARGAR</a>
             </div>` : ''}
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 <button onclick="generarTodosCITES('${nac.id}','${nac.fecha}')"
@@ -7578,16 +7806,17 @@
 
             const pdfBytes = await pdfFinal.save();
 
-            // Subir a Firebase Storage
-            progress.textContent = '⏳ Subiendo a Firebase...';
+            // 29/09/2026: se guarda en la base de datos (Firestore), no en Storage
+            progress.textContent = '⏳ Guardando...';
             const nombreArchivo = `790_${_790Chip}.pdf`;
-            const storageRef = ref(storage, `docs_790/${_790NacId}/${nombreArchivo}`);
-            await uploadBytes(storageRef, pdfBytes);
-            const url = await getDownloadURL(storageRef);
+            const url = await guardarArchivoFS(pdfBytes, { nombre: nombreArchivo, tipo: 'application/pdf', carpeta: `docs_790/${_790NacId}` });
 
-            // Guardar URL en cites_estado
-            const docRef = doc(db, 'cites_estado', _790NacId + '_' + _790Chip);
+            // Guardar la referencia en cites_estado (y borrar el 790 anterior si se ha sustituido)
+            const clave790 = _790NacId + '_' + _790Chip;
+            const anterior790 = citesEstadoData[clave790] && citesEstadoData[clave790].url790;
+            const docRef = doc(db, 'cites_estado', clave790);
             await setDoc(docRef, { url790: url }, { merge: true });
+            if (anterior790 && anterior790 !== url) { try { await borrarArchivoFS(anterior790); } catch (e) {} }
 
             progress.textContent = '✅ 790 guardado correctamente';
             progress.style.color = 'var(--verde)';
@@ -7597,7 +7826,7 @@
             }, 1500);
 
         } catch(e) {
-            progress.textContent = '❌ Error: ' + e.message;
+            progress.textContent = '❌ ' + mensajeErrorSubida(e);
             progress.style.color = 'var(--rojo)';
             document.getElementById('790-btn-subir').disabled = false;
             console.error(e);
