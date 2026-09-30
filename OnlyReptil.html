@@ -165,6 +165,20 @@
         .pyn2-ti.activa { background: var(--azul); border-color: var(--azul); }
         .pyn2-ti.activa .n { color: #0d1220; }
         .pyn2-tab-nombre { text-align: center; font-size: 0.76rem; font-weight: 700; letter-spacing: 2px; color: var(--azul); margin-top: 7px; }
+        /* 30/09/2026: panel "Para presentar en SARA" de Inicio */
+        .card-sara { margin-top: 16px; background: var(--tarjeta); border-radius: 12px; padding: 12px; border: 1px solid rgba(255,181,71,0.45); }
+        .card-sara .cs-tit { font-size: 0.72rem; letter-spacing: 1.5px; color: #ffb547; font-weight: 700; text-align: center; text-transform: uppercase; }
+        .card-sara .cs-sub { font-size: 0.72rem; color: var(--texto2); text-align: center; margin: 2px 0 10px; }
+        .card-sara .cs-p { background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 10px; padding: 9px 10px; margin-bottom: 7px; }
+        .card-sara .cs-id { font-size: 0.92rem; font-weight: 700; color: var(--texto); }
+        .card-sara .cs-m { font-size: 0.72rem; color: var(--texto2); margin-bottom: 7px; }
+        .card-sara .cs-bs { display: flex; gap: 5px; }
+        .card-sara .cs-b { flex: 1; border-radius: 8px; padding: 8px 2px; font-family: 'Rajdhani', sans-serif; font-size: 0.74rem; font-weight: 700; border: 1px solid var(--borde); background: var(--tarjeta); color: var(--texto); cursor: pointer; }
+        .card-sara .cs-b.just { color: var(--verde); border-color: rgba(90,156,104,0.55); }
+        .card-sara .cs-h2 { font-size: 0.66rem; letter-spacing: 1.5px; color: var(--azul); font-weight: 700; text-align: center; margin: 12px 0 4px; text-transform: uppercase; }
+        .card-sara .cs-r { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.76rem; padding: 6px 2px; border-bottom: 1px solid var(--borde); color: var(--texto); }
+        .card-sara .cs-r:last-child { border-bottom: none; }
+        .card-sara .cs-r .ok { color: var(--verde); font-weight: 700; cursor: pointer; white-space: nowrap; }
         /* 29/09/2026: botonera de PyN (opción A) */
         .pyn2-botonera { display: flex; gap: 6px; margin-bottom: 12px; position: relative; }
         .pyn2-bt { border-radius: 10px; padding: 11px 6px; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid var(--borde); background: var(--tarjeta2); color: var(--texto2); cursor: pointer; }
@@ -420,6 +434,10 @@
             <div class="fila-gestion" onclick="irA('pantalla-cesion')"><span class="ico" style="color:var(--verde);">📄</span><span class="txt">Cesión</span></div>
             <div class="fila-gestion" onclick="irA('pantalla-auditoria')"><span class="ico" style="color:var(--texto2);">📋</span><span class="txt">Historial</span></div>
         </div>
+
+        <!-- 30/09/2026: PARA PRESENTAR EN SARA — panel sencillo para Martín (y Patry) con los
+             archivos de cada puesta lista para presentar. Solo aparece si hay algo pendiente. -->
+        <div id="card-sara" class="card-sara" style="display:none;"></div>
 
         <!-- Próximas eclosiones -->
         <div id="card-eclosiones" style="margin-top:16px;background:var(--tarjeta);border-radius:12px;padding:14px;border:1px solid var(--borde);text-align:center;display:none;">
@@ -4267,8 +4285,9 @@
         document.getElementById('modal-visor').classList.add('active');
     }
 
-    window.pyn2PrepararSara = async function(puestaId) {
+    window.pyn2PrepararSara = async function(puestaId, solo) {
         // 29/09/2026: abierto también a Martín (es quien presenta en SARA). Solo descarga archivos, no marca nada.
+        // 30/09/2026: solo = 'excel' | 'pdf' (panel "Para presentar en SARA" de Inicio: un botón por archivo)
         if (!usuarioActual) return;
         const p = histBio.find(x => x.id === puestaId);
         if (!p) return;
@@ -4279,6 +4298,13 @@
         if (!animales.length) return alert('Esta puesta no tiene crías con chip.');
         const conFecha = est.todosNacs.find(n => n.fechaMarcado);
         if (!conFecha) return alert('Falta la fecha de marcado del certificado veterinario. Súbelo o márcalo como firmado antes.');
+        if (solo === 'excel') {
+            // Se descarga en el mismo toque (sin esperas) para que el iPhone no lo bloquee
+            const idX = p.idPuesta || p.detalle || 'PUESTA';
+            descargarBlob(excelMiteco(filasMitecoAlta(animales, conFecha.fechaMarcado)), `MITECO_${idX}.xlsx`);
+            registrarAuditoria('nuevo', 'miteco', `Excel para red SARA descargado: ${idX}`);
+            return;
+        }
         const faltan = [!d.hoja ? '📄 la hoja de la app firmada' : '', !d.oficial ? '📜 el certificado oficial del Colegio' : ''].filter(Boolean);
         if (faltan.length && !confirm(`⚠️ Falta por subir:\n\n${faltan.join('\n')}\n\nEl PDF saldrá sin ello. ¿Continuar?`)) return;
         const idTxt = p.idPuesta || p.detalle || 'PUESTA';
@@ -4298,10 +4324,10 @@
             const nombrePdf = `SARA_${idTxt}_documentacion.pdf`;
             const archivos = [{ nombre: nombrePdf, blob: new Blob([await pdfFinal.save()], { type: 'application/pdf' }) }];
             // 4) Excel MITECO (mismo contenido que el que se generó en el paso anterior)
-            archivos.push({ nombre: `MITECO_${idTxt}.xlsx`, blob: excelMiteco(filasMitecoAlta(animales, conFecha.fechaMarcado)) });
+            if (solo !== 'pdf') archivos.push({ nombre: `MITECO_${idTxt}.xlsx`, blob: excelMiteco(filasMitecoAlta(animales, conFecha.fechaMarcado)) });
             if (d.hoja && SARA_HOJA_APARTE) { const h = await leerArchivoCualquiera(d.hoja); archivos.push({ nombre: `Hoja_firmada_${idTxt}.pdf`, blob: h.blob }); }
             registrarAuditoria('nuevo', 'miteco', `Documentación para red SARA preparada: ${idTxt} · ${animales.length} animal(es)`);
-            panelDescargas('📦 DOCUMENTACIÓN PREPARADA', archivos,
+            panelDescargas(solo === 'pdf' ? '📄 PDF PREPARADO' : '📦 DOCUMENTACIÓN PREPARADA', archivos,
                 '<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">Descarga cada archivo con su botón:</div>',
                 `${avisos.length ? `<div style="color:var(--naranja);font-size:0.78rem;margin-top:6px;">⚠️ ${avisos.join('<br>⚠️ ')}</div>` : ''}
                  <div style="margin-top:10px;color:var(--texto2);font-size:0.8rem;line-height:1.5;text-align:left;">Martín presenta los dos archivos en la red SARA. Cuando devuelva el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>`);
@@ -4345,7 +4371,7 @@
     }
 
     window.abrirJustificanteSara = function(puestaId) {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir el justificante.');
+        if (!usuarioActual) return; // 30/09/2026: Martín también puede subirlo (es quien presenta en SARA)
         const p = histBio.find(x => x.id === puestaId);
         if (!p) return;
         const est = pyn2EstadoPuesta(p);
@@ -4415,7 +4441,7 @@
     };
 
     window.saraGuardar = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir el justificante.');
+        if (!usuarioActual) return; // 30/09/2026: Martín también puede subirlo
         const S = window._sara; if (!S) return;
         const p = histBio.find(x => x.id === S.puestaId);
         if (!p) return;
@@ -4453,6 +4479,7 @@
             document.getElementById('modal-sara').classList.remove('active');
             window._sara = null;
             alert(`✅ Justificante guardado${puestas.length > 1 ? ` en ${puestas.length} puestas` : ''}. El contador de espera de MITECO empieza el ${fecha}.`);
+            renderPanelSara();
         } catch (err) { pr.style.display = 'none'; alert(mensajeErrorSubida(err)); }
     };
 
@@ -5260,7 +5287,54 @@
     }
 
     // ── PRÓXIMAS ECLOSIONES (dashboard) ──────────────────────────
+    // 30/09/2026: panel "PARA PRESENTAR EN SARA" de Inicio (Martín y Patry)
+    function renderPanelSara() {
+        const card = document.getElementById('card-sara');
+        if (!card) return;
+        if (!usuarioActual || typeof pyn2EstadoPuesta !== 'function') { card.style.display = 'none'; return; }
+        const pendientes = [], presentadas = [];
+        histBio.filter(b => b.tipo === 'puesta' && !b.esPrueba && !pyn2EsSecundaria(b)).forEach(p => {
+            let est; try { est = pyn2EstadoPuesta(p); } catch (e) { return; }
+            if (est.cerradaSinCrias || est.cedidaTotal) return;
+            const nacSara = est.todosNacs.find(n => n.saraJustificanteUrl);
+            const ids = [p.idPuesta || p.detalle].concat(est.otraPuesta ? [est.otraPuesta.idPuesta || est.otraPuesta.detalle] : []).join(' + ');
+            const crias = getAnimalesPorPuestas(p.combinadaCon ? [p.id, p.combinadaCon] : [p.id]).length;
+            if (est.pasoCsv && !est.pasoSara) {
+                const fx = est.todosNacs.map(n => n.fechaEnvioCSV).filter(Boolean)[0] || '';
+                pendientes.push({ p, ids, crias, fx });
+            } else if (nacSara && !est.pasoPapeles) {
+                const dias = pyn2DiasEsperaMiteco(est.todosNacs);
+                presentadas.push({ p, ids, nacSara, dias });
+            }
+        });
+        if (!pendientes.length && !presentadas.length) { card.style.display = 'none'; card.innerHTML = ''; return; }
+        card.style.display = 'block';
+        let h = '';
+        if (pendientes.length) {
+            h += `<div class="cs-tit">📤 Para presentar en SARA · ${pendientes.length}</div>
+                  <div class="cs-sub">Descarga los 2 archivos de cada puesta, preséntalos juntos y sube el justificante</div>`;
+            h += pendientes.map(x => `<div class="cs-p">
+                    <div class="cs-id">${x.ids}</div>
+                    <div class="cs-m">${x.p.especie || ''} · ${x.crias} cría${x.crias !== 1 ? 's' : ''}${x.fx ? ` · listo desde ${x.fx}` : ''}</div>
+                    <div class="cs-bs">
+                        <button class="cs-b" onclick="pyn2PrepararSara('${x.p.id}','pdf')">📄 PDF</button>
+                        <button class="cs-b" onclick="pyn2PrepararSara('${x.p.id}','excel')">📊 EXCEL</button>
+                        <button class="cs-b just" onclick="abrirJustificanteSara('${x.p.id}')">🧾 JUSTIFICANTE</button>
+                    </div></div>`).join('');
+        }
+        if (presentadas.length) {
+            h += `<div class="cs-h2">✅ Presentadas · esperando a MITECO</div>`;
+            h += presentadas.map(x => `<div class="cs-r">
+                    <span><b>${x.ids}</b><br><span style="color:var(--texto2);font-size:0.7rem;">presentada ${x.nacSara.saraFechaPresentacion || '—'}${x.dias !== null ? ` · ${x.dias} día${x.dias !== 1 ? 's' : ''}` : ''}</span></span>
+                    <span class="ok" onclick="verArchivo('${x.nacSara.saraJustificanteUrl}')">🧾 ✓ Subido</span>
+                </div>`).join('');
+        }
+        card.innerHTML = h;
+    }
+    window.renderPanelSara = renderPanelSara;
+
     function actualizarEclosiones() {
+        try { renderPanelSara(); } catch (e) { console.warn('Panel SARA:', e); }
         const card = document.getElementById('card-eclosiones');
         const lista = document.getElementById('lista-eclosiones');
         if (!card || !lista) return;
@@ -5839,6 +5913,7 @@
     const _irAOrig = window.irA;
     window.irA = function(id) {
         _irAOrig(id);
+        if (id === 'pantalla-inicio') { try { renderPanelSara(); } catch (e) {} } // 30/09/2026
         if (id === 'pantalla-auditoria') {
             renderAuditoria();
             poblarSelectoresMes();
