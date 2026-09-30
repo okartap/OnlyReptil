@@ -119,12 +119,12 @@
         .accion:active { opacity: 0.75; }
         .accion .ico { font-size: 1.25rem; display: block; margin-bottom: 3px; }
         .accion .lbl { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.5px; }
-        .lista-gestion { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
-        .fila-gestion { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--borde); cursor: pointer; }
-        .fila-gestion:last-child { border-bottom: none; }
+        /* 30/09/2026: Gestión compacta (opción C aprobada por Patry) — botones pequeños tipo "pastilla" */
+        .lista-gestion { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+        .fila-gestion { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; min-height: 36px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 999px; cursor: pointer; }
         .fila-gestion:active { opacity: 0.75; }
-        .fila-gestion .ico { font-size: 1.05rem; }
-        .fila-gestion .txt { font-size: 0.86rem; font-weight: 600; letter-spacing: 0.3px; color: var(--texto); }
+        .fila-gestion .ico { font-size: 0.95rem; }
+        .fila-gestion .txt { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.3px; color: var(--texto); }
         .btn-puesta  { border-left: 4px solid var(--azul);  color: var(--azul); }
         .btn-nacer   { border-left: 4px solid var(--azul);  color: var(--azul); }
         .btn-ingreso { border-left: 4px solid var(--verde); color: var(--verde); }
@@ -418,7 +418,7 @@
             <div class="fila-gestion" onclick="irA('pantalla-chips')"><span class="ico" style="color:var(--azul);">💉</span><span class="txt">Chips</span></div>
             <div class="fila-gestion" onclick="irA('pantalla-parentales')"><span class="ico" style="color:var(--azul);">🐢</span><span class="txt">Plantel</span></div>
             <div class="fila-gestion" onclick="irA('pantalla-cesion')"><span class="ico" style="color:var(--verde);">📄</span><span class="txt">Cesión</span></div>
-            <div class="fila-gestion" onclick="irA('pantalla-auditoria')"><span class="ico" style="color:var(--texto2);">📋</span><span class="txt">Historial de cambios</span></div>
+            <div class="fila-gestion" onclick="irA('pantalla-auditoria')"><span class="ico" style="color:var(--texto2);">📋</span><span class="txt">Historial</span></div>
         </div>
 
         <!-- Próximas eclosiones -->
@@ -6346,19 +6346,31 @@
     function _xmlTxt(v) { return String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
     function _colLetra(i) { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
     // filas: array de arrays (la primera, la cabecera). Devuelve los trozos del .xlsx
+    // 30/09/2026: textos en una tabla compartida (sharedStrings) + ficha del documento (docProps),
+    // que es como lo guarda el propio Excel: la vista previa del iPhone no mostraba el formato anterior.
     function construirXlsx(filas, anchos) {
         const ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
         const cols = anchos ? '<cols>' + anchos.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>' : '';
+        const textos = [], indice = new Map();
+        let usos = 0;
+        const idx = v => { const t = String(v); usos++; if (!indice.has(t)) { indice.set(t, textos.length); textos.push(t); } return indice.get(t); };
+        const nCols = Math.max(...filas.map(f => f.length));
         const datos = filas.map((f, r) => `<row r="${r + 1}">` + f.map((v, c) => (v === '' || v == null) ? '' :
-            `<c r="${_colLetra(c)}${r + 1}" t="inlineStr" s="1"><is><t xml:space="preserve">${_xmlTxt(v)}</t></is></c>`).join('') + '</row>').join('');
+            `<c r="${_colLetra(c)}${r + 1}" t="s" s="1"><v>${idx(v)}</v></c>`).join('') + '</row>').join('');
+        const sst = textos.map(t => `<si><t xml:space="preserve">${_xmlTxt(t)}</t></si>`).join('');
+        const rango = `A1:${_colLetra(nCols - 1)}${filas.length}`;
+        const ahora = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
         const cab = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
         return _zipSinComprimir([
-            { nombre: '[Content_Types].xml', datos: cab + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
-            { nombre: '_rels/.rels', datos: cab + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
-            { nombre: 'xl/workbook.xml', datos: cab + `<workbook xmlns="${ns}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Hoja1" sheetId="1" r:id="rId1"/></sheets></workbook>` },
-            { nombre: 'xl/_rels/workbook.xml.rels', datos: cab + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
-            { nombre: 'xl/styles.xml', datos: cab + `<styleSheet xmlns="${ns}"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` },
-            { nombre: 'xl/worksheets/sheet1.xml', datos: cab + `<worksheet xmlns="${ns}">${cols}<sheetData>${datos}</sheetData></worksheet>` }
+            { nombre: '[Content_Types].xml', datos: cab + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>' },
+            { nombre: '_rels/.rels', datos: cab + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>' },
+            { nombre: 'docProps/core.xml', datos: cab + `<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:creator>OnlyReptil</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${ahora}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${ahora}</dcterms:modified></cp:coreProperties>` },
+            { nombre: 'docProps/app.xml', datos: cab + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Microsoft Excel</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Hojas de cálculo</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts><vt:vector size="1" baseType="lpstr"><vt:lpstr>Hoja1</vt:lpstr></vt:vector></TitlesOfParts><AppVersion>16.0300</AppVersion></Properties>' },
+            { nombre: 'xl/workbook.xml', datos: cab + `<workbook xmlns="${ns}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="20000" windowHeight="10000"/></bookViews><sheets><sheet name="Hoja1" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+            { nombre: 'xl/_rels/workbook.xml.rels', datos: cab + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>' },
+            { nombre: 'xl/styles.xml', datos: cab + `<styleSheet xmlns="${ns}"><fonts count="1"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` },
+            { nombre: 'xl/sharedStrings.xml', datos: cab + `<sst xmlns="${ns}" count="${usos}" uniqueCount="${textos.length}">${sst}</sst>` },
+            { nombre: 'xl/worksheets/sheet1.xml', datos: cab + `<worksheet xmlns="${ns}"><dimension ref="${rango}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols}<sheetData>${datos}</sheetData></worksheet>` }
         ]);
     }
     // Excel MITECO (alta o baja): cabecera oficial de 31 columnas + las filas dadas
