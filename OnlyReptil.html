@@ -165,6 +165,16 @@
         .pyn2-ti.activa { background: var(--azul); border-color: var(--azul); }
         .pyn2-ti.activa .n { color: #0d1220; }
         .pyn2-tab-nombre { text-align: center; font-size: 0.76rem; font-weight: 700; letter-spacing: 2px; color: var(--azul); margin-top: 7px; }
+        /* 29/09/2026: botonera de PyN (opción A) */
+        .pyn2-botonera { display: flex; gap: 6px; margin-bottom: 12px; position: relative; }
+        .pyn2-bt { border-radius: 10px; padding: 11px 6px; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid var(--borde); background: var(--tarjeta2); color: var(--texto2); cursor: pointer; }
+        .pyn2-bt.nueva { flex: 1.5; background: var(--azul); border-color: var(--azul); color: #0d1220; }
+        .pyn2-bt.cert { flex: 1.3; background: rgba(90,156,104,0.14); border-color: rgba(90,156,104,0.55); color: var(--verde); }
+        .pyn2-bt.prueba { flex: 0 0 48px; }
+        .pyn2-menu-prueba { display: none; position: absolute; right: 0; top: 46px; z-index: 20; background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 10px; padding: 4px; min-width: 210px; }
+        .pyn2-menu-prueba.abierto { display: block; }
+        .pyn2-menu-prueba div { padding: 9px 10px; font-size: 0.8rem; border-radius: 7px; cursor: pointer; color: var(--texto); text-align: left; }
+        .pyn2-menu-prueba div.rojo { color: var(--rojo); }
         /* 27/09/2026: tarjeta de puesta compacta */
         .pyn2-card { background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
         .pyn2-card.abierta { border-color: var(--azul); }
@@ -397,7 +407,7 @@
         <div class="seccion-titulo">Registrar</div>
         <!-- 11/09/2026: quitados los iconos a petición de Patry ("me sobran"), solo texto -->
         <div class="acciones-row">
-            <div class="accion" style="color:var(--azul);" onclick="irA('form-puesta')"><span class="lbl">PUESTA</span></div>
+            <!-- 29/09/2026: PUESTA se registra ahora desde PyN (botón ＋ NUEVA PUESTA) -->
             <div class="accion" style="color:var(--azul);" onclick="navA('pantalla-pyn2')"><span class="lbl">PyN</span></div>
             <div class="accion" style="color:var(--verde);" onclick="irA('form-ingreso')"><span class="lbl">INGRESO</span></div>
             <div class="accion" style="color:var(--rojo);" onclick="irA('form-gasto')"><span class="lbl">GASTO</span></div>
@@ -419,7 +429,7 @@
     </div>
 
     <div id="form-puesta" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🥚 NUEVA PUESTA</div>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-pyn2')">←</span>🥚 NUEVA PUESTA</div>
         <div class="form-group">
             <label>Pareja</label>
             <select id="p-pareja" onchange="actualizarInfoPareja()">
@@ -450,7 +460,7 @@
             </div>
         </div>
         <button class="btn-save" id="btn-guardar-puesta" onclick="guardarPuesta()" style="background:var(--azul);">REGISTRAR PUESTA</button>
-        <button class="btn-cancelar" onclick="irA('pantalla-inicio')">CANCELAR</button>
+        <button class="btn-cancelar" onclick="irA('pantalla-pyn2')">CANCELAR</button>
     </div>
 
 
@@ -606,12 +616,17 @@
 
     <!-- PyN NUEVO (prueba) — todo el trámite de cada puesta en un único sitio -->
     <div id="pantalla-pyn2" class="seccion-app" style="border-top-color:var(--azul);">
-        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>🧪 PyN NUEVO · PRUEBA</div>
-        <div style="font-size:0.7rem;color:var(--texto2);margin:-8px 0 12px;line-height:1.5;">Pantalla de prueba: reúne aquí la notificación a MITECO, el nacimiento, el certificado veterinario, el CSV y los papeles de cada puesta, ordenadas por fecha. El PyN de siempre sigue funcionando igual.</div>
-        <div style="display:flex;gap:6px;margin-bottom:12px;">
-            <button class="btn-mini verde" onclick="abrirSubidaCertificados()">📥 SUBIR CERTIFICADOS</button>
-            <button class="btn-mini" onclick="pyn2CrearPruebaPuesta()">🧪 CREAR PUESTA DE PRUEBA</button>
-            <button class="btn-mini naranja" onclick="pyn2BorrarPruebas()">🗑️ BORRAR TODO LO DE PRUEBA</button>
+        <div class="titulo-centrado" style="color:var(--azul);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>PyN</div>
+        <!-- 29/09/2026: botonera "opción A" aprobada por Patry — NUEVA PUESTA destacada, SUBIR
+             CERTIFICADOS y las herramientas de prueba recogidas en un menú pequeño -->
+        <div class="pyn2-botonera">
+            <button class="pyn2-bt nueva" onclick="irA('form-puesta')">＋ NUEVA PUESTA</button>
+            <button class="pyn2-bt cert" onclick="abrirSubidaCertificados()">📥 CERTIFICADOS</button>
+            <button class="pyn2-bt prueba" onclick="pyn2MenuPrueba()" aria-label="Opciones de prueba">🧪 ▾</button>
+            <div class="pyn2-menu-prueba" id="pyn2-menu-prueba">
+                <div onclick="pyn2MenuPrueba(false);pyn2CrearPruebaPuesta()">🧪 Crear puesta de prueba</div>
+                <div class="rojo" onclick="pyn2MenuPrueba(false);pyn2BorrarPruebas()">🗑️ Borrar todo lo de prueba</div>
+            </div>
         </div>
         <!-- 23/09/2026: sustituidas las 3 pestañas (EN CURSO muy amplio) por 6, en 2 filas fijas
              (sin scroll, a petición de Patry: "los scrolles no me gustan"), una por cada fase real
@@ -652,7 +667,7 @@
     <div class="modal-overlay" id="modal-regularizar">
         <div class="modal-box verde">
             <div class="modal-titulo">✅ MARCAR COMO CEDIDAS</div>
-            <div style="font-size:0.78rem;color:var(--texto2);margin-bottom:10px;line-height:1.45;">Para crías que ya se cedieron o vendieron <b>fuera de la app</b>. No genera ningún documento ni CSV. Los chips quedan como cedidos y nunca vuelven a estar libres.</div>
+            <div style="font-size:0.78rem;color:var(--texto2);margin-bottom:10px;line-height:1.45;">Para crías que ya se cedieron o vendieron <b>fuera de la app</b>. No genera ningún documento ni Excel. Los chips quedan como cedidos y nunca vuelven a estar libres.</div>
             <div id="regularizar-info" style="font-size:0.8rem;margin-bottom:8px;"></div>
             <div id="regularizar-lista" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px;"></div>
             <div class="form-group"><label>Comprador (opcional)</label><input type="text" id="regularizar-comprador" placeholder="Ej: Reptiles Levante"></div>
@@ -1170,7 +1185,7 @@
 <!-- MODAL CSV MITECO -->
 <div class="modal-overlay" id="modal-csv">
     <div class="modal-box" style="border-top-color:var(--verde);">
-        <div class="modal-titulo" style="color:var(--verde);">📤 EXPORTAR CSV MITECO</div>
+        <div class="modal-titulo" style="color:var(--verde);">📊 EXCEL PARA MITECO</div>
         <input type="hidden" id="csv-puesta-id">
         <div id="csv-puesta-info" style="background:var(--fondo);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem;color:var(--texto2);line-height:1.6;"></div>
         <!-- Fecha certificado veterinario -->
@@ -1186,7 +1201,7 @@
         <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:8px;">ANIMALES A INCLUIR</div>
         <div id="csv-animales-lista" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
         <div id="csv-warning" style="font-size:0.78rem;color:var(--naranja);margin-bottom:8px;display:none;">⚠️ Algunos animales no tienen chip asignado y no se incluirán</div>
-        <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="exportarCSV()">⬇️ DESCARGAR CSV Y EXCEL</button>
+        <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="exportarCSV()">⬇️ DESCARGAR EXCEL</button>
         <button class="btn-cancelar" onclick="cerrarModalCSV()">CANCELAR</button>
     </div>
 </div>
@@ -1343,7 +1358,7 @@
             </div>
         </div>
 
-        <button class="btn-save" style="background:var(--rojo);color:#fff;" id="baja-btn-confirmar" onclick="confirmarBaja()" disabled>🔻 CONFIRMAR BAJA Y DESCARGAR CSV</button>
+        <button class="btn-save" style="background:var(--rojo);color:#fff;" id="baja-btn-confirmar" onclick="confirmarBaja()" disabled>🔻 CONFIRMAR BAJA Y DESCARGAR EXCEL</button>
         <button class="btn-cancelar" onclick="cerrarModalBaja()">CANCELAR</button>
     </div>
 </div>
@@ -1564,7 +1579,7 @@
         if(id === 'form-puesta') { setFechaHoy('p-fecha'); const selP=document.getElementById('p-pareja'); if(selP) selP.value=''; cargarTodasParejas(); }
         if(id === 'pantalla-miteco') { switchTabMiteco('miteco'); renderMiteco(); }
         if(id === 'pantalla-cesion') { iniciarPantallaCesion(); }
-        if(id === 'pantalla-pyn2') { if (!window._pyn2ScrollAPuestaId) { window._pyn2Filtro = 'puesta'; window._pyn2Abierta = null; } renderPynNuevo(); } // 27/09/2026: al entrar, pestaña PUESTA
+        if(id === 'pantalla-pyn2') { if (!window._pyn2ScrollAPuestaId) { window._pyn2Filtro = 'puesta'; window._pyn2Abierta = null; } const mp=document.getElementById('pyn2-menu-prueba'); if(mp) mp.classList.remove('abierto'); renderPynNuevo(); } // 27/09/2026: al entrar, pestaña PUESTA
     }
     window.toggleEspecies = function() {
         const pantalla = document.getElementById('pantalla-especies');
@@ -2109,7 +2124,7 @@
         const fechaEclosion = eclosionDate.toLocaleDateString('es-ES');
         setBotones(true);
         try {
-            await addDoc(collection(db,'bio'), {
+            const refNueva = await addDoc(collection(db,'bio'), {
                 tipo: 'puesta',
                 especie,
                 cant: huevos,
@@ -2124,7 +2139,10 @@
                 timestamp: Date.now()
             });
             registrarAuditoria('nuevo','bio',`Puesta: ${huevos} huevos · ${especie} · ${pareja.nombre}`);
-            finalizar('BIO', `${huevos} huevos · ${pareja.nombre} · Eclosión est. ${fechaEclosion}`);
+            // 29/09/2026: vuelve directamente a PyN con la tarjeta de la nueva puesta abierta y resaltada
+            window._pyn2ScrollAPuestaId = refNueva.id;
+            setBotones(false);
+            irA('pantalla-pyn2');
         } catch(err) { alert('Error: ' + err.message); setBotones(false); }
     }
 
@@ -2296,7 +2314,7 @@
             finalizar('DINERO', `${fmt(monto)} registrados`);
             if (chipsVenta.length) {
                 if (usuarioActual && usuarioActual.rol === 'admin') {
-                    if (confirm(`✅ Venta guardada: ${chipsVenta.length} ${datos.especie} a ${datos.cliente}.\nStock descontado y chips marcados como vendidos.\n\n¿Generar AHORA el documento de cesión y el CSV de baja MITECO?\n\n(Si pulsas Cancelar, quedará pendiente en la pantalla CESIÓN.)`)) {
+                    if (confirm(`✅ Venta guardada: ${chipsVenta.length} ${datos.especie} a ${datos.cliente}.\nStock descontado y chips marcados como vendidos.\n\n¿Generar AHORA el documento de cesión y el Excel de baja MITECO?\n\n(Si pulsas Cancelar, quedará pendiente en la pantalla CESIÓN.)`)) {
                         await generarCesionDeVenta(refMov.id);
                     }
                 } else {
@@ -2313,7 +2331,7 @@
         let msg = "¿Eliminar este registro?";
         if (chipsV.length) {
             const conDoc = chipsData.filter(c => c.idVenta === id && c.docCesionGenerado).length;
-            msg += `\n\nEs una venta de ${chipsV.length} animal(es): sus chips volverán a "disponibles para ceder" (nunca a libres).` + (conDoc ? `\n⚠️ Ya se generó el documento de cesión y el CSV de baja de ${conDoc} de ellos.` : '');
+            msg += `\n\nEs una venta de ${chipsV.length} animal(es): sus chips volverán a "disponibles para ceder" (nunca a libres).` + (conDoc ? `\n⚠️ Ya se generó el documento de cesión y el Excel de baja de ${conDoc} de ellos.` : '');
         }
         if (chipsC.length) msg += `\n\nEs una compra con ${chipsC.length} chip(s): quedarán ANULADOS (no se podrán vender ni volver a usar).`;
         if (!confirm(msg)) return;
@@ -3367,11 +3385,11 @@
             }
 
             // 6. CSV / Excel para MITECO (29/09/2026: se genera en .csv y en .xlsx a la vez)
-            if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar CSV para MITECO'));
-            else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'CSV generado'));
+            if (!estado.pasoVet) pasos.push(pyn2Paso('pend', 'Generar Excel para MITECO'));
+            else if (estado.pasoCsv) pasos.push(pyn2Paso('hecho', 'Excel generado'));
             else {
-                pasos.push(pyn2Paso('actual', 'Generar CSV para MITECO', 'Se descarga en .csv y en .xlsx (Excel). Después se presenta todo por la red SARA', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📤 GENERAR CSV</button>`));
-                marcarSig('Generar CSV para MITECO');
+                pasos.push(pyn2Paso('actual', 'Generar Excel para MITECO', 'Después se presenta todo por la red SARA', `<button class="btn-mini" onclick="pyn2AbrirCSV('${p.id}')">📊 GENERAR EXCEL</button>`));
+                marcarSig('Generar Excel para MITECO');
             }
 
             // 6b. Presentación por la RED SARA (29/09/2026) — la hace Martín con su firma electrónica
@@ -3487,6 +3505,12 @@
         </div>`;
     }
 
+    window.pyn2MenuPrueba = function(abrir) {
+        const m = document.getElementById('pyn2-menu-prueba');
+        if (!m) return;
+        m.classList.toggle('abierto', abrir === undefined ? !m.classList.contains('abierto') : !!abrir);
+    };
+
     window.pyn2ToggleAcciones = function(puestaId) {
         const div    = document.getElementById('pyn2-acc-' + puestaId);
         const flecha = document.getElementById('pyn2-flecha-acc-' + puestaId);
@@ -3535,7 +3559,7 @@
         let filtradas = filtro === 'todas' ? filas : filas.filter(f => f.fase === filtro);
 
         if (filtradas.length === 0) {
-            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin puestas pendientes de CSV o de presentar en la red SARA', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
+            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin puestas pendientes de Excel o de presentar en la red SARA', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
             cont.innerHTML = `<p class="msg-vacio">${msgs[filtro] || 'Sin puestas'}</p>`;
             return;
         }
@@ -3548,8 +3572,8 @@
 
         // Scroll + resalte a la puesta que se acababa de trabajar (una sola vez)
         if (puestaScrollId) {
-            window._pyn2ScrollAPuestaId = null;
             const el = document.getElementById('pyn2-card-' + puestaScrollId);
+            if (el || filas.some(f => f.p.id === puestaScrollId)) window._pyn2ScrollAPuestaId = null;
             if (el) {
                 setTimeout(() => {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3583,7 +3607,7 @@
         // 29/09/2026 (Patry): avisar si falta CUALQUIERA de los dos documentos
         const d = pyn2DatosCert(est.todosNacs);
         const faltan = [!d.hoja ? '📄 la hoja de la app firmada' : '', !d.oficial ? '📜 el certificado oficial del Colegio' : ''].filter(Boolean);
-        if (faltan.length && !confirm(`⚠️ Vas a generar el CSV para MITECO sin haber subido:\n\n${faltan.join('\n')}\n\n¿Quieres continuar de todas formas?`)) return;
+        if (faltan.length && !confirm(`⚠️ Vas a generar el Excel para MITECO sin haber subido:\n\n${faltan.join('\n')}\n\n¿Quieres continuar de todas formas?`)) return;
         abrirModalCSV(puestaId);
     };
 
@@ -4272,23 +4296,15 @@
             if (d.hoja && !SARA_HOJA_APARTE) await anadirAlPdfConjunto(pdfFinal, d.hoja, 'Hoja firmada', avisos);
             if (d.oficial) await anadirAlPdfConjunto(pdfFinal, d.oficial, 'Certificado oficial', avisos);
             const nombrePdf = `SARA_${idTxt}_documentacion.pdf`;
-            descargarBlob(new Blob([await pdfFinal.save()], { type: 'application/pdf' }), nombrePdf);
-            // 4) Fichero MITECO en .csv y .xlsx (mismo contenido que el que se generó)
-            const fechaMarcado = conFecha.fechaMarcado;
-            const { csv, xlsx } = await construirMitecoCsvXlsx(filasMitecoAlta(animales, fechaMarcado));
-            const nombres = [nombrePdf];
-            setTimeout(() => descargarBlob(csv, `MITECO_${idTxt}.csv`), 600);
-            nombres.push(`MITECO_${idTxt}.csv`);
-            if (xlsx) { setTimeout(() => descargarBlob(xlsx, `MITECO_${idTxt}.xlsx`), 1200); nombres.push(`MITECO_${idTxt}.xlsx`); }
-            if (d.hoja && SARA_HOJA_APARTE) { const h = await leerArchivoCualquiera(d.hoja); setTimeout(() => descargarBlob(h.blob, h.nombre || `Hoja_firmada_${idTxt}.pdf`), 1800); nombres.push('Hoja firmada (original)'); }
+            const archivos = [{ nombre: nombrePdf, blob: new Blob([await pdfFinal.save()], { type: 'application/pdf' }) }];
+            // 4) Excel MITECO (mismo contenido que el que se generó en el paso anterior)
+            archivos.push({ nombre: `MITECO_${idTxt}.xlsx`, blob: excelMiteco(filasMitecoAlta(animales, conFecha.fechaMarcado)) });
+            if (d.hoja && SARA_HOJA_APARTE) { const h = await leerArchivoCualquiera(d.hoja); archivos.push({ nombre: `Hoja_firmada_${idTxt}.pdf`, blob: h.blob }); }
             registrarAuditoria('nuevo', 'miteco', `Documentación para red SARA preparada: ${idTxt} · ${animales.length} animal(es)`);
-            saraPanel('📦 DOCUMENTACIÓN PREPARADA', `
-                <div style="font-size:0.85rem;line-height:1.6;text-align:left;">
-                    Se han descargado:<br>${nombres.map(n => `✅ <b>${n}</b>`).join('<br>')}
-                    ${avisos.length ? `<div style="color:var(--naranja);margin-top:8px;">⚠️ ${avisos.join('<br>⚠️ ')}</div>` : ''}
-                    <div style="margin-top:10px;color:var(--texto2);">Pásaselo a Martín para presentarlo en la red SARA: el <b>PDF</b> y <b>uno</b> de los dos ficheros MITECO (.csv o .xlsx). Cuando te devuelva el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>
-                    ${!xlsx ? '<div style="color:var(--rojo);margin-top:8px;">No se ha podido generar el .xlsx (revisa la conexión).</div>' : ''}
-                </div>`);
+            panelDescargas('📦 DOCUMENTACIÓN PREPARADA', archivos,
+                '<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">Descarga cada archivo con su botón:</div>',
+                `${avisos.length ? `<div style="color:var(--naranja);font-size:0.78rem;margin-top:6px;">⚠️ ${avisos.join('<br>⚠️ ')}</div>` : ''}
+                 <div style="margin-top:10px;color:var(--texto2);font-size:0.8rem;line-height:1.5;text-align:left;">Martín presenta los dos archivos en la red SARA. Cuando devuelva el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>`);
         } catch (err) {
             saraPanel('📦 ERROR', `<div style="color:var(--rojo);text-align:center;padding:20px 0;font-weight:700;">No se ha podido preparar: ${err.message}</div>`);
         }
@@ -4962,7 +4978,7 @@
         if (!puesta.esPrueba) {
             const txtChips = chipsAsignados.length
                 ? `¿Estos son los chips que has puesto?\n\n${chipsAsignados.map((c, i) => `Animal ${i+1}: ${fmtChip(c)}`).join('\n')}\n\nUna vez guardados quedan usados para siempre.`
-                : `⚠️ Vas a guardar el nacimiento SIN chips.\n\nSin chip no podrá avanzar en PyN (certificado, CSV, cesión). ¿Continuar?`;
+                : `⚠️ Vas a guardar el nacimiento SIN chips.\n\nSin chip no podrá avanzar en PyN (certificado, Excel, cesión). ¿Continuar?`;
             if (!confirm(txtChips)) return;
         }
 
@@ -6070,7 +6086,7 @@
         const aviso  = document.getElementById('baja-aviso-parental');
         if (origen === 'parental') {
             aviso.innerHTML = motivo === 'venta'
-                ? '⚠️ Esta baja rápida solo registra la venta en el histórico — <strong>no genera ningún documento de cesión ni el CSV de baja MITECO</strong>. Si este reproductor tiene su documentación (CITES/chip) en regla, se recomienda usar <strong>CESIÓN → REPRODUCTOR</strong> en su lugar. Pulsa "CONFIRMAR BAJA" solo si quieres continuar sin generar documento.'
+                ? '⚠️ Esta baja rápida solo registra la venta en el histórico — <strong>no genera ningún documento de cesión ni el Excel de baja MITECO</strong>. Si este reproductor tiene su documentación (CITES/chip) en regla, se recomienda usar <strong>CESIÓN → REPRODUCTOR</strong> en su lugar. Pulsa "CONFIRMAR BAJA" solo si quieres continuar sin generar documento.'
                 : 'ℹ️ Esta baja rápida solo registra el fallecimiento en el histórico y retira al reproductor del plantel — no genera ningún documento.';
             aviso.style.display = 'block';
         } else {
@@ -6099,7 +6115,7 @@
         // este camino no genera documento de cesión ni CSV de baja MITECO, y si el animal
         // tiene su documentación en regla lo correcto es usar CESIÓN → REPRODUCTOR.
         if (origen === 'parental' && motivo === 'venta') {
-            const seguro = confirm('Esta baja rápida NO genera el documento de cesión ni el CSV de baja MITECO.\n\nSi este reproductor tiene su documentación (CITES/chip) en regla, se recomienda usar CESIÓN → REPRODUCTOR en su lugar.\n\n¿Quieres continuar de todas formas con esta baja rápida?');
+            const seguro = confirm('Esta baja rápida NO genera el documento de cesión ni el Excel de baja MITECO.\n\nSi este reproductor tiene su documentación (CITES/chip) en regla, se recomienda usar CESIÓN → REPRODUCTOR en su lugar.\n\n¿Quieres continuar de todas formas con esta baja rápida?');
             if (!seguro) return;
         }
 
@@ -6115,8 +6131,6 @@
 
         const motivoCodigo = motivo === 'venta' ? 'CE' : 'MU'; // CE=Cesión, MU=Muerte
         const motivoTexto  = motivo === 'venta' ? 'Cesión' : 'Muerte';
-
-        const headers = MITECO_CSV_HEADERS;
 
         const compradorNombre = document.getElementById('baja-comprador-nombre').value || '';
         const compradorDni    = document.getElementById('baja-comprador-dni').value || '';
@@ -6171,27 +6185,14 @@
             motivo === 'venta' ? fechaBaja : '',  // Fecha Cesión
             '', '',
             motivo === 'venta' ? compradorNombre : ''  // Nombre Particular Cesión
-        ].join(';');
+        ];
 
-        const csvContent = [headers, fila].join('\r\n');
-        const latin1 = new Uint8Array([...csvContent].map(c => {
-            const code = c.charCodeAt(0);
-            return code <= 255 ? code : 63;
-        }));
-        const blob = new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = `MITECO_BAJA_${especie}_${chipFmt.replace(/\./g,'')}_${fechaBaja.replace(/\//g,'-')}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        if (motivo === 'venta') {
-            alert('✅ CSV de baja descargado.\n\nRecuerda generar también el Documento de Cesión cuando esté disponible.');
-        } else {
-            alert('✅ CSV de baja por fallecimiento descargado.');
-        }
+        // 29/09/2026: Excel de baja (la red SARA no admite CSV), con su botón de descarga
         cerrarModalBaja();
+        panelDescargas(motivo === 'venta' ? '🔻 BAJA REGISTRADA' : '🔻 BAJA POR FALLECIMIENTO', [
+            { nombre: `MITECO_BAJA_${especie}_${chipFmt.replace(/\./g,'')}_${fechaBaja.replace(/\//g,'-')}.xlsx`, blob: excelMiteco([fila]) }
+        ], '<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;">Excel de baja para MITECO:</div>',
+        motivo === 'venta' ? '<div style="font-size:0.78rem;color:var(--naranja);margin-top:8px;">Recuerda generar también el documento de cesión.</div>' : '');
     }
     // ─────────────────────────────────────────────────────────────
 
@@ -6309,36 +6310,62 @@
         });
     }
 
-    function cargarSheetJS() {
-        if (window.XLSX) return Promise.resolve(window.XLSX);
-        return new Promise((ok, ko) => {
-            const sc = document.createElement('script');
-            sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-            sc.onload = () => ok(window.XLSX);
-            sc.onerror = () => ko(new Error('No se pudo cargar el generador de Excel'));
-            document.head.appendChild(sc);
+    // ── 29/09/2026: EXCEL (.xlsx) GENERADO POR LA PROPIA APP, SIN LIBRERÍAS ──
+    // MITECO / red SARA ya no admiten CSV: el fichero es el mismo (31 columnas) pero en Excel.
+    // Se construye aquí mismo (un .xlsx es un .zip con unos XML dentro) para que funcione
+    // también en el iPhone sin tener que descargar nada de internet. Todas las celdas van como
+    // TEXTO (formato "@"), así Excel no transforma chips ni fechas.
+    const _CRC_TABLA = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+    function _crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = _CRC_TABLA[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+    function _zipSinComprimir(archivos) {
+        const enc = new TextEncoder(), partes = [], central = [];
+        let off = 0;
+        const fechaDos = ((new Date().getFullYear() - 1980) << 9) | ((new Date().getMonth() + 1) << 5) | new Date().getDate();
+        archivos.forEach(f => {
+            const nb = enc.encode(f.nombre), d = typeof f.datos === 'string' ? enc.encode(f.datos) : f.datos, crc = _crc32(d);
+            const h = new DataView(new ArrayBuffer(30));
+            h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0, true); h.setUint16(8, 0, true);
+            h.setUint16(10, 0, true); h.setUint16(12, fechaDos, true); h.setUint32(14, crc, true);
+            h.setUint32(18, d.length, true); h.setUint32(22, d.length, true); h.setUint16(26, nb.length, true); h.setUint16(28, 0, true);
+            partes.push(new Uint8Array(h.buffer), nb, d);
+            const c = new DataView(new ArrayBuffer(46));
+            c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0, true); c.setUint16(10, 0, true);
+            c.setUint16(12, 0, true); c.setUint16(14, fechaDos, true); c.setUint32(16, crc, true); c.setUint32(20, d.length, true); c.setUint32(24, d.length, true);
+            c.setUint16(28, nb.length, true); c.setUint16(30, 0, true); c.setUint16(32, 0, true); c.setUint16(34, 0, true); c.setUint16(36, 0, true);
+            c.setUint32(38, 0, true); c.setUint32(42, off, true);
+            central.push(new Uint8Array(c.buffer), nb);
+            off += 30 + nb.length + d.length;
         });
+        const tamCentral = central.reduce((s, p) => s + p.length, 0);
+        const e = new DataView(new ArrayBuffer(22));
+        e.setUint32(0, 0x06054b50, true); e.setUint16(4, 0, true); e.setUint16(6, 0, true);
+        e.setUint16(8, archivos.length, true); e.setUint16(10, archivos.length, true);
+        e.setUint32(12, tamCentral, true); e.setUint32(16, off, true); e.setUint16(20, 0, true);
+        return [...partes, ...central, new Uint8Array(e.buffer)];
     }
-
-    // Devuelve { csv: Blob, xlsx: Blob|null } con el contenido del fichero MITECO
-    async function construirMitecoCsvXlsx(filas) {
+    function _xmlTxt(v) { return String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function _colLetra(i) { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+    // filas: array de arrays (la primera, la cabecera). Devuelve los trozos del .xlsx
+    function construirXlsx(filas, anchos) {
+        const ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+        const cols = anchos ? '<cols>' + anchos.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>' : '';
+        const datos = filas.map((f, r) => `<row r="${r + 1}">` + f.map((v, c) => (v === '' || v == null) ? '' :
+            `<c r="${_colLetra(c)}${r + 1}" t="inlineStr" s="1"><is><t xml:space="preserve">${_xmlTxt(v)}</t></is></c>`).join('') + '</row>').join('');
+        const cab = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+        return _zipSinComprimir([
+            { nombre: '[Content_Types].xml', datos: cab + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+            { nombre: '_rels/.rels', datos: cab + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+            { nombre: 'xl/workbook.xml', datos: cab + `<workbook xmlns="${ns}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Hoja1" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+            { nombre: 'xl/_rels/workbook.xml.rels', datos: cab + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+            { nombre: 'xl/styles.xml', datos: cab + `<styleSheet xmlns="${ns}"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` },
+            { nombre: 'xl/worksheets/sheet1.xml', datos: cab + `<worksheet xmlns="${ns}">${cols}<sheetData>${datos}</sheetData></worksheet>` }
+        ]);
+    }
+    // Excel MITECO (alta o baja): cabecera oficial de 31 columnas + las filas dadas
+    function excelMiteco(filas) {
         const cabecera = MITECO_CSV_HEADERS.split(';');
-        const csvContent = [MITECO_CSV_HEADERS, ...filas.map(f => f.join(';'))].join('\r\n');
-        // CSV en latin-1 para máxima compatibilidad con MITECO (igual que siempre)
-        const latin1 = new Uint8Array([...csvContent].map(c => { const code = c.charCodeAt(0); return code <= 255 ? code : 63; }));
-        const csv = new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' });
-        let xlsx = null;
-        try {
-            const X = await cargarSheetJS();
-            const ws = X.utils.aoa_to_sheet([cabecera, ...filas]);
-            // Todo como TEXTO, para que Excel no convierta chips ni fechas
-            Object.keys(ws).forEach(k => { if (k[0] !== '!') { ws[k].t = 's'; ws[k].v = String(ws[k].v); ws[k].z = '@'; } });
-            ws['!cols'] = cabecera.map((h, i) => ({ wch: i === 15 ? 34 : Math.max(10, Math.min(24, h.length + 2)) }));
-            const wb = X.utils.book_new();
-            X.utils.book_append_sheet(wb, ws, 'MITECO');
-            xlsx = new Blob([X.write(wb, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        } catch (e) { console.warn('Excel no generado:', e); }
-        return { csv, xlsx };
+        const anchos = cabecera.map((h, i) => i === 15 ? 36 : Math.max(10, Math.min(26, h.length + 2)));
+        return new Blob(construirXlsx([cabecera, ...filas], anchos), { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     }
 
     function descargarBlob(blob, nombre) {
@@ -6346,18 +6373,35 @@
         const a = document.createElement('a');
         a.href = url; a.download = nombre;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
-    async function descargarMitecoCsvXlsx(filas, nombreBase) {
-        const { csv, xlsx } = await construirMitecoCsvXlsx(filas);
-        descargarBlob(csv, nombreBase + '.csv');
-        if (xlsx) setTimeout(() => descargarBlob(xlsx, nombreBase + '.xlsx'), 600);
-        else alert('⚠️ Se ha descargado el CSV, pero no se ha podido generar el Excel (.xlsx). Revisa la conexión y vuelve a intentarlo si lo necesitas.');
+    // ── 29/09/2026: PANEL DE DESCARGAS — un botón por archivo ──
+    // El iPhone solo deja descargar un archivo por toque: si la app lanza varias descargas
+    // seguidas, bloquea las siguientes. Por eso los documentos se ofrecen con un botón cada uno.
+    let _panelArchivos = [];
+    function panelDescargas(titulo, archivos, htmlArriba, htmlAbajo) {
+        _panelArchivos.forEach(a => { try { URL.revokeObjectURL(a.url); } catch (e) {} });
+        _panelArchivos = archivos.map(a => ({ ...a, url: URL.createObjectURL(a.blob) }));
+        const ico = n => /\.pdf$/i.test(n) ? '📄' : (/\.xlsx$/i.test(n) ? '📊' : '⬇');
+        const botones = _panelArchivos.map((a, i) => `
+            <button id="panel-arch-${i}" onclick="panelDescargar(${i})" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--tarjeta2);border:1px solid var(--borde);border-radius:10px;padding:10px 12px;margin-bottom:6px;color:var(--texto);font-family:Rajdhani,sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;">
+                <span style="font-size:1.1rem;">${ico(a.nombre)}</span><span style="flex:1;min-width:0;word-break:break-all;">${a.nombre}</span><span class="pa-est" style="color:var(--azul);white-space:nowrap;">⬇ DESCARGAR</span>
+            </button>`).join('');
+        const todos = _panelArchivos.length > 1 ? `<div style="text-align:center;margin:2px 0 8px;"><span onclick="panelDescargarTodos()" style="font-size:0.72rem;color:var(--texto2);cursor:pointer;text-decoration:underline;">Descargar todos a la vez (ordenador)</span></div>` : '';
+        saraPanel(titulo, `${htmlArriba || ''}${botones}${todos}${htmlAbajo || ''}`);
     }
+    window.panelDescargar = function(i) {
+        const a = _panelArchivos[i]; if (!a) return;
+        const x = document.createElement('a'); x.href = a.url; x.download = a.nombre;
+        document.body.appendChild(x); x.click(); document.body.removeChild(x);
+        const est = document.querySelector(`#panel-arch-${i} .pa-est`);
+        if (est) { est.textContent = '✓ DESCARGADO'; est.style.color = 'var(--verde)'; }
+    };
+    window.panelDescargarTodos = function() { _panelArchivos.forEach((a, i) => setTimeout(() => panelDescargar(i), i * 700)); };
 
     window.exportarCSV = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede exportar el CSV a MITECO.'); // 24/09/2026: permisos Martín
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede generar el Excel para MITECO.'); // 24/09/2026: permisos Martín
         const animales = window._csvAnimales || [];
         if (!animales.length) return alert('No hay animales con chip para exportar.');
 
@@ -6372,11 +6416,12 @@
         const [ym, mm, dm] = fechaMarcadoIso.split('-');
         const fechaMarcado = `${dm}/${mm}/${ym}`;
 
-        // 29/09/2026: el mismo contenido se descarga en .csv y en .xlsx (Excel) a la vez
+        // 29/09/2026: fichero MITECO en EXCEL (la red SARA no admite CSV). Se descarga en el mismo
+        // toque del botón (sin esperas antes) para que el iPhone no lo bloquee.
         const puestaId = document.getElementById('csv-puesta-id').value;
         const puesta   = histBio.find(x => x.id === puestaId);
         const nombreBase = puesta ? `MITECO_${puesta.idPuesta || puesta.especie}` : 'MITECO_export';
-        await descargarMitecoCsvXlsx(filasMitecoAlta(seleccionados, fechaMarcado), nombreBase);
+        descargarBlob(excelMiteco(filasMitecoAlta(seleccionados, fechaMarcado)), nombreBase + '.xlsx');
 
         // Marcar como "CSV exportado" los nacimientos cuyos chips se han incluido POR COMPLETO
         // en este envío (si solo se ha exportado una parte, se deja pendiente para no dar por
@@ -6390,7 +6435,7 @@
                     await updateDoc(doc(db, 'bio', nacId), { csvExportado: true, fechaCSVExportado: fechaMarcado, fechaEnvioCSV: (d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`)(new Date()) });
                 }
             }
-            registrarAuditoria('nuevo', 'miteco', `CSV MITECO exportado: ${seleccionados.length} animal(es) · ${puesta ? (puesta.idPuesta || puesta.detalle) : ''}`);
+            registrarAuditoria('nuevo', 'miteco', `Excel MITECO generado: ${seleccionados.length} animal(es) · ${puesta ? (puesta.idPuesta || puesta.detalle) : ''}`);
         } catch(e) { console.warn('No se pudo marcar el nacimiento como exportado en MITECO:', e); }
 
         cerrarModalCSV();
@@ -6974,6 +7019,7 @@
             const fechaHoy = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
             const fechaHoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
             const { PDFDocument, StandardFonts, rgb } = PDFLib;
+            const archivosCesion = []; // 29/09/2026: se ofrecen al final con un botón cada uno (iPhone)
             for (const it of items) {
                 const pdfDoc = await PDFDocument.load(templateBytes);
                 const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -6986,12 +7032,7 @@
                 txt(100, 329, nombreCesion); txt(155, 313, '1'); txt(175, 283, String(it.anyo));
                 txt(100, 267, it.c.cites || ''); txt(145, 252, String(it.c.numero));
                 txt(110, 160, 'LORCA'); txt(390, 160, fechaHoy);
-                const blob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url;
-                a.download = `Cesion_${it.especie}_chip${it.c.numero}_${fechaHoy.replace(/\//g,'-')}.pdf`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                archivosCesion.push({ nombre: `Cesion_${it.especie}_chip${it.c.numero}_${fechaHoy.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) });
             }
             for (const it of items) {
                 await updateDoc(doc(db, 'chips', it.c.id), { cedido: true, fechaCesion: it.c.fechaCesion || fechaHoy, compradorNombre: comprador.nombre || it.c.compradorNombre || 'Sin datos', docCesionGenerado: true, docCesionPendiente: false });
@@ -7000,21 +7041,16 @@
                 }
             }
             registrarAuditoria('nuevo', 'cesion', `Cesión${opciones.sinVenta ? ' sin venta' : ' (venta)'}: ${items.length} animal(es) · ${comprador.nombre || 'Sin comprador'} · ${items.map(x => x.c.numero).join(', ')}`);
-            // CSV de baja MITECO
+            // Excel de baja MITECO (29/09/2026: ya no CSV)
             const filas = items.map(it => {
                 const m = MITECO_ESPECIES[it.especie] || { genero: (it.especie||'').toUpperCase(), especie: (it.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
                 return [MITECO_CRIADOR, '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '', 'D', 'C', '', '',
-                    'MICROCHIP Nº: ' + fmtChip(it.c.numero), '', '', '', '', '', '', 'B', fechaHoy, 'CE', '', '', fechaHoy, '', '', comprador.nombre || ''].join(';');
+                    'MICROCHIP Nº: ' + fmtChip(it.c.numero), '', '', '', '', '', '', 'B', fechaHoy, 'CE', '', '', fechaHoy, '', '', comprador.nombre || ''];
             });
-            const csv = [MITECO_CSV_HEADERS, ...filas].join('\r\n');
-            const latin1 = new Uint8Array([...csv].map(ch => { const code = ch.charCodeAt(0); return code <= 255 ? code : 63; }));
-            const csvUrl = URL.createObjectURL(new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' }));
             const esp = [...new Set(items.map(x => x.especie))].join('-');
-            const csvA = document.createElement('a'); csvA.href = csvUrl;
-            csvA.download = `MITECO_BAJA_CESION_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.csv`;
-            document.body.appendChild(csvA); csvA.click(); document.body.removeChild(csvA);
-            setTimeout(() => URL.revokeObjectURL(csvUrl), 5000);
-            alert(`✅ Documento(s) de cesión generado(s).\n📋 CSV de baja MITECO descargado (${items.length} animal${items.length > 1 ? 'es' : ''}).`);
+            archivosCesion.push({ nombre: `MITECO_BAJA_CESION_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.xlsx`, blob: excelMiteco(filas) });
+            panelDescargas('📄 CESIÓN GENERADA', archivosCesion,
+                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${items.length} documento(s) de cesión y el Excel de baja para MITECO. Descarga cada uno con su botón:</div>`);
             return true;
         } catch (err) { alert('Error al generar la cesión: ' + err.message); return false; }
     }
@@ -7313,6 +7349,7 @@
             }
 
             // ── Un documento PDF por cada reproductor ──
+            const archivosCesion = []; // 29/09/2026: se ofrecen al final con un botón cada uno (iPhone)
             for (const p of reprosACeder) {
                 const { PDFDocument, StandardFonts, rgb } = PDFLib;
                 const pdfDoc = await PDFDocument.load(templateBytes);
@@ -7342,14 +7379,7 @@
                 txt(110, 160, 'LORCA');
                 txt(390, 160, fechaHoy);
 
-                const pdfBytes = await pdfDoc.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                a.href     = url;
-                a.download = `Cesion_${p.especie}_${(p.marca || p.idEspecimen || p.nombre).replace(/[^\w-]/g,'')}_${fechaHoy.replace(/\//g,'-')}.pdf`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                archivosCesion.push({ nombre: `Cesion_${p.especie}_${(p.marca || p.idEspecimen || p.nombre).replace(/[^\w-]/g,'')}_${fechaHoy.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) });
             }
 
             // Marcar reproductores como retirados del plantel (deja de aparecer como
@@ -7359,9 +7389,7 @@
             }
             registrarAuditoria('nuevo', 'cesion', `Cesión de reproductor(es): ${reprosACeder.map(p=>p.nombre).join(', ')} · ${comprador.nombre || 'Sin comprador'}`);
 
-            // ── BAJA AUTOMÁTICA MITECO (mismo formato que para crías) ──
-            const headers = MITECO_CSV_HEADERS;
-
+            // ── BAJA AUTOMÁTICA MITECO en Excel (mismo formato que para crías) ──
             const filasBaja = reprosACeder.map(p => {
                 const marcaFmt = p.marca && p.marca.length === 15
                     ? p.marca.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
@@ -7376,24 +7404,12 @@
                     'B', fechaHoy, 'CE', '', '',
                     fechaHoy, '', '',
                     comprador.nombre || ''
-                ].join(';');
+                ];
             });
-
-            const csvContent = [headers, ...filasBaja].join('\r\n');
-            const latin1 = new Uint8Array([...csvContent].map(c => {
-                const code = c.charCodeAt(0);
-                return code <= 255 ? code : 63;
-            }));
-            const csvBlob = new Blob([latin1], { type: 'text/csv;charset=iso-8859-1;' });
-            const csvUrl  = URL.createObjectURL(csvBlob);
-            const csvA    = document.createElement('a');
-            csvA.href     = csvUrl;
-            csvA.download = `MITECO_BAJA_CESION_reproductores_${fechaHoy.replace(/\//g,'-')}.csv`;
-            document.body.appendChild(csvA); csvA.click(); document.body.removeChild(csvA);
-            setTimeout(() => URL.revokeObjectURL(csvUrl), 5000);
-
-            alert(`✅ Documento(s) de cesión generado(s).\n📋 CSV de baja MITECO descargado (${reprosACeder.length} reproductor${reprosACeder.length>1?'es':''}).`);
+            archivosCesion.push({ nombre: `MITECO_BAJA_CESION_reproductores_${fechaHoy.replace(/\//g,'-')}.xlsx`, blob: excelMiteco(filasBaja) });
             cesionCargarReproductores();
+            panelDescargas('📄 CESIÓN GENERADA', archivosCesion,
+                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${reprosACeder.length} documento(s) de cesión y el Excel de baja para MITECO. Descarga cada uno con su botón:</div>`);
 
         } catch(err) {
             alert('Error al generar PDF: ' + err.message);
@@ -7576,14 +7592,14 @@
                         <div style="font-size:0.78rem;color:var(--texto2);margin-bottom:6px;">📅 ${nac.fecha||'—'} · ${nac.cant||'?'} crías · 💉 ${chips.length > 1 ? chips.length+' chips' : chips[0]}</div>
                         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
                             ${paso(e.tieneDoc,'Doc. Vet')}
-                            ${paso(e.tieneCSV,'CSV MITECO')}
+                            ${paso(e.tieneCSV,'Excel MITECO')}
                             ${esRadiata ? paso(e.tieneCITES,'CITES') : ''}
                         </div>
                         <div style="display:flex;flex-wrap:wrap;gap:6px;">
                             <button onclick="abrirDocsNacimiento('${nac.id}')" style="${btnStyle('rgba(255,255,255,0.15)','rgba(255,255,255,0.05)','var(--texto2)')}">📎 DOCS</button>
                             <button onclick="generarPDFPyNDesdeNac('${nac.id}')" style="${btnStyle('rgba(255,112,67,0.35)','rgba(255,112,67,0.1)','var(--naranja)')}">📋 PyN PDF</button>
                             <button onclick="abrirVetDesdeMiteco('${nac.id}')" style="${btnStyle('rgba(255,112,67,0.4)','rgba(255,112,67,0.1)','var(--naranja)')}">🩺 VET</button>
-                            <button onclick="abrirCSVDesdeMiteco('${nac.id}')" style="${btnStyle('rgba(76,175,80,0.4)','rgba(76,175,80,0.1)','var(--verde)')}">📤 CSV</button>
+                            <button onclick="abrirCSVDesdeMiteco('${nac.id}')" style="${btnStyle('rgba(76,175,80,0.4)','rgba(76,175,80,0.1)','var(--verde)')}">📊 EXCEL</button>
                             ${esRadiata ? `<button onclick="generarTodosCITES('${nac.id}','${nac.fecha}')" style="${btnStyle('rgba(255,112,67,0.4)','rgba(255,112,67,0.1)','var(--naranja)')}">📄 CITES</button>` : ''}
                         </div>`;
                     body.appendChild(nacDiv);
@@ -7833,14 +7849,14 @@
                     <div style="font-size:0.78rem;color:var(--texto2);margin-bottom:6px;">📅 ${nac.fecha||'—'} · ${nac.cant||'?'} crías · 💉 ${chips.length > 1 ? chips.length+' chips' : chips[0]}</div>
                     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
                         ${paso(e.tieneDoc,'Doc. Vet')}
-                        ${paso(e.tieneCSV,'CSV MITECO')}
+                        ${paso(e.tieneCSV,'Excel MITECO')}
                         ${esRadiata ? paso(e.tieneCITES,'CITES') : ''}
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;">
                         <button onclick="abrirDocsNacimiento('${nac.id}')" style="${btnStyle('rgba(255,255,255,0.15)','rgba(255,255,255,0.05)','var(--texto2)')}">📎 DOCS</button>
                         <button onclick="generarPDFPyNDesdeNac('${nac.id}')" style="${btnStyle('rgba(255,112,67,0.35)','rgba(255,112,67,0.1)','var(--naranja)')}">📋 PyN PDF</button>
                         <button onclick="abrirVetDesdeMiteco('${nac.id}')" style="${btnStyle('rgba(255,112,67,0.4)','rgba(255,112,67,0.1)','var(--naranja)')}">🩺 VET</button>
-                        <button onclick="abrirCSVDesdeMiteco('${nac.id}')" style="${btnStyle('rgba(76,175,80,0.4)','rgba(76,175,80,0.1)','var(--verde)')}">📤 CSV</button>
+                        <button onclick="abrirCSVDesdeMiteco('${nac.id}')" style="${btnStyle('rgba(76,175,80,0.4)','rgba(76,175,80,0.1)','var(--verde)')}">📊 EXCEL</button>
                         ${esRadiata ? `<button onclick="generarTodosCITES('${nac.id}','${nac.fecha}')" style="${btnStyle('rgba(255,112,67,0.4)','rgba(255,112,67,0.1)','var(--naranja)')}">📄 CITES</button>` : ''}
                     </div>`;
                 body.appendChild(nacCard);
