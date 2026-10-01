@@ -173,6 +173,7 @@
         .card-sara .cs-num { background: #ffb547; color: #2a1c05; border-radius: 999px; padding: 0 8px; font-size: 0.74rem; letter-spacing: 0; }
         .card-sara .cs-chev { color: var(--texto2); font-size: 0.8rem; }
         .card-sara .cs-b.ok { background: rgba(90,156,104,0.22); border-color: var(--verde); color: var(--verde); }
+        .card-sara .cs-b.listo { background: var(--azul); border-color: var(--azul); color: #0d1220; }
         .card-sara .cs-p.hecha { border-color: rgba(90,156,104,0.8); background: rgba(90,156,104,0.08); }
         .card-sara .cs-p.hecha .cs-m { color: var(--verde); font-weight: 700; }
         .card-sara .cs-undo { display: inline-block; margin-top: 6px; font-size: 0.7rem; color: var(--texto2); text-decoration: underline; cursor: pointer; }
@@ -4293,6 +4294,77 @@
         document.getElementById('modal-visor').classList.add('active');
     }
 
+    // 01/10/2026: monta el PDF conjunto de una puesta (PyN + hoja firmada + certificado oficial).
+    // Devuelve { blob, nombre, avisos } o null si no se ha podido.
+    async function construirPdfSara(puestaId) {
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return null;
+        const est = pyn2EstadoPuesta(p);
+        const d = pyn2DatosCert(est.todosNacs);
+        const { PDFDocument } = PDFLib;
+        const pdfFinal = await PDFDocument.create();
+        const avisos = [];
+        const pynBytes = await generarPDFPyN(p.idPareja, puestaId, { soloBytes: true });
+        if (!pynBytes) return null;
+        const pyn = await PDFDocument.load(pynBytes);
+        (await pdfFinal.copyPages(pyn, pyn.getPageIndices())).forEach(pg => pdfFinal.addPage(pg));
+        if (d.hoja && !SARA_HOJA_APARTE) await anadirAlPdfConjunto(pdfFinal, d.hoja, 'Hoja firmada', avisos);
+        if (d.oficial) await anadirAlPdfConjunto(pdfFinal, d.oficial, 'Certificado oficial', avisos);
+        return { blob: new Blob([await pdfFinal.save()], { type: 'application/pdf' }), nombre: `SARA_${p.idPuesta || p.detalle || 'PUESTA'}_documentacion.pdf`, avisos };
+    }
+    // Comprobaciones previas del PDF (crías, fecha de marcado, documentos que faltan). true = se puede seguir
+    function saraPdfComprobar(puestaId) {
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return false;
+        const est = pyn2EstadoPuesta(p);
+        const d = pyn2DatosCert(est.todosNacs);
+        if (!getAnimalesPorPuestas(p.combinadaCon ? [puestaId, p.combinadaCon] : [puestaId]).length) { alert('Esta puesta no tiene crías con chip.'); return false; }
+        if (!est.todosNacs.find(n => n.fechaMarcado)) { alert('Falta la fecha de marcado del certificado veterinario. Súbelo o márcalo como firmado antes.'); return false; }
+        const faltan = [!d.hoja ? '📄 la hoja de la app firmada' : '', !d.oficial ? '📜 el certificado oficial del Colegio' : ''].filter(Boolean);
+        if (faltan.length && !confirm(`⚠️ Falta por subir:\n\n${faltan.join('\n')}\n\nEl PDF saldrá sin ello. ¿Continuar?`)) return false;
+        return true;
+    }
+    const ES_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // 01/10/2026 (opción A aprobada por Patry): botón PDF del panel "Para presentar en SARA".
+    // · Ordenador: se monta y se descarga directamente, sin ventanas.
+    // · iPhone/iPad: Safari bloquea una descarga que no ocurre en el mismo toque, así que el
+    //   botón pasa a "⏳ preparando…" y, cuando está listo, a "⬇ DESCARGAR PDF" (segundo toque).
+    window._saraPdf = {}; // puestaId → { estado: 'prep' | 'listo', blob, nombre }
+    window.saraBotonPdf = async function(puestaId) {
+        if (!usuarioActual) return;
+        const c = window._saraPdf[puestaId];
+        if (c && c.estado === 'prep') return;
+        if (c && c.estado === 'listo') {
+            descargarBlob(c.blob, c.nombre);
+            delete window._saraPdf[puestaId];
+            saraMarcarDescarga(puestaId, 'pdf');
+            renderPanelSara();
+            return;
+        }
+        if (!saraPdfComprobar(puestaId)) return;
+        window._saraPdf[puestaId] = { estado: 'prep' };
+        renderPanelSara();
+        try {
+            const r = await construirPdfSara(puestaId);
+            if (!r) { delete window._saraPdf[puestaId]; renderPanelSara(); return; }
+            const p = histBio.find(x => x.id === puestaId);
+            registrarAuditoria('nuevo', 'miteco', `PDF para red SARA preparado: ${p ? (p.idPuesta || p.detalle) : ''}`);
+            if (r.avisos.length) alert('⚠️ ' + r.avisos.join('\n⚠️ '));
+            if (ES_IOS) {
+                window._saraPdf[puestaId] = { estado: 'listo', blob: r.blob, nombre: r.nombre };
+            } else {
+                descargarBlob(r.blob, r.nombre);
+                delete window._saraPdf[puestaId];
+                saraMarcarDescarga(puestaId, 'pdf');
+            }
+        } catch (err) {
+            delete window._saraPdf[puestaId];
+            alert('No se ha podido preparar el PDF: ' + err.message);
+        }
+        renderPanelSara();
+    };
+
     window.pyn2PrepararSara = async function(puestaId, solo) {
         // 29/09/2026: abierto también a Martín (es quien presenta en SARA). Solo descarga archivos, no marca nada.
         // 30/09/2026: solo = 'excel' | 'pdf' (panel "Para presentar en SARA" de Inicio: un botón por archivo)
@@ -4314,24 +4386,14 @@
             saraMarcarDescarga(puestaId, 'excel');
             return;
         }
-        const faltan = [!d.hoja ? '📄 la hoja de la app firmada' : '', !d.oficial ? '📜 el certificado oficial del Colegio' : ''].filter(Boolean);
-        if (faltan.length && !confirm(`⚠️ Falta por subir:\n\n${faltan.join('\n')}\n\nEl PDF saldrá sin ello. ¿Continuar?`)) return;
+        if (!saraPdfComprobar(puestaId)) return;
         const idTxt = p.idPuesta || p.detalle || 'PUESTA';
         saraPanel('📦 PREPARANDO…', '<div style="text-align:center;color:var(--texto2);padding:30px 0;">⏳ Montando el PDF con toda la documentación…</div>');
         try {
-            const { PDFDocument } = PDFLib;
-            const pdfFinal = await PDFDocument.create();
-            const avisos = [];
-            // 1) PyN de la temporada (actualizado con la eclosión)
-            const pynBytes = await generarPDFPyN(p.idPareja, puestaId, { soloBytes: true });
-            if (!pynBytes) { cerrarVisor(); return; }
-            const pyn = await PDFDocument.load(pynBytes);
-            (await pdfFinal.copyPages(pyn, pyn.getPageIndices())).forEach(pg => pdfFinal.addPage(pg));
-            // 2) Hoja firmada del veterinario  3) Certificado oficial
-            if (d.hoja && !SARA_HOJA_APARTE) await anadirAlPdfConjunto(pdfFinal, d.hoja, 'Hoja firmada', avisos);
-            if (d.oficial) await anadirAlPdfConjunto(pdfFinal, d.oficial, 'Certificado oficial', avisos);
-            const nombrePdf = `SARA_${idTxt}_documentacion.pdf`;
-            const archivos = [{ nombre: nombrePdf, blob: new Blob([await pdfFinal.save()], { type: 'application/pdf' }), alDescargar: () => saraMarcarDescarga(puestaId, 'pdf') }];
+            const r = await construirPdfSara(puestaId);
+            if (!r) { cerrarVisor(); return; }
+            const avisos = r.avisos;
+            const archivos = [{ nombre: r.nombre, blob: r.blob, alDescargar: () => saraMarcarDescarga(puestaId, 'pdf') }];
             // 4) Excel MITECO (mismo contenido que el que se generó en el paso anterior)
             if (solo !== 'pdf') archivos.push({ nombre: `MITECO_${idTxt}.xlsx`, blob: excelMiteco(filasMitecoAlta(animales, conFecha.fechaMarcado)), alDescargar: () => saraMarcarDescarga(puestaId, 'excel') });
             if (d.hoja && SARA_HOJA_APARTE) { const h = await leerArchivoCualquiera(d.hoja); archivos.push({ nombre: `Hoja_firmada_${idTxt}.pdf`, blob: h.blob }); }
@@ -4339,7 +4401,7 @@
             panelDescargas(solo === 'pdf' ? '📄 PDF PREPARADO' : '📦 DOCUMENTACIÓN PREPARADA', archivos,
                 '<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">Descarga cada archivo con su botón:</div>',
                 `${avisos.length ? `<div style="color:var(--naranja);font-size:0.78rem;margin-top:6px;">⚠️ ${avisos.join('<br>⚠️ ')}</div>` : ''}
-                 <div style="margin-top:10px;color:var(--texto2);font-size:0.8rem;line-height:1.5;text-align:left;">Martín presenta los dos archivos en la red SARA. Cuando devuelva el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>`);
+                 <div style="margin-top:10px;color:var(--texto2);font-size:0.8rem;line-height:1.5;text-align:left;">${solo === 'pdf' ? 'Se presenta en la red SARA junto con el Excel de la puesta.' : 'Martín presenta los dos archivos en la red SARA.'} Cuando esté el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>`);
         } catch (err) {
             saraPanel('📦 ERROR', `<div style="color:var(--rojo);text-align:center;padding:20px 0;font-weight:700;">No se ha podido preparar: ${err.message}</div>`);
         }
@@ -5337,7 +5399,10 @@
                     <div class="cs-id">${x.ids}</div>
                     <div class="cs-m">${meta}</div>
                     <div class="cs-bs">
-                        <button class="cs-b${dPdf ? ' ok' : ''}"${tip(dPdf, 'saraDescargaPdf')} onclick="pyn2PrepararSara('${x.p.id}','pdf')">${dPdf ? '✓ ' : '📄 '}PDF</button>
+                        ${(() => { const c = window._saraPdf && window._saraPdf[x.p.id];
+                            if (c && c.estado === 'prep') return `<button class="cs-b" disabled style="opacity:.75;">⏳ preparando…</button>`;
+                            if (c && c.estado === 'listo') return `<button class="cs-b listo" onclick="saraBotonPdf('${x.p.id}')">⬇ DESCARGAR PDF</button>`;
+                            return `<button class="cs-b${dPdf ? ' ok' : ''}"${tip(dPdf, 'saraDescargaPdf')} onclick="saraBotonPdf('${x.p.id}')">${dPdf ? '✓ ' : '📄 '}PDF</button>`; })()}
                         <button class="cs-b${dXls ? ' ok' : ''}"${tip(dXls, 'saraDescargaExcel')} onclick="pyn2PrepararSara('${x.p.id}','excel')">${dXls ? '✓ ' : '📊 '}EXCEL</button>
                         <button class="cs-b just" onclick="abrirJustificanteSara('${x.p.id}')">🧾 JUSTIFICANTE</button>
                     </div>
