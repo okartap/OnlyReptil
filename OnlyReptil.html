@@ -173,6 +173,11 @@
         .card-sara .cs-num { background: #ffb547; color: #2a1c05; border-radius: 999px; padding: 0 8px; font-size: 0.74rem; letter-spacing: 0; }
         .card-sara .cs-chev { color: var(--texto2); font-size: 0.8rem; }
         .card-sara .cs-b.ok { background: rgba(90,156,104,0.22); border-color: var(--verde); color: var(--verde); }
+        .card-sara .cs-bloque { display: block; width: 100%; margin: 0 0 9px; padding: 9px; border-radius: 9px; border: 1px dashed rgba(90,156,104,0.7); background: rgba(90,156,104,0.10); color: var(--verde); font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+        .sb-f { text-align: left; font-size: 0.8rem; line-height: 1.5; background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 9px; padding: 8px 10px; margin-bottom: 6px; }
+        .sb-f.ok { border-color: rgba(90,156,104,0.6); }
+        .sb-f.dup { opacity: 0.7; }
+        .sb-f.err { border-color: rgba(239,83,80,0.5); color: var(--rojo); }
         .card-sara .cs-b.listo { background: var(--azul); border-color: var(--azul); color: #0d1220; }
         .card-sara .cs-p.hecha { border-color: rgba(90,156,104,0.8); background: rgba(90,156,104,0.08); }
         .card-sara .cs-p.hecha .cs-m { color: var(--verde); font-weight: 700; }
@@ -447,6 +452,7 @@
         <!-- 30/09/2026: PARA PRESENTAR EN SARA — panel sencillo para Martín (y Patry) con los
              archivos de cada puesta lista para presentar. Solo aparece si hay algo pendiente. -->
         <div id="card-sara" class="card-sara" style="display:none;"></div>
+        <input type="file" id="sara-bloque-input" accept="application/pdf" multiple style="display:none;" onchange="saraBloqueLeer(this)">
 
         <!-- Próximas eclosiones -->
         <div id="card-eclosiones" style="margin-top:16px;background:var(--tarjeta);border-radius:12px;padding:14px;border:1px solid var(--borde);text-align:center;display:none;">
@@ -3425,7 +3431,7 @@
             else if (estado.pasoSara) {
                 pasos.push(pyn2Paso('hecho', 'Presentado en red SARA',
                     nacSara ? [nacSara.saraNumRegistro ? `Registro <b>${nacSara.saraNumRegistro}</b>` : '', nacSara.saraFechaPresentacion ? `presentado ${nacSara.saraFechaPresentacion}` : ''].filter(Boolean).join(' · ') : 'Enviado por email (antes de la red SARA)',
-                    nacSara ? `<button class="btn-mini verde" onclick="verArchivo('${nacSara.saraJustificanteUrl}')">🧾 JUSTIFICANTE</button> <button class="btn-mini" onclick="abrirJustificanteSara('${p.id}')">🔄 CAMBIAR</button>` : ''));
+                    nacSara ? `<button class="btn-mini verde" onclick="verArchivo('${nacSara.saraJustificanteUrl}')">🧾 JUSTIFICANTE</button> ${(nacSara.saraJustificantesExtra || []).map((e, i) => `<button class="btn-mini verde" title="Complementario ${e.num}" onclick="verArchivo('${e.ref}')">📎 COMPLEMENTARIO${(nacSara.saraJustificantesExtra || []).length > 1 ? ' ' + (i + 1) : ''}</button> `).join('')}<button class="btn-mini" onclick="abrirJustificanteSara('${p.id}')">🔄 CAMBIAR</button>` : ''));
             } else {
                 pasos.push(pyn2Paso('actual', 'Presentar en red SARA y subir justificante',
                     'Prepara la documentación y pásasela a Martín: la presenta él con su firma electrónica. Sube aquí el justificante que devuelve SARA',
@@ -4418,7 +4424,9 @@
             texto += ' ' + (await page.getTextContent()).items.map(i => i.str).join(' ');
         }
         texto = texto.replace(/\s+/g, ' ');
-        const mNum = texto.match(/\b(REG[A-Z]{0,4}\d{2}[a-z]\d{6,})\b/) || texto.match(/N[úu]mero de registro:\s*([A-Za-z0-9]{8,})/i);
+        // 07/10/2026: primero por su etiqueta (el "Asunto" también puede llevar un nº REGAGE de otra presentación)
+        const mNum = texto.match(/N[úu]mero de registro:\s*(REG[A-Z]{0,4}\d{2}[a-z]\d{6,})/i) || texto.match(/\b(REG[A-Z]{0,4}\d{2}[a-z]\d{6,})\b/) || texto.match(/N[úu]mero de registro:\s*([A-Za-z0-9]{8,})/i);
+        const mAsunto = texto.match(/Asunto:\s*(REG[A-Z]{0,4}\d{2}[a-z]\d{6,})/i);
         let mF = texto.match(/Fecha y hora de presentaci[óo]n:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}:\d{2}(?::\d{2})?)/i)
               || texto.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}:\d{2}:\d{2})/);
         const anexos = [...texto.matchAll(/Nombre:\s*(.+?\.(?:pdf|xlsx|xls|csv|jpe?g|png|zip|odt|ods|docx?))(?=\s|$)/gi)].map(m => m[1].trim());
@@ -4427,12 +4435,144 @@
             num: mNum ? mNum[1] : '',
             fecha: mF ? `${mF[1].padStart(2, '0')}/${mF[2].padStart(2, '0')}/${mF[3]}` : '',
             hora: mF ? mF[4] : '',
+            asuntoReg: mAsunto ? mAsunto[1] : '',
             anexos,
             // identificador de puesta en los ficheros MITECO anexados (MITECO_SUL01-260517.xlsx / …_24-09-2026.csv)
-            idsPuesta: [...new Set(anexos.map(a => (a.match(/^MITECO_(.+?)\.(?:csv|xlsx|xls)$/i) || [])[1]).filter(Boolean).map(x => x.replace(/_\d{2}-\d{2}-\d{4}$/, '')))]
+            idsPuesta: [...new Set(anexos.map(a => (a.match(/^MITECO_(.+?)\.(?:csv|xlsx|xls)$/i) || [])[1]).filter(Boolean).map(x => x.replace(/\s*\(\d+\)$/, '').replace(/_\d{2}-\d{2}-\d{4}$/, '')))] // 07/10/2026: quita el " (1)" que añade el navegador al descargar dos veces
         };
     }
     window.leerJustificanteSara = leerJustificanteSara;
+
+    // ══════════════════════════════════════════════════════════════
+    // 07/10/2026 — SUBIDA DE VARIOS JUSTIFICANTES A LA VEZ (opción A aprobada por Patry)
+    // Martín presenta en SARA sin un orden fijo (a veces 2 puestas por presentación, a veces
+    // repite un justificante, a veces presenta los certificados aparte). Se eligen TODOS los PDF
+    // de golpe y la app los reparte leyendo su contenido:
+    //  · Justificante con ficheros MITECO_<puesta>.xlsx → justificante principal de esas puestas.
+    //  · Mismo nº de registro repetido → duplicado, se descarta.
+    //  · Sin Excel pero con "Asunto: REGAGE…" de otra presentación → justificante COMPLEMENTARIO
+    //    de las mismas puestas (se guarda en saraJustificantesExtra).
+    // Antes de guardar se enseña un resumen y hay que confirmar.
+    // ══════════════════════════════════════════════════════════════
+    window._saraBloque = null;
+    window.saraBloqueElegir = function() {
+        if (!usuarioActual) return;
+        const inp = document.getElementById('sara-bloque-input');
+        if (inp) { inp.value = ''; inp.click(); }
+    };
+    function saraNacsDePuestas(puestas) {
+        const nacs = [];
+        puestas.forEach(q => pyn2EstadoPuesta(q).todosNacs.forEach(n => { if (!nacs.some(x => x.id === n.id)) nacs.push(n); }));
+        return nacs;
+    }
+    window.saraBloqueLeer = async function(input) {
+        const files = Array.from(input.files || []).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+        if (!files.length) return;
+        saraPanel('📥 LEYENDO JUSTIFICANTES…', `<div style="text-align:center;color:var(--texto2);padding:30px 0;">⏳ Leyendo ${files.length} PDF…</div>`);
+        const leidos = [];
+        for (const f of files) {
+            try { leidos.push({ file: f, L: await leerJustificanteSara(f) }); }
+            catch (e) { leidos.push({ file: f, L: null }); }
+        }
+        // 1) Plan: principales, duplicados, complementarios, errores
+        const filas = [], porNum = {}, principales = [];
+        leidos.forEach(({ file, L }) => {
+            if (!L || !L.esJustificante || !L.num) { filas.push({ file, tipo: 'error', txt: 'No parece un justificante de la red SARA' }); return; }
+            if (porNum[L.num]) { filas.push({ file, L, tipo: 'dup', txt: `Duplicado de ${porNum[L.num].file.name} (mismo nº de registro)` }); return; }
+            const fila = { file, L };
+            porNum[L.num] = fila;
+            if (L.idsPuesta.length) {
+                fila.tipo = 'principal';
+                fila.puestas = []; fila.noEncontradas = [];
+                L.idsPuesta.forEach(id => {
+                    const q = saraPuestaPorId(id);
+                    if (!q) fila.noEncontradas.push(id);
+                    else if (!fila.puestas.some(x => x.id === q.id)) fila.puestas.push(q);
+                });
+                principales.push(fila);
+            } else fila.tipo = 'complemento';
+            filas.push(fila);
+        });
+        // Puestas que ya tienen justificante: mismo nº → ya subido; distinto → no se toca
+        principales.forEach(fila => {
+            fila.yaIgual = []; fila.yaOtro = []; fila.asignar = [];
+            fila.puestas.forEach(q => {
+                const nacSara = pyn2EstadoPuesta(q).todosNacs.find(n => n.saraJustificanteUrl);
+                if (nacSara && nacSara.saraNumRegistro === fila.L.num) fila.yaIgual.push(q);
+                else if (nacSara) fila.yaOtro.push({ q, num: nacSara.saraNumRegistro || '?' });
+                else fila.asignar.push(q);
+            });
+        });
+        // Complementarios: el "Asunto" apunta a otra presentación (de este lote o ya guardada)
+        filas.filter(f => f.tipo === 'complemento').forEach(fila => {
+            const ref = fila.L.asuntoReg;
+            let puestas = [];
+            if (ref && porNum[ref] && porNum[ref].tipo === 'principal') puestas = porNum[ref].puestas;
+            else if (ref) {
+                const ids = new Set(histBio.filter(n => n.tipo === 'nacimiento' && n.saraNumRegistro === ref).map(n => n.idPuestaOrigen));
+                puestas = histBio.filter(b => b.tipo === 'puesta' && ids.has(b.id) && !pyn2EsSecundaria(b));
+            }
+            fila.puestas = puestas;
+            fila.yaIgual = puestas.filter(q => saraNacsDePuestas([q]).some(n => (n.saraJustificantesExtra || []).some(e => e.num === fila.L.num)));
+            fila.asignar = puestas.filter(q => !fila.yaIgual.includes(q));
+            if (!puestas.length) { fila.tipo = 'error'; fila.txt = ref ? `Complementa al registro ${ref}, que no está en la app ni en este lote` : 'No lleva ningún Excel MITECO ni hace referencia a otra presentación'; }
+        });
+        window._saraBloque = { filas };
+        // 2) Resumen
+        const nom = q => q.idPuesta || q.detalle;
+        const html = filas.map(f => {
+            const cab = `<div style="font-size:0.72rem;color:var(--texto2);word-break:break-all;">${f.file.name}</div>`;
+            if (f.tipo === 'error') return `<div class="sb-f err">${cab}❌ ${f.txt}</div>`;
+            if (f.tipo === 'dup') return `<div class="sb-f dup">${cab}⏭️ ${f.txt} — se descarta</div>`;
+            const lin = [`<b>${f.L.num}</b> · ${f.L.fecha}${f.L.hora ? ' ' + f.L.hora : ''}`];
+            if (f.tipo === 'complemento') lin.push(`📎 Complementario de ${f.L.asuntoReg}`);
+            if (f.asignar.length) lin.push(`✅ ${f.asignar.map(nom).join(' + ')}`);
+            if (f.yaIgual.length) lin.push(`<span style="color:var(--texto2);">✓ Ya subido en ${f.yaIgual.map(nom).join(', ')}</span>`);
+            (f.yaOtro || []).forEach(o => lin.push(`<span style="color:var(--naranja);">⚠️ ${nom(o.q)} ya tiene otro justificante (${o.num}) — no se toca. Si es un error, cámbialo desde su tarjeta de PyN</span>`));
+            (f.noEncontradas || []).forEach(id => lin.push(`<span style="color:var(--naranja);">⚠️ ${id}: no existe en la app</span>`));
+            return `<div class="sb-f${f.asignar.length ? ' ok' : ''}">${cab}${lin.join('<br>')}</div>`;
+        }).join('');
+        const nGuardar = filas.filter(f => (f.tipo === 'principal' || f.tipo === 'complemento') && f.asignar.length).length;
+        saraPanel('📥 JUSTIFICANTES', `
+            <div style="font-size:0.78rem;color:var(--texto2);margin-bottom:8px;text-align:left;">Revisa el reparto antes de guardar:</div>
+            ${html}
+            ${nGuardar ? `<button class="btn-save" style="background:var(--verde);color:#0a0a0a;margin-top:8px;" onclick="saraBloqueGuardar(this)">GUARDAR ${nGuardar} JUSTIFICANTE${nGuardar !== 1 ? 'S' : ''}</button>`
+                       : '<div style="text-align:center;color:var(--texto2);font-size:0.8rem;margin-top:8px;">No hay nada nuevo que guardar.</div>'}`);
+    };
+    window.saraBloqueGuardar = async function(btn) {
+        const B = window._saraBloque; if (!B || !usuarioActual) return;
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando…'; }
+        const extrasPorNac = {}; // acumulado para no pisar complementarios dentro del mismo lote
+        let hechos = 0;
+        try {
+            for (const f of B.filas.filter(x => x.tipo === 'principal' && x.asignar.length)) {
+                const ref = await guardarArchivoFS(f.file, { nombre: f.file.name, tipo: 'application/pdf', carpeta: `docs_sara/${f.asignar[0].id}` });
+                const cambios = { saraJustificanteUrl: ref, saraNumRegistro: f.L.num, saraFechaPresentacion: f.L.fecha, saraHoraPresentacion: f.L.hora || '' };
+                for (const n of saraNacsDePuestas(f.asignar)) await updateDoc(doc(db, 'bio', n.id), cambios);
+                registrarAuditoria('edicion', 'miteco', `Justificante red SARA ${f.L.num} · presentado ${f.L.fecha} · ${f.asignar.map(q => q.idPuesta || q.detalle).join(', ')} (subida en bloque)`);
+                hechos++;
+            }
+            for (const f of B.filas.filter(x => x.tipo === 'complemento' && x.asignar.length)) {
+                const ref = await guardarArchivoFS(f.file, { nombre: f.file.name, tipo: 'application/pdf', carpeta: `docs_sara/${f.asignar[0].id}` });
+                const extra = { ref, num: f.L.num, fecha: f.L.fecha, hora: f.L.hora || '', complementaA: f.L.asuntoReg || '' };
+                for (const n of saraNacsDePuestas(f.asignar)) {
+                    const lista = extrasPorNac[n.id] || (n.saraJustificantesExtra || []).slice();
+                    if (!lista.some(e => e.num === extra.num)) lista.push(extra);
+                    extrasPorNac[n.id] = lista;
+                    await updateDoc(doc(db, 'bio', n.id), { saraJustificantesExtra: lista });
+                }
+                registrarAuditoria('edicion', 'miteco', `Justificante complementario red SARA ${f.L.num} (de ${f.L.asuntoReg}) · ${f.asignar.map(q => q.idPuesta || q.detalle).join(', ')}`);
+                hechos++;
+            }
+            window._saraBloque = null;
+            saraPanel('📥 JUSTIFICANTES', `<div style="text-align:center;padding:20px 0;font-size:0.9rem;color:var(--verde);font-weight:700;">✅ ${hechos} justificante${hechos !== 1 ? 's' : ''} guardado${hechos !== 1 ? 's' : ''}.</div>
+                <div style="text-align:center;color:var(--texto2);font-size:0.8rem;">Las puestas pasan a "Presentadas · esperando a MITECO" con su fecha de presentación.</div>`);
+            renderPanelSara();
+        } catch (err) {
+            if (btn) { btn.disabled = false; btn.textContent = 'REINTENTAR'; }
+            alert(mensajeErrorSubida(err) + (hechos ? `\n\n(Se llegaron a guardar ${hechos} antes del error; al reintentar saldrán como "ya subido".)` : ''));
+        }
+    };
 
     // Puestas (principales) pendientes de justificante cuyo identificador coincide
     function saraPuestaPorId(idTxt) {
@@ -5387,7 +5527,8 @@
         let h = `<div class="cs-tit" onclick="saraPlegar()">📤 Para presentar en SARA <span class="cs-num">${total}</span> <span class="cs-chev">${plegado ? '▼' : '▲'}</span></div>`;
         if (plegado) { card.innerHTML = h; return; }
         if (pendientes.length) {
-            h += `<div class="cs-sub">Descarga los 2 archivos, preséntalos y sube el justificante</div>`;
+            h += `<div class="cs-sub">Descarga los 2 archivos, preséntalos y sube el justificante</div>
+                  <button class="cs-bloque" onclick="saraBloqueElegir()">📥 SUBIR JUSTIFICANTES <span style="font-weight:400;opacity:.8;">(varios a la vez)</span></button>`;
             h += pendientes.map(x => {
                 const dPdf = x.est.todosNacs.find(n => n.saraDescargaPdf);
                 const dXls = x.est.todosNacs.find(n => n.saraDescargaExcel);
@@ -5414,7 +5555,7 @@
             h += `<div class="cs-h2">✅ Presentadas · esperando a MITECO</div>`;
             h += presentadas.map(x => `<div class="cs-r">
                     <span><b>${x.ids}</b><br><span style="color:var(--texto2);font-size:0.7rem;">presentada ${x.nacSara.saraFechaPresentacion || '—'}${x.dias !== null ? ` · ${x.dias} día${x.dias !== 1 ? 's' : ''}` : ''}</span></span>
-                    <span class="ok" onclick="verArchivo('${x.nacSara.saraJustificanteUrl}')">🧾 ✓ Subido</span>
+                    <span style="white-space:nowrap;"><span class="ok" onclick="verArchivo('${x.nacSara.saraJustificanteUrl}')">🧾 ✓ Subido</span>${(x.nacSara.saraJustificantesExtra || []).map((e, i) => ` <span class="ok" title="Complementario ${e.num}" onclick="verArchivo('${e.ref}')">(+${i + 1})</span>`).join('')}</span>
                 </div>`).join('');
         }
         card.innerHTML = h;
