@@ -7133,11 +7133,27 @@
         cesion: { x: 50,  y: 101, w: 150, h: 48,  paginas: 'todas' },   // "FIRMA ANTIGUO PROPIETARIO"
         cites:  { x: 860, y: 178, w: 420, h: 150, paginas: 'primera' }  // casilla "Firma"
     };
+    // 14/11/2026 (Patry): la firma se estampa en AZUL bolígrafo (la guardada es casi negra)
+    const FIRMA_AZUL = [24, 62, 190];
+    async function firmaPngAzul() {
+        const orig = window._firmaMartin;
+        if (window._firmaAzulDe === orig && window._firmaAzul) return window._firmaAzul;
+        try {
+            const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = orig; });
+            const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+            const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+            const im = ctx.getImageData(0, 0, c.width, c.height), d = im.data;
+            for (let i = 0; i < d.length; i += 4) { d[i] = FIRMA_AZUL[0]; d[i + 1] = FIRMA_AZUL[1]; d[i + 2] = FIRMA_AZUL[2]; }
+            ctx.putImageData(im, 0, 0);
+            window._firmaAzul = c.toDataURL('image/png'); window._firmaAzulDe = orig;
+            return window._firmaAzul;
+        } catch (e) { console.warn('Firma azul:', e); return orig; }
+    }
     async function estamparFirma(blob, tipo) {
         const hueco = FIRMA_HUECOS[tipo];
         if (!window._firmaMartin || !hueco) return null;
         const pdf = await PDFLib.PDFDocument.load(await blob.arrayBuffer());
-        const png = await pdf.embedPng(window._firmaMartin);
+        const png = await pdf.embedPng(await firmaPngAzul());
         const esc = Math.min(hueco.w / png.width, hueco.h / png.height);
         const w = png.width * esc, h = png.height * esc;
         const paginas = hueco.paginas === 'todas' ? pdf.getPages() : [pdf.getPages()[0]];
