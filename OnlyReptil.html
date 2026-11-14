@@ -207,6 +207,21 @@
         .pyn2-menu-prueba.abierto { display: block; }
         .pyn2-menu-prueba div { padding: 9px 10px; font-size: 0.8rem; border-radius: 7px; cursor: pointer; color: var(--texto); text-align: left; }
         .pyn2-menu-prueba div.rojo { color: var(--rojo); }
+        /* 14/11/2026: chips y buscador de papeles de MITECO */
+        #pyn2-buscachip { margin-bottom: 10px; }
+        #pyn2-buscachip-input { width: 100%; box-sizing: border-box; text-align: center; font-size: 0.9rem; padding: 10px; border-radius: 10px; }
+        .pyn2-bc-card { background: var(--tarjeta); border: 1px solid rgba(90,156,104,0.55); border-radius: 12px; padding: 10px; margin-top: 8px; text-align: center; }
+        .pyn2-bc-tit { font-weight: 700; font-size: 0.95rem; color: var(--texto); }
+        .pyn2-bc-sub { font-size: 0.72rem; color: var(--texto2); margin-bottom: 6px; }
+        .pyn2-bc-msg { font-size: 0.75rem; color: var(--texto2); text-align: center; margin: 6px 0; }
+        .pyn2-bc-ok { font-size: 0.82rem; color: var(--verde); text-align: center; margin-top: 8px; padding: 10px; border: 1px solid rgba(90,156,104,0.55); border-radius: 10px; }
+        .pyn2-chips-lista { max-height: 260px; overflow-y: auto; background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 9px; padding: 4px 8px; margin-top: 7px; width: 100%; box-sizing: border-box; }
+        .pyn2-chip-f { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--borde); font-size: 0.8rem; cursor: pointer; }
+        .pyn2-chip-f:last-child { border-bottom: none; }
+        .pyn2-chip-f input { width: 16px; height: 16px; margin: 0; }
+        .pyn2-chip-f.res { background: rgba(255,181,71,0.15); border-radius: 6px; }
+        .pyn2-chip-n { font-family: monospace; letter-spacing: 0.3px; }
+        .pyn2-chip-ok { color: var(--verde); font-weight: 700; }
         /* 27/09/2026: tarjeta de puesta compacta */
         .pyn2-card { background: var(--tarjeta2); border: 1px solid var(--borde); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
         .pyn2-card.abierta { border-color: var(--azul); }
@@ -659,9 +674,9 @@
         <div class="pyn2-botonera">
             <button class="pyn2-bt nueva" onclick="irA('form-puesta')">＋ NUEVA PUESTA</button>
             <button class="pyn2-bt cert" onclick="abrirSubidaCertificados()">📥 CERTIFICADOS</button>
-            <button class="pyn2-bt prueba" onclick="pyn2MenuPrueba()" aria-label="Opciones de prueba">🧪 ▾</button>
+            <button class="pyn2-bt prueba" id="pyn2-bt-prueba" style="display:none;" onclick="pyn2MenuPrueba()" aria-label="Opciones de prueba">🧪 ▾</button>
             <div class="pyn2-menu-prueba" id="pyn2-menu-prueba">
-                <div onclick="pyn2MenuPrueba(false);pyn2CrearPruebaPuesta()">🧪 Crear puesta de prueba</div>
+                <!-- 14/11/2026: quitado "Crear puesta de prueba" (ya no hace falta). El menú solo aparece si queda algo de prueba por borrar -->
                 <div class="rojo" onclick="pyn2MenuPrueba(false);pyn2BorrarPruebas()">🗑️ Borrar todo lo de prueba</div>
             </div>
         </div>
@@ -669,6 +684,11 @@
              (sin scroll, a petición de Patry: "los scrolles no me gustan"), una por cada fase real
              del papeleo que él mismo describió. Ver pyn2Fase() para la clasificación. -->
         <div class="pyn2-tabs-grid" id="pyn2-tabs"></div>
+        <!-- 14/11/2026: buscador de chip para los papeles que devuelve MITECO (solo en ⏳ ESPERANDO) -->
+        <div id="pyn2-buscachip" style="display:none;">
+            <input type="text" id="pyn2-buscachip-input" inputmode="numeric" autocomplete="off" placeholder="🔍 Últimos dígitos del chip (papeles de MITECO)" oninput="pyn2BuscarChip()">
+            <div id="pyn2-buscachip-res"></div>
+        </div>
         <div id="pyn2-lista"></div>
         <button class="btn-cancelar" onclick="irA('pantalla-inicio')">← VOLVER</button>
     </div>
@@ -3489,12 +3509,22 @@
 
             // 7. Papeles de MITECO
             if (!estado.pasoSara) pasos.push(pyn2Paso('pend', 'Esperar papeles de MITECO'));
-            else if (estado.pasoPapeles) pasos.push(pyn2Paso('hecho', 'Papeles de MITECO recibidos'));
-            else {
+            else if (estado.pasoPapeles) {
+                // 14/11/2026: se pueden consultar los chips con papeles recibidos
+                const nChips = pyn2ChipsDePuesta(p).length;
+                const fRec = (estado.todosNacs.find(n => n.fechaPapelesMiteco) || {}).fechaPapelesMiteco;
+                const ab = !!window._pyn2Chips.abiertos[p.id];
+                pasos.push(pyn2Paso('hecho', 'Papeles de MITECO recibidos', fRec ? `Recibidos ${fRec}` : '',
+                    `<button class="btn-mini" onclick="pyn2ChipsToggle('${p.id}')">📋 CHIPS (${nChips}) ${ab ? '▲' : '▼'}</button>${ab ? pyn2HtmlChips(p, 'ver') : ''}`));
+            } else {
                 const dias = pyn2DiasEsperaMiteco(estado.todosNacs);
                 const col = (dias !== null && dias > 30) ? 'var(--naranja)' : 'var(--texto2)';
                 const diasTxt = dias !== null ? `<span style="color:${col};font-weight:700;">⏳ ${dias} día${dias !== 1 ? 's' : ''} esperando</span>` : '';
-                pasos.push(pyn2Paso('actual', 'Esperar papeles de MITECO', diasTxt, `<button class="btn-mini naranja" onclick="pyn2MarcarPapeles('${p.id}')">✓ MARCAR PAPELES RECIBIDOS</button>`));
+                // 14/11/2026: lista de chips; marcar uno marca todos los de la puesta y se confirma con un botón
+                const nChips = pyn2ChipsDePuesta(p).length;
+                const ab = !!window._pyn2Chips.abiertos[p.id];
+                pasos.push(pyn2Paso('actual', 'Esperar papeles de MITECO', diasTxt,
+                    `<button class="btn-mini naranja" onclick="pyn2ChipsToggle('${p.id}')">📋 CHIPS DE ESTA PUESTA (${nChips}) ${ab ? '▲' : '▼'}</button>${ab ? pyn2HtmlChips(p, 'marcar') : ''}`));
                 marcarSig('Esperando papeles de MITECO' + (dias !== null ? ` · ${dias} día${dias !== 1 ? 's' : ''}` : ''));
             }
 
@@ -3569,12 +3599,18 @@
             : `<div class="pyn2-cifra est"><b>🌡️ ${pyn2FechaCorta(p.fechaEclosionEstimada) || '—'}</b><span>eclosión</span></div>`;
         const icoSig = { ambar: '▶', rojo: '⛔', verde: '✅', gris: '🔒' }[siguiente.tipo];
         const combo = secundaria ? `<br><span class="pyn2-combo">🔗 junta con ${secundaria.idPuesta || secundaria.detalle}</span>` : '';
+        // 14/11/2026: días esperando los papeles de MITECO, visibles sin abrir la tarjeta
+        let esperaTxt = '';
+        if (estado.pasoSara && !estado.pasoPapeles) {
+            const d = pyn2DiasEsperaMiteco(estado.todosNacs);
+            if (d !== null) esperaTxt = ` · <span style="color:${d > 30 ? 'var(--naranja)' : 'var(--texto2)'};font-weight:700;">⏳ ${d} día${d !== 1 ? 's' : ''}</span>`;
+        }
 
         return `<div id="pyn2-card-${p.id}" class="pyn2-card ${abierta ? 'abierta' : ''}">
             <div class="pyn2-cab" onclick="pyn2ToggleCard('${p.id}')">
                 <div style="flex:1;min-width:0;">
                     <div class="pyn2-idp"><span class="pyn2-dot" style="background:${color};"></span>${idPuestaTxt}</div>
-                    <div class="pyn2-sub">${pareja.nombre} · ${p.fecha || '—'}${dCert.num ? ` · <span style="color:var(--azul);">📜 ${dCert.num}</span>` : ''}${combo}</div>
+                    <div class="pyn2-sub">${pareja.nombre} · ${p.fecha || '—'}${dCert.num ? ` · <span style="color:var(--azul);">📜 ${dCert.num}</span>` : ''}${esperaTxt}${combo}</div>
                 </div>
                 <div class="pyn2-cifras">
                     <div class="pyn2-cifra"><b>${huevos}🥚</b><span>huevos</span></div>
@@ -3638,6 +3674,10 @@
         }
 
         let filtradas = filtro === 'todas' ? filas : filas.filter(f => f.fase === filtro);
+        const btPrueba = document.getElementById('pyn2-bt-prueba');
+        if (btPrueba) btPrueba.style.display = histBio.some(b => b.esPrueba) ? '' : 'none';
+        const bc = document.getElementById('pyn2-buscachip');
+        if (bc) bc.style.display = filtro === 'esperando' ? 'block' : 'none';
 
         if (filtradas.length === 0) {
             const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin puestas pendientes de Excel o de presentar en la red SARA', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
@@ -4260,6 +4300,88 @@
             return '⛔ Se ha superado el límite gratuito diario de Firebase. Vuelve a intentarlo mañana; no se ha guardado nada.\n\n(' + t.trim() + ')';
         return 'Error al guardar el archivo: ' + (err && err.message || err);
     }
+
+    // ══════════════════════════════════════════════════════════════
+    // 14/11/2026 — PAPELES DE MITECO POR CHIP (acordado con Patry)
+    // MITECO devuelve un PDF con los papeles sin decir de qué puesta son: solo se ven los chips.
+    // Regla real: MITECO siempre manda TODOS los papeles de una puesta (nunca uno suelto), así que
+    // al marcar un chip se marcan todos los de su puesta (y su puesta unida) y se confirma con un
+    // botón. Los datos se siguen guardando por nacimiento (papelesMitecoRecibidos) como antes.
+    //  · Buscador de chip en la pestaña ⏳ ESPERANDO (por los últimos dígitos).
+    //  · Lista desplegable de chips en el paso "Esperar papeles de MITECO" de cada tarjeta.
+    // ══════════════════════════════════════════════════════════════
+    window._pyn2Chips = window._pyn2Chips || { abiertos: {}, marcados: {} };
+    function pyn2FmtChip(c) {
+        const d = String(c).replace(/\D/g, '');
+        if (d.length !== 15) return `<span>${c}</span>`;
+        const f = d.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5');
+        return `<span style="opacity:.6;">${f.slice(0, 12)}</span><b>${f.slice(12)}</b>`;
+    }
+    function pyn2ChipsDePuesta(p) {
+        const ids = p.combinadaCon ? [p.id, p.combinadaCon] : [p.id];
+        return getAnimalesPorPuestas(ids).map(a => a.chip).filter(c => /\d/.test(c));
+    }
+    // Lista de chips con casillas (modo 'marcar') o solo para consultar (modo 'ver')
+    function pyn2HtmlChips(p, modo, resaltar) {
+        const chips = pyn2ChipsDePuesta(p);
+        const marc = modo === 'marcar' && !!window._pyn2Chips.marcados[p.id];
+        const filas = chips.map(c => {
+            const res = resaltar && String(c).replace(/\D/g, '').includes(resaltar);
+            return `<label class="pyn2-chip-f${res ? ' res' : ''}">${modo === 'marcar'
+                ? `<input type="checkbox" ${marc ? 'checked' : ''} onchange="pyn2ChipsMarcar('${p.id}', this.checked)">` : '<span style="width:15px;"></span>'}
+                <span class="pyn2-chip-n">${pyn2FmtChip(c)}</span>${modo === 'ver' ? '<span class="pyn2-chip-ok">✓</span>' : ''}</label>`;
+        }).join('') || '<div style="font-size:0.75rem;color:var(--texto2);padding:6px;">Sin chips</div>';
+        let pie = '';
+        if (modo === 'marcar') {
+            pie = marc
+                ? `<button class="btn-mini naranja" style="width:100%;margin-top:7px;" onclick="pyn2ChipsConfirmar('${p.id}')">✓ CONFIRMAR PAPELES RECIBIDOS · ${chips.length} chip${chips.length !== 1 ? 's' : ''}</button>`
+                : `<div style="font-size:0.7rem;color:var(--texto2);text-align:center;margin-top:6px;">Marca un chip del PDF y se marcan los ${chips.length} de la puesta</div>`;
+        }
+        return `<div class="pyn2-chips-lista">${filas}</div>${pie}`;
+    }
+    window.pyn2ChipsToggle = function(puestaId) {
+        window._pyn2Chips.abiertos[puestaId] = !window._pyn2Chips.abiertos[puestaId];
+        renderPynNuevo();
+    };
+    window.pyn2ChipsMarcar = function(puestaId, v) {
+        window._pyn2Chips.marcados[puestaId] = !!v; // marcar uno = marcar todos los de la puesta
+        renderPynNuevo();
+        window.pyn2BuscarChip();
+    };
+    window.pyn2ChipsConfirmar = async function(puestaId) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar los papeles de MITECO.');
+        const p = histBio.find(x => x.id === puestaId);
+        if (!p) return;
+        await pyn2MarcarPapeles(puestaId);
+        delete window._pyn2Chips.marcados[puestaId];
+        delete window._pyn2Chips.abiertos[puestaId];
+        const inp = document.getElementById('pyn2-buscachip-input');
+        if (inp) inp.value = '';
+        const r = document.getElementById('pyn2-buscachip-res');
+        if (r) r.innerHTML = `<div class="pyn2-bc-ok">✅ Papeles recibidos de <b>${p.idPuesta || p.detalle}</b>. Ya está lista para cesión.</div>`;
+    };
+    // Buscador por los últimos dígitos del chip
+    window.pyn2BuscarChip = function() {
+        const inp = document.getElementById('pyn2-buscachip-input');
+        const res = document.getElementById('pyn2-buscachip-res');
+        if (!inp || !res) return;
+        const q = inp.value.replace(/\D/g, '');
+        if (q.length < 4) { if (!res.querySelector('.pyn2-bc-ok')) res.innerHTML = q.length ? '<div class="pyn2-bc-msg">Escribe al menos 4 dígitos</div>' : ''; return; }
+        const encontradas = [];
+        histBio.filter(b => b.tipo === 'puesta' && !b.esPrueba && !pyn2EsSecundaria(b)).forEach(p => {
+            if (pyn2ChipsDePuesta(p).some(c => String(c).replace(/\D/g, '').includes(q))) encontradas.push(p);
+        });
+        if (!encontradas.length) { res.innerHTML = '<div class="pyn2-bc-msg">Ningún chip coincide</div>'; return; }
+        res.innerHTML = encontradas.slice(0, 5).map(p => {
+            const est = pyn2EstadoPuesta(p);
+            const nom = [p.idPuesta || p.detalle].concat(est.otraPuesta ? [est.otraPuesta.idPuesta || est.otraPuesta.detalle] : []).join(' + ');
+            let cuerpo;
+            if (est.pasoPapeles) cuerpo = `<div class="pyn2-bc-msg" style="color:var(--verde);">✓ Los papeles de esta puesta ya están marcados como recibidos</div>${pyn2HtmlChips(p, 'ver', q)}`;
+            else if (!est.pasoSara) cuerpo = `<div class="pyn2-bc-msg" style="color:var(--naranja);">⚠️ Esta puesta todavía no figura como presentada en la red SARA. Revisa su tarjeta antes de marcar papeles.</div>${pyn2HtmlChips(p, 'ver', q)}`;
+            else cuerpo = pyn2HtmlChips(p, 'marcar', q);
+            return `<div class="pyn2-bc-card"><div class="pyn2-bc-tit">${nom}</div><div class="pyn2-bc-sub">${p.especie || ''} · ${pyn2ChipsDePuesta(p).length} chips</div>${cuerpo}</div>`;
+        }).join('') + (encontradas.length > 5 ? '<div class="pyn2-bc-msg">Hay más coincidencias: escribe más dígitos</div>' : '');
+    };
 
     window.pyn2MarcarPapeles = async function(puestaId) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede marcar los papeles de MITECO.'); // 24/09/2026: permisos Martín
