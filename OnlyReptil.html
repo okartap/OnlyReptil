@@ -2029,7 +2029,7 @@
         const preciosEsp = getPreciosEspecie();
         lista.innerHTML = data.map(e => {
             const precioEsp = parseFloat(preciosEsp[e.nombre] || 0);
-            const precioTexto = precioEsp > 0 ? precioEsp.toFixed(0) + '€' : '—';
+            const precioTexto = precioEsp > 0 ? fmtMiles(precioEsp, 0) + '€' : '—';
             return `
             <div class="especie-card">
                 <div class="especie-card-header">
@@ -2472,6 +2472,12 @@
 
     function finalizar(tipo,msg){ document.getElementById('exito-titulo').innerText=tipo==='BIO'?'¡REGISTRADO!':'¡GUARDADO!'; document.getElementById('exito-detalle').innerText=msg; document.getElementById('link-caja').style.display=tipo==='DINERO'?'block':'none'; document.getElementById('link-bio').style.display=tipo==='BIO'?'block':'none'; setBotones(false); window.irA('pantalla-exito'); }
 
+    // 14/11/2026: formato español con punto de miles (1.375,00) para cualquier número
+    function fmtMiles(n, dec = 2) {
+        const parts = (Number(n) || 0).toFixed(dec).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return parts[1] !== undefined ? parts[0] + ',' + parts[1] : parts[0];
+    }
     function fmt(n){
         const parts = n.toFixed(2).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -2954,7 +2960,7 @@
                     },
                     scales: {
                         x: { ticks: { display: false }, grid: { display: false } },
-                        y: { ticks: { color: cTexto2, callback: v => v + '€' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+                        y: { ticks: { color: cTexto2, callback: v => fmtMiles(v, 0) + '€' }, grid: { color: 'rgba(255,255,255,0.06)' } }
                     }
                 }
             });
@@ -6922,12 +6928,17 @@
         _panelArchivos.forEach(a => { try { URL.revokeObjectURL(a.url); } catch (e) {} });
         _panelArchivos = archivos.map(a => ({ ...a, url: URL.createObjectURL(a.blob) }));
         const ico = n => /\.pdf$/i.test(n) ? '📄' : (/\.xlsx$/i.test(n) ? '📊' : '⬇');
-        const botones = _panelArchivos.map((a, i) => `
+        const boton = (a, i) => `
             <button id="panel-arch-${i}" onclick="panelDescargar(${i})" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--tarjeta2);border:1px solid var(--borde);border-radius:10px;padding:10px 12px;margin-bottom:6px;color:var(--texto);font-family:Rajdhani,sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;">
                 <span style="font-size:1.1rem;">${ico(a.nombre)}</span><span style="flex:1;min-width:0;word-break:break-all;">${a.nombre}</span><span class="pa-est" style="color:var(--azul);white-space:nowrap;">⬇ DESCARGAR</span>
-            </button>`).join('');
-        const todos = _panelArchivos.length > 1 ? `<div style="text-align:center;margin:2px 0 8px;"><span onclick="panelDescargarTodos()" style="font-size:0.72rem;color:var(--texto2);cursor:pointer;text-decoration:underline;">Descargar todos a la vez (ordenador)</span></div>` : '';
-        saraPanel(titulo, `${htmlArriba || ''}${botones}${todos}${htmlAbajo || ''}`);
+            </button>`;
+        // 14/11/2026: los archivos marcados "plegado" (cesiones de una en una) van en un desplegable
+        const principales = _panelArchivos.map((a, i) => a.plegado ? '' : boton(a, i)).join('');
+        const nPleg = _panelArchivos.filter(a => a.plegado).length;
+        const plegados = nPleg ? `<details style="margin:4px 0 8px;text-align:left;"><summary style="cursor:pointer;font-size:0.8rem;font-weight:700;color:var(--texto2);padding:8px 4px;text-align:center;">📑 O descargar de uno en uno (${nPleg})</summary><div style="margin-top:6px;">${_panelArchivos.map((a, i) => a.plegado ? boton(a, i) : '').join('')}</div></details>` : '';
+        const nPrin = _panelArchivos.length - nPleg;
+        const todos = nPrin > 1 ? `<div style="text-align:center;margin:2px 0 8px;"><span onclick="panelDescargarTodos()" style="font-size:0.72rem;color:var(--texto2);cursor:pointer;text-decoration:underline;">Descargar todos a la vez (ordenador)</span></div>` : '';
+        saraPanel(titulo, `${htmlArriba || ''}${principales}${todos}${plegados}${htmlAbajo || ''}`);
     }
     window.panelDescargar = function(i) {
         const a = _panelArchivos[i]; if (!a) return;
@@ -6937,7 +6948,28 @@
         if (est) { est.textContent = '✓ DESCARGADO'; est.style.color = 'var(--verde)'; }
         if (typeof a.alDescargar === 'function') { try { a.alDescargar(); } catch (e) {} }
     };
-    window.panelDescargarTodos = function() { _panelArchivos.forEach((a, i) => setTimeout(() => panelDescargar(i), i * 700)); };
+    window.panelDescargarTodos = function() { _panelArchivos.map((a, i) => a.plegado ? -1 : i).filter(i => i >= 0).forEach((i, k) => setTimeout(() => panelDescargar(i), k * 700)); };
+    // 14/11/2026: las cesiones en un solo PDF (una hoja por animal). Se monta desde la plantilla
+    // copiando la misma hoja N veces, así el archivo pesa casi lo mismo que uno suelto.
+    // Los PDF sueltos quedan en el desplegable "de uno en uno".
+    async function cesionPdfUnico(archivos, nombre, templateBytes, datos, esRepro) {
+        const pdfs = archivos.filter(a => /\.pdf$/i.test(a.nombre));
+        if (pdfs.length < 2) return archivos;
+        try {
+            const src = await PDFLib.PDFDocument.load(templateBytes);
+            const unido = await PDFLib.PDFDocument.create();
+            const font = await unido.embedFont(PDFLib.StandardFonts.Helvetica);
+            const paginas = await unido.copyPages(src, datos.items.map(() => 0));
+            paginas.forEach((pg, i) => {
+                unido.addPage(pg);
+                if (esRepro) dibujarCesionRepro(pg, font, datos.items[i], datos.comprador, datos.fecha);
+                else dibujarCesionCria(pg, font, datos.items[i], datos.comprador, datos.fecha);
+            });
+            const unico = { nombre, blob: new Blob([await unido.save()], { type: 'application/pdf' }) };
+            const resto = archivos.filter(a => !/\.pdf$/i.test(a.nombre));
+            return [unico, ...resto, ...pdfs.map(a => ({ ...a, plegado: true }))];
+        } catch (e) { console.warn('No se pudo montar el PDF único de cesiones:', e); return archivos; }
+    }
 
     window.exportarCSV = async function() {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede generar el Excel para MITECO.'); // 24/09/2026: permisos Martín
@@ -7383,7 +7415,7 @@
         const res = document.getElementById('elec-resultado');
         const txt = document.getElementById('elec-res-texto');
         const ivaTexto = iva > 0 ? ` + ${iva}% IVA (${fmt(ivaImporte)})` : '';
-        if(txt) txt.innerText = `${kwh.toFixed(2)} kWh × ${precio}€${ivaTexto} = ${fmt(importe)}`;
+        if(txt) txt.innerText = `${fmtMiles(kwh)} kWh × ${String(precio).replace('.', ',')}€${ivaTexto} = ${fmt(importe)}`;
         if(res) res.style.display = 'block';
         const btn = document.getElementById('btn-confirmar-luz');
         if(btn) btn.style.display = 'block';
@@ -7395,7 +7427,7 @@
         const fechaIso = getFechaIso('elec-fecha');
         const fechaEs  = isoAEs(fechaIso);
         const ivaTexto = (iva && iva > 0) ? ` + ${iva}% IVA` : '';
-        const detalle  = `Luz ${ant}→${act} kWh (${kwh.toFixed(2)} kWh × ${precio}€/kWh${ivaTexto})`;
+        const detalle  = `Luz ${fmtMiles(ant, 0)}→${fmtMiles(act, 0)} kWh (${fmtMiles(kwh)} kWh × ${String(precio).replace('.', ',')}€/kWh${ivaTexto})`;
         setBotones(true);
         try {
             await addDoc(collection(db,'caja'), {
@@ -7549,6 +7581,68 @@
 
     // ── Generador único de documentos de cesión (PDF por animal + CSV de baja MITECO) ──
     // items: [{ c: chipDoc, especie, anyo }]; opciones.sinVenta → descuenta stock (bajas 'cesion')
+    // ── 14/11/2026: piezas de los documentos de cesión, reutilizadas para REIMPRIMIR ──
+    // Se guarda en la cesión una "foto" de los datos con los que se imprimió, para que al
+    // reimprimir salga exactamente igual aunque luego cambie la ficha del cliente.
+    function cesionSnapshotCrias(items, comprador, fecha) {
+        return { fecha, comprador: { nombre: comprador.nombre || '', dni: comprador.dni || '', direccion: comprador.direccion || '', nCriador: comprador.nCriador || '', nucleoZoologico: comprador.nucleoZoologico || '' },
+            items: items.map(it => ({ especie: it.especie || '', anyo: String(it.anyo || ''), cites: it.c.cites || '', numero: String(it.c.numero) })) };
+    }
+    function dibujarCesionCria(page, font, d, comprador, fecha) {
+        const txt = (x, y, t, size = 10) => { if (t) page.drawText(String(t), { x, y, size, font, color: PDFLib.rgb(0,0,0) }); };
+        // ── Coordenadas calibradas (plantilla 571x808 pt) ──
+        txt(100, 452, comprador.nombre); txt(75, 435, comprador.dni); txt(120, 420, comprador.direccion);
+        txt(120, 405, comprador.nCriador); txt(155, 390, comprador.nucleoZoologico);
+        const nombreCesion = ((MITECO_ESPECIES[d.especie] && MITECO_ESPECIES[d.especie].nombreCompleto) || d.especie || '').toUpperCase();
+        txt(100, 329, nombreCesion); txt(155, 313, '1'); txt(175, 283, String(d.anyo));
+        txt(100, 267, d.cites || ''); txt(145, 252, String(d.numero));
+        txt(110, 160, 'LORCA'); txt(390, 160, fecha);
+    }
+    async function pdfCesionCria(templateBytes, d, comprador, fecha) {
+        const pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
+        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        dibujarCesionCria(pdfDoc.getPages()[0], font, d, comprador, fecha);
+        return { nombre: `Cesion_${d.especie}_chip${d.numero}_${fecha.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) };
+    }
+    function excelBajaCria(datos, comprador, fecha) {
+        const filas = datos.map(d => {
+            const m = MITECO_ESPECIES[d.especie] || { genero: (d.especie||'').toUpperCase(), especie: (d.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
+            return [MITECO_CRIADOR, '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '', 'D', 'C', '', '',
+                'MICROCHIP Nº: ' + fmtChip(d.numero), '', '', '', '', '', '', 'B', fecha, 'CE', '', '', fecha, '', '', comprador.nombre || ''];
+        });
+        const esp = [...new Set(datos.map(x => x.especie))].join('-');
+        return { nombre: `MITECO_BAJA_CESION_${esp}_${fecha.replace(/\//g,'-')}_${datos.length}animales.xlsx`, blob: excelMiteco(filas) };
+    }
+    function cesionSnapshotRepros(repros, comprador, fecha) {
+        return { fecha, comprador: { nombre: comprador.nombre || '', dni: comprador.dni || '', direccion: comprador.direccion || '', nCriador: comprador.nCriador || '', nucleoZoologico: comprador.nucleoZoologico || '' },
+            items: repros.map(p => ({ especie: p.especie || '', sexo: p.sexo || '', anyo: String(p.anyoNacimiento || ''), cites: p.cites || '', marca: p.marca || '', idEspecimen: p.idEspecimen || '', nombre: p.nombre || '' })) };
+    }
+    function dibujarCesionRepro(page, font, p, comprador, fecha) {
+        const txt = (x, y, t, size = 10) => { if (t) page.drawText(String(t), { x, y, size, font, color: PDFLib.rgb(0,0,0) }); };
+        txt(100, 452, comprador.nombre); txt(75, 435, comprador.dni); txt(120, 420, comprador.direccion);
+        txt(120, 405, comprador.nCriador); txt(155, 390, comprador.nucleoZoologico);
+        const nombreCesion = ((MITECO_ESPECIES[p.especie] && MITECO_ESPECIES[p.especie].nombreCompleto) || p.especie || '').toUpperCase();
+        txt(100, 329, nombreCesion); txt(155, 313, '1'); txt(85, 297, p.sexo || '');
+        txt(175, 283, String(p.anyo || '')); txt(100, 267, p.cites || ''); txt(145, 252, p.marca || p.idEspecimen || '');
+        txt(110, 160, 'LORCA'); txt(390, 160, fecha);
+    }
+    async function pdfCesionRepro(templateBytes, p, comprador, fecha) {
+        const pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
+        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        dibujarCesionRepro(pdfDoc.getPages()[0], font, p, comprador, fecha);
+        return { nombre: `Cesion_${p.especie}_${(p.marca || p.idEspecimen || p.nombre).replace(/[^\w-]/g,'')}_${fecha.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) };
+    }
+    function excelBajaRepro(datos, comprador, fecha) {
+        const filas = datos.map(p => {
+            const marcaFmt = p.marca && p.marca.length === 15 ? p.marca.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5') : (p.marca || '');
+            const m = MITECO_ESPECIES[p.especie] || { genero: (p.especie||'').toUpperCase(), especie: (p.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
+            return [MITECO_CRIADOR, p.idEspecimen || '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '',
+                p.sexo === 'Macho' ? 'M' : 'H', 'C', '', '', 'MICROCHIP Nº: ' + marcaFmt, '', '', '', '', '', '',
+                'B', fecha, 'CE', '', '', fecha, '', '', comprador.nombre || ''];
+        });
+        return { nombre: `MITECO_BAJA_CESION_reproductores_${fecha.replace(/\//g,'-')}.xlsx`, blob: excelMiteco(filas) };
+    }
+
     async function generarDocsCesion(items, comprador, opciones) {
         opciones = opciones || {};
         if (!items.length) return false;
@@ -7564,22 +7658,9 @@
             const hoy = new Date();
             const fechaHoy = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
             const fechaHoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
-            const { PDFDocument, StandardFonts, rgb } = PDFLib;
             const archivosCesion = []; // 29/09/2026: se ofrecen al final con un botón cada uno (iPhone)
-            for (const it of items) {
-                const pdfDoc = await PDFDocument.load(templateBytes);
-                const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-                const page = pdfDoc.getPages()[0];
-                const txt = (x, y, t, size = 10) => { if (t) page.drawText(String(t), { x, y, size, font, color: rgb(0,0,0) }); };
-                // ── Coordenadas calibradas (plantilla 571x808 pt) ──
-                txt(100, 452, comprador.nombre); txt(75, 435, comprador.dni); txt(120, 420, comprador.direccion);
-                txt(120, 405, comprador.nCriador); txt(155, 390, comprador.nucleoZoologico);
-                const nombreCesion = ((MITECO_ESPECIES[it.especie] && MITECO_ESPECIES[it.especie].nombreCompleto) || it.especie || '').toUpperCase();
-                txt(100, 329, nombreCesion); txt(155, 313, '1'); txt(175, 283, String(it.anyo));
-                txt(100, 267, it.c.cites || ''); txt(145, 252, String(it.c.numero));
-                txt(110, 160, 'LORCA'); txt(390, 160, fechaHoy);
-                archivosCesion.push({ nombre: `Cesion_${it.especie}_chip${it.c.numero}_${fechaHoy.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) });
-            }
+            const docsDatos = cesionSnapshotCrias(items, comprador, fechaHoy); // 14/11/2026: para poder reimprimir
+            for (const d of docsDatos.items) archivosCesion.push(await pdfCesionCria(templateBytes, d, docsDatos.comprador, fechaHoy));
             const bajasIds = []; // 14/11/2026: para poder deshacer la cesión
             for (const it of items) {
                 if (opciones.idCesion) await updateDoc(doc(db, 'chips', it.c.id), { idCesion: opciones.idCesion });
@@ -7590,16 +7671,12 @@
             }
             registrarAuditoria('nuevo', 'cesion', `Cesión${opciones.sinVenta ? ' sin venta' : ' (venta)'}: ${items.length} animal(es) · ${comprador.nombre || 'Sin comprador'} · ${items.map(x => x.c.numero).join(', ')}`);
             // Excel de baja MITECO (29/09/2026: ya no CSV)
-            const filas = items.map(it => {
-                const m = MITECO_ESPECIES[it.especie] || { genero: (it.especie||'').toUpperCase(), especie: (it.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
-                return [MITECO_CRIADOR, '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '', 'D', 'C', '', '',
-                    'MICROCHIP Nº: ' + fmtChip(it.c.numero), '', '', '', '', '', '', 'B', fechaHoy, 'CE', '', '', fechaHoy, '', '', comprador.nombre || ''];
-            });
             const esp = [...new Set(items.map(x => x.especie))].join('-');
-            archivosCesion.push({ nombre: `MITECO_BAJA_CESION_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.xlsx`, blob: excelMiteco(filas) });
-            panelDescargas('📄 CESIÓN GENERADA', archivosCesion,
-                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${items.length} documento(s) de cesión y el Excel de baja para MITECO. Descarga cada uno con su botón:</div>`);
-            return { ok: true, bajasIds };
+            archivosCesion.push(excelBajaCria(docsDatos.items, docsDatos.comprador, fechaHoy));
+            const listaCes = await cesionPdfUnico(archivosCesion, `Cesiones_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.pdf`, templateBytes, docsDatos, false);
+            panelDescargas('📄 CESIÓN GENERADA', listaCes,
+                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${items.length > 1 ? `Las ${items.length} cesiones en un solo PDF y el Excel de baja para MITECO. Si las prefieres sueltas, abre "de uno en uno" abajo:` : 'Documento de cesión y Excel de baja para MITECO. Descarga cada uno con su botón:'}</div>`);
+            return { ok: true, bajasIds, docsDatos };
         } catch (err) { alert('Error al generar la cesión: ' + err.message); return false; }
     }
 
@@ -7859,7 +7936,7 @@
         document.getElementById('cesion-regalo-campos').style.display = m === 'regalo' ? 'block' : 'none';
         cesionResumen();
     };
-    const fmtEur = v => (Number(v) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    const fmtEur = v => fmtMiles(v) + ' €'; // 14/11/2026: toLocaleString('es-ES') no ponía el punto en 4 cifras (1375,00)
     window.cesionResumen = function() {
         const r = document.getElementById('cesion-resumen');
         if (!r) return;
@@ -7914,7 +7991,7 @@
             await setDoc(refCes, {
                 estado: 'hecha', tipo: venta ? 'venta' : 'regalo', animal: esRepro ? 'reproductor' : 'cria', especie, cantidad: n,
                 importe: venta ? total : 0, socio: venta ? socio : '', comprador: comprador.nombre || '', idCaja: refCaja.id,
-                chips: items.map(x => x.c.numero), parentalIds: repros.map(p => p.id), bajasIds: (res && res.bajasIds) || [],
+                chips: items.map(x => x.c.numero), parentalIds: repros.map(p => p.id), bajasIds: (res && res.bajasIds) || [], docs: (res && res.docsDatos) || null,
                 fecha: fechaEs, fechaIso, timestamp: Date.now(), usuario: usuarioActual.nombre || ''
             });
             registrarAuditoria('nuevo', 'cesion', `${venta ? 'Venta' : 'Regalo/intercambio'} con cesión: ${resumen.replace(/\n/g, ' · ')}`);
@@ -7935,11 +8012,45 @@
             ${lista.map(c => `<div class="cesion-hist-f">
                 <span><b>${c.fecha}</b> · ${c.cantidad} ${c.animal === 'reproductor' ? 'reproductor' + (c.cantidad > 1 ? 'es' : '') + ' ' : ''}${c.especie} · ${c.comprador || 'sin comprador'}<br>
                 <span style="color:var(--texto2);">${c.tipo === 'venta' ? '💶 ' + fmtEur(c.importe) + ' · ' + (c.socio === 'Martin' ? 'Martín' : 'Patry') : '🎁 Regalo / intercambio'}</span></span>
-                <button class="btn-mini rojo" onclick="cesionDeshacer('${c.id}')">↺ DESHACER</button>
+                <span style="display:flex;flex-direction:column;gap:4px;align-items:stretch;"><button class="btn-mini" style="margin-top:0;" onclick="cesionReimprimir('${c.id}')">🖨 DOCUMENTOS</button><button class="btn-mini rojo" style="margin-top:0;" onclick="cesionDeshacer('${c.id}')">↺ DESHACER</button></span>
             </div>`).join('')}
         </div>`;
     }
     window.renderCesionHistorial = renderCesionHistorial;
+
+    // 14/11/2026: volver a sacar los documentos de una cesión ya hecha (no cambia nada en la base de datos).
+    // Las cesiones nuevas guardan una "foto" de los datos impresos; las anteriores se rehacen con los datos actuales.
+    window.cesionReimprimir = async function(idCes) {
+        const c = cesionesData.find(x => x.id === idCes);
+        if (!c) return alert('No encuentro esa cesión.');
+        const esRepro = c.animal === 'reproductor';
+        let datos = c.docs;
+        if (!datos || !datos.items || !datos.items.length) {
+            const comprador = compradorDesdeCliente(c.comprador || '');
+            if (esRepro) {
+                const repros = (c.parentalIds || []).map(id => parentalesData.find(p => p.id === id)).filter(Boolean);
+                datos = cesionSnapshotRepros(repros, comprador, c.fecha);
+            } else {
+                const items = (c.chips || []).map(n => ({ c: chipsData.find(x => x.numero === n) || { numero: n }, ...(infoChip(n) || {}) }));
+                datos = cesionSnapshotCrias(items, comprador, c.fecha);
+            }
+        }
+        if (!datos.items.length) return alert('No encuentro los animales de esta cesión.');
+        saraPanel('🖨 DOCUMENTOS DE LA CESIÓN', '<div style="text-align:center;padding:20px;color:var(--texto2);">⏳ Preparando documentos…</div>');
+        try {
+            const resp = await fetch('DOCUMENTO CESION.pdf');
+            if (!resp.ok) throw new Error('No se pudo cargar DOCUMENTO CESION.pdf del repositorio.');
+            const templateBytes = await resp.arrayBuffer();
+            const fecha = datos.fecha || c.fecha;
+            const archivos = [];
+            for (const d of datos.items) archivos.push(esRepro ? await pdfCesionRepro(templateBytes, d, datos.comprador, fecha) : await pdfCesionCria(templateBytes, d, datos.comprador, fecha));
+            archivos.push(esRepro ? excelBajaRepro(datos.items, datos.comprador, fecha) : excelBajaCria(datos.items, datos.comprador, fecha));
+            const n = datos.items.length;
+            const lista = await cesionPdfUnico(archivos, `Cesiones_${esRepro ? 'reproductores' : (c.especie || '')}_${fecha.replace(/\//g,'-')}_${n}animales.pdf`, templateBytes, { ...datos, fecha }, esRepro);
+            panelDescargas('🖨 DOCUMENTOS DE LA CESIÓN', lista,
+                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${c.fecha} · ${n} ${esRepro ? 'reproductor(es) ' : ''}${c.especie} → ${c.comprador || 'sin comprador'}.${n > 1 ? ' Todo en un solo PDF o, abajo, de uno en uno:' : ''}</div>`);
+        } catch (err) { alert('No se pudieron preparar los documentos: ' + err.message); }
+    };
 
     window.cesionDeshacer = async function(idCes, desdeCaja) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede deshacer cesiones.');
@@ -8093,37 +8204,8 @@
 
             // ── Un documento PDF por cada reproductor ──
             const archivosCesion = []; // 29/09/2026: se ofrecen al final con un botón cada uno (iPhone)
-            for (const p of reprosACeder) {
-                const { PDFDocument, StandardFonts, rgb } = PDFLib;
-                const pdfDoc = await PDFDocument.load(templateBytes);
-                const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-                const page   = pdfDoc.getPages()[0];
-                const negro  = rgb(0,0,0);
-
-                function txt(x, y, t, size=10) {
-                    if (!t) return;
-                    page.drawText(String(t), { x, y, size, font, color: negro });
-                }
-
-                txt(100, 452, comprador.nombre);
-                txt(75,  435, comprador.dni);
-                txt(120, 420, comprador.direccion);
-                txt(120, 405, comprador.nCriador);
-                txt(155, 390, comprador.nucleoZoologico);
-
-                const nombreCesion = ((MITECO_ESPECIES[p.especie] && MITECO_ESPECIES[p.especie].nombreCompleto) || p.especie || '').toUpperCase();
-                txt(100, 329, nombreCesion);
-                txt(155, 313, '1');
-                txt(85,  297, p.sexo || '');
-                txt(175, 283, String(p.anyoNacimiento || ''));
-                txt(100, 267, p.cites || '');
-                txt(145, 252, p.marca || p.idEspecimen || '');
-
-                txt(110, 160, 'LORCA');
-                txt(390, 160, fechaHoy);
-
-                archivosCesion.push({ nombre: `Cesion_${p.especie}_${(p.marca || p.idEspecimen || p.nombre).replace(/[^\w-]/g,'')}_${fechaHoy.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) });
-            }
+            const docsDatos = cesionSnapshotRepros(reprosACeder, comprador, fechaHoy); // 14/11/2026: para poder reimprimir
+            for (const d of docsDatos.items) archivosCesion.push(await pdfCesionRepro(templateBytes, d, docsDatos.comprador, fechaHoy));
 
             // Marcar reproductores como retirados del plantel (deja de aparecer como
             // disponible para emparejamientos, igual que un chip cedido en crías)
@@ -8133,27 +8215,12 @@
             registrarAuditoria('nuevo', 'cesion', `Cesión de reproductor(es): ${reprosACeder.map(p=>p.nombre).join(', ')} · ${comprador.nombre || 'Sin comprador'}`);
 
             // ── BAJA AUTOMÁTICA MITECO en Excel (mismo formato que para crías) ──
-            const filasBaja = reprosACeder.map(p => {
-                const marcaFmt = p.marca && p.marca.length === 15
-                    ? p.marca.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
-                    : (p.marca || '');
-                const mBaja = MITECO_ESPECIES[p.especie] || { genero: (p.especie||'').toUpperCase(), especie: (p.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
-                return [
-                    MITECO_CRIADOR, p.idEspecimen || '', mBaja.genero, mBaja.especie, '',
-                    mBaja.apendice, mBaja.anexo, '', '', '', '',
-                    p.sexo === 'Macho' ? 'M' : 'H', 'C', '', '',
-                    'MICROCHIP Nº: ' + marcaFmt,
-                    '', '', '', '', '', '',
-                    'B', fechaHoy, 'CE', '', '',
-                    fechaHoy, '', '',
-                    comprador.nombre || ''
-                ];
-            });
-            archivosCesion.push({ nombre: `MITECO_BAJA_CESION_reproductores_${fechaHoy.replace(/\//g,'-')}.xlsx`, blob: excelMiteco(filasBaja) });
+            archivosCesion.push(excelBajaRepro(docsDatos.items, docsDatos.comprador, fechaHoy));
             cesionCargarReproductores();
-            panelDescargas('📄 CESIÓN GENERADA', archivosCesion,
-                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${reprosACeder.length} documento(s) de cesión y el Excel de baja para MITECO. Descarga cada uno con su botón:</div>`);
-            return { ok: true };
+            const listaCes = await cesionPdfUnico(archivosCesion, `Cesiones_reproductores_${fechaHoy.replace(/\//g,'-')}_${reprosACeder.length}animales.pdf`, templateBytes, docsDatos, true);
+            panelDescargas('📄 CESIÓN GENERADA', listaCes,
+                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${reprosACeder.length > 1 ? `Las ${reprosACeder.length} cesiones en un solo PDF y el Excel de baja para MITECO. Si las prefieres sueltas, abre "de uno en uno" abajo:` : 'Documento de cesión y Excel de baja para MITECO. Descarga cada uno con su botón:'}</div>`);
+            return { ok: true, docsDatos };
 
         } catch(err) {
             alert('Error al generar PDF: ' + err.message);
