@@ -4433,7 +4433,8 @@
                 const chip = (tras.match(/\b(\d{15})\b/) || [])[1] || '';
                 const marca = (tras.match(/CHIP\s+(\S+)/i) || [])[1] || '';
                 const fecha = (tras.match(/(\d{2}\/\d{2}\/\d{4})/) || [])[1] || '';
-                certs.push({ pagina: n - 1, cod, chip, marca, fecha });
+                const especie = ((tras.match(/^\s*(.+?)\s+[DMH]\s+CHIP/i) || [])[1] || '').trim();
+                certs.push({ pagina: n - 1, cod, chip, marca, fecha, especie });
             }
             if (!certs.length) { saraPanel('📥 PAPELES DE MITECO', '<div style="text-align:center;padding:20px;color:var(--rojo);font-weight:700;">No encuentro certificados de MITECO en este PDF.</div>'); return; }
             // chip → puesta (principal) a la que pertenece
@@ -4461,6 +4462,25 @@
             saraPanel('📥 PAPELES DE MITECO', `<div style="text-align:center;padding:20px;color:var(--rojo);font-weight:700;">No se ha podido leer el PDF: ${err.message}</div>`);
         }
     };
+    // 14/11/2026: correo ya redactado para reclamar a MITECO los certificados con error.
+    // Se abre el Mail del móvil sin destinatario: lo pone Martín (es el titular) y lo envía.
+    function mitecoCorreoHref(r) {
+        if (!r || !r.errores.length) return '';
+        const refRC = ((r.file && r.file.name || '').match(/RC-\d{4}-\d+/) || [])[0] || '';
+        const faltan = Object.values(r.puestas).flatMap(x => x.faltan);
+        const lineas = r.errores.map(c => {
+            const cand = faltan.filter(n => ((infoChip(n) || {}).fechaNac || '') === c.fecha);
+            return `- Certificado con código id. CITES ${c.cod} (${c.especie ? c.especie + ', ' : ''}fecha de nacimiento ${c.fecha || '—'}): figura como marca del ejemplar "${c.marca || '—'}" en lugar del número de microchip.` +
+                (cand.length === 1 ? ` El microchip que corresponde a este ejemplar es el ${cand[0]}.` : '');
+        });
+        const asunto = `Solicitud de corrección de certificado${r.errores.length > 1 ? 's' : ''} de cría en cautividad – Criador ${MITECO_CRIADOR}${refRC ? ' (ref. ' + refRC + ')' : ''}`;
+        const cuerpo = `Buenos días:\n\nMe dirijo a ustedes como titular del criadero con código id. de criador ${MITECO_CRIADOR} (Martín Moreno González, NIF 23297528T) en relación con los certificados de cría en cautividad recibidos${refRC ? ' con referencia ' + refRC : ''}.\n\nHemos detectado el siguiente error:\n\n${lineas.join('\n')}\n\nLes ruego que emitan el certificado corregido, ya que, según indica el propio certificado, el código id. CITES debe constar en cualquier documento de transferencia del ejemplar y, mientras tanto, no podemos cederlo.\n\nQuedo a su disposición para cualquier aclaración o documentación adicional.\n\nUn saludo,\n\nMartín Moreno González\nCriador ${MITECO_CRIADOR}`;
+        return `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+    }
+    function mitecoBotonCorreo(r) {
+        const href = mitecoCorreoHref(r);
+        return href ? `<a href="${href}" class="btn-mini naranja" style="display:block;text-align:center;padding:10px;font-size:0.82rem;margin:4px 0 10px;text-decoration:none;">✉️ CORREO A MITECO (reclamar ${r.errores.length > 1 ? 'los certificados' : 'el certificado'})</a><div style="font-size:0.7rem;color:var(--texto2);text-align:center;margin:-6px 0 10px;">Se abre el Mail ya escrito: Martín pone la dirección de MITECO y lo envía.</div>` : '';
+    }
     function mitecoPapelesResumen() {
         const r = window._mitecoPapeles; if (!r) return;
         const fc = c => `<span style="font-family:monospace;">${c}</span>`;
@@ -4476,7 +4496,7 @@
         });
         if (r.cambia.length) h += caja('var(--naranja)', `✏️ Cambia el código CITES que había: ${r.cambia.map(c => `${fc(c.chip)}: ${c.antes} → <b>${c.cod}</b>`).join('<br>')}`);
         if (r.fuera.length) h += caja('var(--texto2)', `❔ Chips que no están en la app (se ignoran): ${r.fuera.map(c => fc(c.chip) + ' (' + c.cod + ')').join(', ')}`);
-        if (r.errores.length) h += caja('var(--rojo)', `❌ <b>Error de MITECO</b> — certificado sin chip válido, no se asigna:<br>${r.errores.map(c => `<b>${c.cod}</b> · marca "${c.marca || '—'}" · nacido ${c.fecha || '—'} (pág. ${c.pagina + 1})`).join('<br>')}<br>Hay que pedir a MITECO el certificado corregido.`);
+        if (r.errores.length) h += caja('var(--rojo)', `❌ <b>Error de MITECO</b> — certificado sin chip válido, no se asigna:<br>${r.errores.map(c => `<b>${c.cod}</b> · marca "${c.marca || '—'}" · nacido ${c.fecha || '—'} (pág. ${c.pagina + 1})`).join('<br>')}<br>Hay que pedir a MITECO el certificado corregido.`) + mitecoBotonCorreo(r);
         h += `<button class="btn-save" style="background:var(--verde);color:#0a0a0a;margin-top:6px;" onclick="mitecoPapelesGuardar()">✓ CONFIRMAR Y GUARDAR</button><div id="miteco-pap-prog" style="text-align:center;font-size:0.78rem;color:var(--texto2);margin-top:6px;"></div>`;
         saraPanel('📥 PAPELES DE MITECO', h);
     }
@@ -4506,7 +4526,7 @@
             }
             registrarAuditoria('nuevo', 'miteco', `Papeles de MITECO subidos: ${lista.length} certificado(s) CITES · ${Object.values(r.puestas).map(x => x.p.idPuesta || x.p.detalle).join(', ')}${r.errores.length ? ' · ' + r.errores.length + ' con error de MITECO' : ''}`);
             window._mitecoPapeles = null;
-            saraPanel('📥 PAPELES DE MITECO', `<div style="text-align:center;padding:16px 0;font-size:0.9rem;line-height:1.6;">✅ <b>${lista.length}</b> códigos CITES guardados y papeles marcados.<br>Ya salen en los documentos de cesión.${r.errores.length ? `<br><span style="color:var(--rojo);">❌ ${r.errores.length} certificado(s) con error: hay que reclamarlos a MITECO.</span>` : ''}</div>`);
+            saraPanel('📥 PAPELES DE MITECO', `<div style="text-align:center;padding:16px 0;font-size:0.9rem;line-height:1.6;">✅ <b>${lista.length}</b> códigos CITES guardados y papeles marcados.<br>Ya salen en los documentos de cesión.${r.errores.length ? `<br><span style="color:var(--rojo);">❌ ${r.errores.length} certificado(s) con error: hay que reclamarlos a MITECO.</span>` : ''}</div>${mitecoBotonCorreo(r)}`);
             renderPynNuevo();
         } catch (err) {
             prog('');
