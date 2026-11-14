@@ -572,12 +572,12 @@
         <div class="form-group"><label>Fecha</label><div class="fecha-row"><select class="fecha-sel" id="i-fecha-d"></select><select class="fecha-sel" id="i-fecha-m"></select><select class="fecha-sel" id="i-fecha-y"></select></div></div>
         <div class="form-group"><label>Socio</label><select id="i-socio"><option value="Martin">Martín</option><option value="Patry">Patry</option></select></div>
         <button class="btn-save" id="btn-guardar-ingreso" onclick="guardarMovimiento('ingreso')">REGISTRAR INGRESO</button>
-        <button class="btn-secundario" onclick="irA('pantalla-clientes')">＋ GESTIONAR CLIENTES</button>
+        <button class="btn-secundario" onclick="window._clientesVolverA='form-ingreso';irA('pantalla-clientes')">＋ GESTIONAR CLIENTES</button>
         <button class="btn-cancelar" onclick="irA('pantalla-inicio')">CANCELAR</button>
     </div>
 
     <div id="pantalla-clientes" class="seccion-app" style="border-top-color:var(--naranja);">
-        <div class="titulo-centrado" style="color:var(--naranja);"><span class="btn-volver-header" onclick="irA('form-ingreso')">←</span>👤 CLIENTES</div>
+        <div class="titulo-centrado" style="color:var(--naranja);"><span class="btn-volver-header" onclick="clientesVolver()">←</span>👤 CLIENTES</div>
 
         <div id="cliente-form-box" style="background:var(--tarjeta);border-radius:10px;padding:14px;border:1px solid var(--borde);margin-bottom:14px;">
             <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;margin-bottom:10px;" id="cliente-form-titulo">＋ NUEVO CLIENTE</div>
@@ -594,7 +594,7 @@
         </div>
 
         <div id="lista-clientes"></div>
-        <button class="btn-cancelar" onclick="irA('form-ingreso')">← VOLVER</button>
+        <button class="btn-cancelar" onclick="clientesVolver()">← VOLVER</button>
     </div>
 
     <div id="pantalla-exito" class="seccion-app" style="text-align:center;">
@@ -1040,6 +1040,8 @@
     <!-- PASO 2: Comprador -->
     <div style="background:var(--tarjeta);border-radius:10px;padding:14px;border:1px solid var(--borde);margin-bottom:12px;text-align:center;">
         <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--verde);font-weight:700;margin-bottom:10px;text-align:center;">2 · DATOS DEL COMPRADOR</div>
+        <!-- 14/11/2026: acceso directo a la base de datos de clientes (añadir / editar) sin perder la cesión en curso -->
+        <button class="btn-mini" style="margin-bottom:10px;" onclick="window._clientesVolverA='pantalla-cesion';window._cesionVolviendo=true;irA('pantalla-clientes')">👤 GESTIONAR CLIENTES</button>
         <div id="cesion-comprador-tabs" style="display:flex;gap:6px;margin-bottom:10px;">
             <button id="cesion-tab-db" onclick="cesionTabComprador('db')" class="tab active" style="flex:1;">DE LA BBDD</button>
             <button id="cesion-tab-manual" onclick="cesionTabComprador('manual')" class="tab" style="flex:1;">MANUAL</button>
@@ -7717,7 +7719,31 @@
             .sort((a, b) => a.c.numero.localeCompare(b.c.numero, undefined, { numeric: true }));
     }
 
+    window.clientesVolver = function() {
+        const destino = window._clientesVolverA || 'form-ingreso';
+        window._clientesVolverA = null;
+        irA(destino);
+    };
+    // Rellena el selector de clientes de Cesión conservando el elegido
+    function cesionPoblarClientes() {
+        const selC = document.getElementById('cesion-cliente-select');
+        if (!selC) return;
+        const val = selC.value;
+        selC.innerHTML = '<option value="">— Selecciona cliente —</option>' + clientes.map(c => `<option value="${c.id}">${c.nombre}${c.dni ? ' · ' + c.dni : ''}</option>`).join('');
+        if (clientes.some(c => c.id === val)) selC.value = val;
+        selC.onchange = cesionResumen;
+    }
+
     window.iniciarPantallaCesion = function() {
+        // 14/11/2026: al volver de Clientes se conserva la cesión en curso (solo se refrescan los clientes)
+        if (window._cesionVolviendo && window._clientesVolverA === null) {
+            window._cesionVolviendo = false;
+            cesionPoblarClientes();
+            cesionRenderChips();
+            cesionResumen();
+            return;
+        }
+        window._cesionVolviendo = false;
         window._cesionSel = new Set();
         const b = document.getElementById('cesion-buscar'); if (b) b.value = '';
         const disp = chipsPendientesCeder();
@@ -7728,10 +7754,8 @@
         renderCesionPendientes();
         // Clientes
         const selC = document.getElementById('cesion-cliente-select');
-        if (selC) {
-            selC.innerHTML = '<option value="">— Selecciona cliente —</option>' + clientes.map(c => `<option value="${c.id}">${c.nombre}${c.dni ? ' · ' + c.dni : ''}</option>`).join('');
-            selC.onchange = cesionResumen;
-        }
+        if (selC) selC.value = '';
+        cesionPoblarClientes();
         ['cesion-m-nombre'].forEach(id => { const el = document.getElementById(id); if (el) el.oninput = cesionResumen; });
         // Especies para reproductores
         const selEsp = document.getElementById('cesion-repro-especie');
