@@ -696,6 +696,8 @@
         <div class="pyn2-tabs-grid" id="pyn2-tabs"></div>
         <!-- 14/11/2026: buscador de chip para los papeles que devuelve MITECO (solo en ⏳ ESPERANDO) -->
         <div id="pyn2-buscachip" style="display:none;">
+            <!-- 14/11/2026: el PDF de certificados de MITECO se lee solo (códigos CITES + papeles recibidos) -->
+            <label class="btn-mini verde" style="display:block;text-align:center;padding:11px;font-size:0.84rem;margin:0 0 8px;">📥 SUBIR PAPELES DE MITECO (PDF)<input type="file" accept="application/pdf,.pdf" style="display:none;" onchange="mitecoPapelesLeer(this)"></label>
             <input type="text" id="pyn2-buscachip-input" inputmode="numeric" autocomplete="off" placeholder="🔍 6 últimos dígitos del chip (papeles de MITECO)" oninput="pyn2BuscarChip()">
             <div id="pyn2-buscachip-res"></div>
         </div>
@@ -4400,6 +4402,135 @@
         const r = document.getElementById('pyn2-buscachip-res');
         if (r) r.innerHTML = `<div class="pyn2-bc-ok">✅ Papeles recibidos de <b>${p.idPuesta || p.detalle}</b>. Ya está lista para cesión.</div>`;
     };
+    // ══════════════════════════════════════════════════════════════
+    // 14/11/2026 — SUBIR PAPELES DE MITECO (acordado con Patry)
+    // MITECO manda un PDF con un "Certificado de cría en cautividad" por animal (código id. CITES
+    // + chip). La app lo lee y, tras enseñar un resumen y confirmar:
+    //  · guarda el código CITES en cada chip (sale en los documentos de cesión),
+    //  · guarda el certificado de cada chip por separado (se ofrece al hacer su cesión),
+    //  · marca "papeles recibidos" en las puestas de esos chips,
+    //  · los chips de esas puestas que NO vienen en el PDF quedan PENDIENTES (no se pueden ceder
+    //    hasta que llegue su certificado). Los certificados con chip erróneo (p. ej. "0") no se
+    //    asignan: se avisa para reclamarlos a MITECO.
+    // ══════════════════════════════════════════════════════════════
+    window._mitecoPapeles = null;
+    window.mitecoPapelesLeer = async function(input) {
+        const file = input.files && input.files[0]; input.value = '';
+        if (!file) return;
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede subir los papeles de MITECO.');
+        saraPanel('📥 PAPELES DE MITECO', '<div style="text-align:center;padding:24px;color:var(--texto2);">⏳ Leyendo el PDF…</div>');
+        try {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const pdfjs = await cargarPdfJs();
+            const pdf = await pdfjs.getDocument({ data: bytes.slice() }).promise;
+            const certs = [];
+            for (let n = 1; n <= pdf.numPages; n++) {
+                const tc = await (await pdf.getPage(n)).getTextContent();
+                const t = tc.items.map(i => i.str).join(' ').replace(/\s+/g, ' ');
+                const cod = (t.match(/\b(\d{3}[A-Z]{2}\d{6})\b/) || [])[1];
+                if (!cod) continue; // página sin certificado
+                const tras = t.slice(t.indexOf(cod) + cod.length);
+                const chip = (tras.match(/\b(\d{15})\b/) || [])[1] || '';
+                const marca = (tras.match(/CHIP\s+(\S+)/i) || [])[1] || '';
+                const fecha = (tras.match(/(\d{2}\/\d{2}\/\d{4})/) || [])[1] || '';
+                certs.push({ pagina: n - 1, cod, chip, marca, fecha });
+            }
+            if (!certs.length) { saraPanel('📥 PAPELES DE MITECO', '<div style="text-align:center;padding:20px;color:var(--rojo);font-weight:700;">No encuentro certificados de MITECO en este PDF.</div>'); return; }
+            // chip → puesta (principal) a la que pertenece
+            const puestaDe = {};
+            histBio.filter(b => b.tipo === 'puesta' && !b.esPrueba && !pyn2EsSecundaria(b))
+                .forEach(p => pyn2ChipsDePuesta(p).forEach(c => { puestaDe[String(c)] = p; }));
+            const r = { certs, file, bytes, ok: [], igual: [], cambia: [], fuera: [], errores: [], puestas: {} };
+            certs.forEach(c => {
+                if (!c.chip) { r.errores.push(c); return; }
+                const cd = chipsData.find(x => x.numero === c.chip);
+                if (!cd) { r.fuera.push(c); return; }
+                c.chipId = cd.id;
+                if (cd.cites === c.cod) r.igual.push(c); else if (cd.cites) { c.antes = cd.cites; r.cambia.push(c); } else r.ok.push(c);
+                const p = puestaDe[c.chip];
+                if (p) (r.puestas[p.id] = r.puestas[p.id] || { p, vienen: [] }).vienen.push(c.chip);
+            });
+            Object.values(r.puestas).forEach(x => {
+                x.todos = pyn2ChipsDePuesta(x.p).map(String);
+                x.faltan = x.todos.filter(c => !x.vienen.includes(c));
+                x.yaRecibida = pyn2EstadoPuesta(x.p).pasoPapeles;
+            });
+            window._mitecoPapeles = r;
+            mitecoPapelesResumen();
+        } catch (err) {
+            saraPanel('📥 PAPELES DE MITECO', `<div style="text-align:center;padding:20px;color:var(--rojo);font-weight:700;">No se ha podido leer el PDF: ${err.message}</div>`);
+        }
+    };
+    function mitecoPapelesResumen() {
+        const r = window._mitecoPapeles; if (!r) return;
+        const fc = c => `<span style="font-family:monospace;">${c}</span>`;
+        const caja = (color, html) => `<div style="background:var(--tarjeta2);border-left:3px solid ${color};border-radius:0;padding:9px 11px;margin-bottom:8px;font-size:0.8rem;line-height:1.5;text-align:left;">${html}</div>`;
+        let h = `<div style="text-align:center;font-size:0.86rem;margin-bottom:10px;"><b>${r.certs.length}</b> certificado${r.certs.length !== 1 ? 's' : ''} de cría en cautividad</div>`;
+        const asign = r.ok.length + r.cambia.length + r.igual.length;
+        h += caja('var(--verde)', `✅ <b>${asign}</b> chip${asign !== 1 ? 's' : ''} con su código CITES${r.igual.length ? ` (${r.igual.length} ya lo tenían)` : ''}`);
+        Object.values(r.puestas).forEach(x => {
+            const nom = x.p.idPuesta || x.p.detalle;
+            h += caja(x.faltan.length ? 'var(--naranja)' : 'var(--azul)',
+                `🥚 <b>${nom}</b> · ${x.vienen.length} de ${x.todos.length} chips${x.yaRecibida ? ' · papeles ya marcados' : ' → <b>papeles recibidos</b>'}` +
+                (x.faltan.length ? `<br>⏳ Sin certificado (quedan <b>pendientes</b>, no se podrán ceder): ${x.faltan.map(fc).join(', ')}` : ''));
+        });
+        if (r.cambia.length) h += caja('var(--naranja)', `✏️ Cambia el código CITES que había: ${r.cambia.map(c => `${fc(c.chip)}: ${c.antes} → <b>${c.cod}</b>`).join('<br>')}`);
+        if (r.fuera.length) h += caja('var(--texto2)', `❔ Chips que no están en la app (se ignoran): ${r.fuera.map(c => fc(c.chip) + ' (' + c.cod + ')').join(', ')}`);
+        if (r.errores.length) h += caja('var(--rojo)', `❌ <b>Error de MITECO</b> — certificado sin chip válido, no se asigna:<br>${r.errores.map(c => `<b>${c.cod}</b> · marca "${c.marca || '—'}" · nacido ${c.fecha || '—'} (pág. ${c.pagina + 1})`).join('<br>')}<br>Hay que pedir a MITECO el certificado corregido.`);
+        h += `<button class="btn-save" style="background:var(--verde);color:#0a0a0a;margin-top:6px;" onclick="mitecoPapelesGuardar()">✓ CONFIRMAR Y GUARDAR</button><div id="miteco-pap-prog" style="text-align:center;font-size:0.78rem;color:var(--texto2);margin-top:6px;"></div>`;
+        saraPanel('📥 PAPELES DE MITECO', h);
+    }
+    window.mitecoPapelesGuardar = async function() {
+        const r = window._mitecoPapeles; if (!r) return;
+        const prog = t => { const el = document.getElementById('miteco-pap-prog'); if (el) el.textContent = t; };
+        const btn = document.querySelector('#visor-contenido .btn-save'); if (btn) btn.disabled = true;
+        const hoy = new Date().toLocaleDateString('es-ES');
+        try {
+            const lista = [...r.ok, ...r.cambia, ...r.igual];
+            // El PDF de MITECO se guarda UNA vez; cada chip apunta a su página (su certificado).
+            // Así los certificados de una cesión se montan desde un solo archivo y el PDF pesa poco.
+            prog('⏳ Guardando el PDF de MITECO…');
+            const ref = await guardarArchivoFS(r.bytes, { nombre: r.file.name || 'Papeles_MITECO.pdf', tipo: 'application/pdf', carpeta: 'papeles_miteco' });
+            let i = 0;
+            for (const c of lista) {
+                prog(`⏳ Guardando código CITES ${++i} de ${lista.length}…`);
+                await updateDoc(doc(db, 'chips', c.chipId), { cites: c.cod, citesPendienteMiteco: false, fechaCitesMiteco: hoy, citesCert: { ref, pagina: c.pagina } });
+            }
+            prog('⏳ Marcando papeles recibidos…');
+            for (const x of Object.values(r.puestas)) {
+                for (const num of x.faltan) {
+                    const cd = chipsData.find(y => y.numero === num);
+                    if (cd && !cd.cites) await updateDoc(doc(db, 'chips', cd.id), { citesPendienteMiteco: true });
+                }
+                if (!x.yaRecibida) await pyn2MarcarPapeles(x.p.id);
+            }
+            registrarAuditoria('nuevo', 'miteco', `Papeles de MITECO subidos: ${lista.length} certificado(s) CITES · ${Object.values(r.puestas).map(x => x.p.idPuesta || x.p.detalle).join(', ')}${r.errores.length ? ' · ' + r.errores.length + ' con error de MITECO' : ''}`);
+            window._mitecoPapeles = null;
+            saraPanel('📥 PAPELES DE MITECO', `<div style="text-align:center;padding:16px 0;font-size:0.9rem;line-height:1.6;">✅ <b>${lista.length}</b> códigos CITES guardados y papeles marcados.<br>Ya salen en los documentos de cesión.${r.errores.length ? `<br><span style="color:var(--rojo);">❌ ${r.errores.length} certificado(s) con error: hay que reclamarlos a MITECO.</span>` : ''}</div>`);
+            renderPynNuevo();
+        } catch (err) {
+            prog('');
+            alert(mensajeErrorSubida(err) + '\n\nLo que ya se haya guardado se queda; puedes volver a subir el PDF y seguirá donde lo dejó.');
+            if (btn) btn.disabled = false;
+        }
+    };
+    // Certificados CITES de MITECO de unos chips, juntos en un PDF (para la cesión)
+    async function certificadosCitesDe(numeros, nombre) {
+        const certs = numeros.map(n => { const c = chipsData.find(x => x.numero === String(n)); return c && c.citesCert; }).filter(x => x && x.ref);
+        if (!certs.length) return null;
+        try {
+            const unido = await PDFLib.PDFDocument.create();
+            const porArchivo = {}; // en el orden de los chips, agrupando las páginas de cada PDF de MITECO
+            certs.forEach(c => (porArchivo[c.ref] = porArchivo[c.ref] || []).push(c.pagina));
+            for (const [ref, paginas] of Object.entries(porArchivo)) {
+                const a = await leerArchivoCualquiera(ref);
+                const d = await PDFLib.PDFDocument.load(await a.blob.arrayBuffer());
+                (await unido.copyPages(d, paginas.filter(pg => pg < d.getPageCount()))).forEach(pg => unido.addPage(pg));
+            }
+            return { nombre, blob: new Blob([await unido.save()], { type: 'application/pdf' }) };
+        } catch (e) { console.warn('Certificados CITES:', e); return null; }
+    }
+
     // Buscador por los últimos dígitos del chip
     window.pyn2BuscarChip = function() {
         const inp = document.getElementById('pyn2-buscachip-input');
@@ -7848,6 +7979,8 @@
             const esp = [...new Set(items.map(x => x.especie))].join('-');
             archivosCesion.push(excelBajaCria(docsDatos.items, docsDatos.comprador, fechaHoy));
             const listaCes = await cesionPdfUnico(archivosCesion, `Cesiones_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.pdf`, templateBytes, docsDatos, false);
+            const certCes = await certificadosCitesDe(items.map(x => x.c.numero), `Certificados_CITES_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.pdf`);
+            if (certCes) listaCes.splice(2, 0, certCes); // 14/11/2026: certificados de MITECO de esos chips
             await panelDescargasFirma('📄 CESIÓN GENERADA', listaCes,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${items.length > 1 ? `Las ${items.length} cesiones en un solo PDF y el Excel de baja para MITECO. Si las prefieres sueltas, abre "de uno en uno" abajo:` : 'Documento de cesión y Excel de baja para MITECO. Descarga cada uno con su botón:'}</div>`);
             return { ok: true, bajasIds, docsDatos };
@@ -7966,7 +8099,7 @@
     }
     function chipsPendientesCeder() {
         const cache = {};
-        return chipsDisponiblesCria().filter(x => chipConPapeles(x.c.numero, cache))
+        return chipsDisponiblesCria().filter(x => !x.c.citesPendienteMiteco && chipConPapeles(x.c.numero, cache)) // 14/11/2026: sin certificado de MITECO → pendiente
             .sort((a, b) => a.c.numero.localeCompare(b.c.numero, undefined, { numeric: true }));
     }
 
@@ -8210,6 +8343,8 @@
             }
         }
         if (!datos.items.length) return alert('No encuentro los animales de esta cesión.');
+        // 14/11/2026: si al hacerla aún no estaba el código CITES, se coge el que tenga ahora el chip
+        if (!esRepro) datos = { ...datos, items: datos.items.map(d => d.cites ? d : { ...d, cites: ((chipsData.find(x => x.numero === d.numero) || {}).cites) || '' }) };
         saraPanel('🖨 DOCUMENTOS DE LA CESIÓN', '<div style="text-align:center;padding:20px;color:var(--texto2);">⏳ Preparando documentos…</div>');
         try {
             const resp = await fetch('DOCUMENTO CESION.pdf');
@@ -8221,6 +8356,7 @@
             archivos.push(esRepro ? excelBajaRepro(datos.items, datos.comprador, fecha) : excelBajaCria(datos.items, datos.comprador, fecha));
             const n = datos.items.length;
             const lista = await cesionPdfUnico(archivos, `Cesiones_${esRepro ? 'reproductores' : (c.especie || '')}_${fecha.replace(/\//g,'-')}_${n}animales.pdf`, templateBytes, { ...datos, fecha }, esRepro);
+            if (!esRepro) { const cert = await certificadosCitesDe(datos.items.map(d => d.numero), `Certificados_CITES_${c.especie || ''}_${fecha.replace(/\//g,'-')}_${n}animales.pdf`); if (cert) lista.splice(2, 0, cert); }
             await panelDescargasFirma('🖨 DOCUMENTOS DE LA CESIÓN', lista,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${c.fecha} · ${n} ${esRepro ? 'reproductor(es) ' : ''}${c.especie} → ${c.comprador || 'sin comprador'}.${n > 1 ? ' Todo en un solo PDF o, abajo, de uno en uno:' : ''}</div>`);
         } catch (err) { alert('No se pudieron preparar los documentos: ' + err.message); }
@@ -8451,7 +8587,7 @@
                 const chipId = input.dataset.chipid;
                 const cites  = input.value.trim();
                 if (chipId) {
-                    await updateDoc(doc(db, 'chips', chipId), { cites });
+                    await updateDoc(doc(db, 'chips', chipId), cites ? { cites, citesPendienteMiteco: false } : { cites });
                     guardados++;
                 }
             }
