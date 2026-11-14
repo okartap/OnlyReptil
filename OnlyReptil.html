@@ -472,6 +472,7 @@
             <div class="fila-gestion" onclick="irA('pantalla-parentales')"><span class="ico" style="color:var(--azul);">🐢</span><span class="txt">Plantel</span></div>
             <div class="fila-gestion" onclick="irA('pantalla-cesion')"><span class="ico" style="color:var(--verde);">📄</span><span class="txt">Cesión</span></div>
             <div class="fila-gestion" onclick="irA('pantalla-auditoria')"><span class="ico" style="color:var(--texto2);">📋</span><span class="txt">Historial</span></div>
+            <div class="fila-gestion" onclick="abrirFirma()"><span class="ico" style="color:var(--naranja);">✍️</span><span class="txt">Firma</span></div>
         </div>
 
         <!-- 30/09/2026: PARA PRESENTAR EN SARA — panel sencillo para Martín (y Patry) con los
@@ -4538,13 +4539,15 @@
     // · Ordenador: se monta y se descarga directamente, sin ventanas.
     // · iPhone/iPad: Safari bloquea una descarga que no ocurre en el mismo toque, así que el
     //   botón pasa a "⏳ preparando…" y, cuando está listo, a "⬇ DESCARGAR PDF" (segundo toque).
-    window._saraPdf = {}; // puestaId → { estado: 'prep' | 'listo', blob, nombre }
+    window._saraPdf = {}; // puestaId → { estado: 'prep' | 'listo', blob, blobFirmado, nombre }
+    window._saraConFirma = true; // 14/11/2026: casilla "PDF con firma de Martín" del panel SARA de Inicio
+    window.saraFirmaCambiar = function(v) { window._saraConFirma = v; window._saraPdf = {}; renderPanelSara(); };
     window.saraBotonPdf = async function(puestaId) {
         if (!usuarioActual) return;
         const c = window._saraPdf[puestaId];
         if (c && c.estado === 'prep') return;
         if (c && c.estado === 'listo') {
-            descargarBlob(c.blob, c.nombre);
+            descargarBlob((window._saraConFirma && c.blobFirmado) || c.blob, c.nombre);
             delete window._saraPdf[puestaId];
             saraMarcarDescarga(puestaId, 'pdf');
             renderPanelSara();
@@ -4559,10 +4562,12 @@
             const p = histBio.find(x => x.id === puestaId);
             registrarAuditoria('nuevo', 'miteco', `PDF para red SARA preparado: ${p ? (p.idPuesta || p.detalle) : ''}`);
             if (r.avisos.length) alert('⚠️ ' + r.avisos.join('\n⚠️ '));
+            let firmado = null;
+            if (window._saraConFirma && window._firmaMartin) { try { firmado = await estamparFirma(r.blob, 'pyn'); } catch (e) { console.warn('Firma PyN SARA:', e); } }
             if (ES_IOS) {
-                window._saraPdf[puestaId] = { estado: 'listo', blob: r.blob, nombre: r.nombre };
+                window._saraPdf[puestaId] = { estado: 'listo', blob: r.blob, blobFirmado: firmado, nombre: r.nombre };
             } else {
-                descargarBlob(r.blob, r.nombre);
+                descargarBlob(firmado || r.blob, r.nombre);
                 delete window._saraPdf[puestaId];
                 saraMarcarDescarga(puestaId, 'pdf');
             }
@@ -4601,12 +4606,12 @@
             const r = await construirPdfSara(puestaId);
             if (!r) { cerrarVisor(); return; }
             const avisos = r.avisos;
-            const archivos = [{ nombre: r.nombre, blob: r.blob, alDescargar: () => saraMarcarDescarga(puestaId, 'pdf') }];
+            const archivos = [{ firma: 'pyn', nombre: r.nombre, blob: r.blob, alDescargar: () => saraMarcarDescarga(puestaId, 'pdf') }];
             // 4) Excel MITECO (mismo contenido que el que se generó en el paso anterior)
             if (solo !== 'pdf') archivos.push({ nombre: `MITECO_${idTxt}.xlsx`, blob: excelMiteco(filasMitecoAlta(animales, conFecha.fechaMarcado)), alDescargar: () => saraMarcarDescarga(puestaId, 'excel') });
             if (d.hoja && SARA_HOJA_APARTE) { const h = await leerArchivoCualquiera(d.hoja); archivos.push({ nombre: `Hoja_firmada_${idTxt}.pdf`, blob: h.blob }); }
             registrarAuditoria('nuevo', 'miteco', `Documentación para red SARA preparada: ${idTxt} · ${animales.length} animal(es)`);
-            panelDescargas(solo === 'pdf' ? '📄 PDF PREPARADO' : '📦 DOCUMENTACIÓN PREPARADA', archivos,
+            await panelDescargasFirma(solo === 'pdf' ? '📄 PDF PREPARADO' : '📦 DOCUMENTACIÓN PREPARADA', archivos,
                 '<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">Descarga cada archivo con su botón:</div>',
                 `${avisos.length ? `<div style="color:var(--naranja);font-size:0.78rem;margin-top:6px;">⚠️ ${avisos.join('<br>⚠️ ')}</div>` : ''}
                  <div style="margin-top:10px;color:var(--texto2);font-size:0.8rem;line-height:1.5;text-align:left;">${solo === 'pdf' ? 'Se presenta en la red SARA junto con el Excel de la puesta.' : 'Martín presenta los dos archivos en la red SARA.'} Cuando esté el justificante, súbelo con <b>📥 SUBIR JUSTIFICANTE</b>.</div>`);
@@ -5730,7 +5735,8 @@
         if (plegado) { card.innerHTML = h; return; }
         if (pendientes.length) {
             h += `<div class="cs-sub">Descarga los 2 archivos, preséntalos y sube el justificante</div>
-                  <button class="cs-bloque" onclick="saraBloqueElegir()">📥 SUBIR JUSTIFICANTES <span style="font-weight:400;opacity:.8;">(varios a la vez)</span></button>`;
+                  <button class="cs-bloque" onclick="saraBloqueElegir()">📥 SUBIR JUSTIFICANTES <span style="font-weight:400;opacity:.8;">(varios a la vez)</span></button>
+                  ${window._firmaMartin ? `<label style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.76rem;font-weight:700;margin:2px 0 8px;cursor:pointer;"><input type="checkbox" ${window._saraConFirma ? 'checked' : ''} onchange="saraFirmaCambiar(this.checked)">✍️ PDF con firma de Martín</label>` : ''}`;
             h += pendientes.map(x => {
                 const dPdf = x.est.todosNacs.find(n => n.saraDescargaPdf);
                 const dXls = x.est.todosNacs.find(n => n.saraDescargaExcel);
@@ -6924,9 +6930,18 @@
     // El iPhone solo deja descargar un archivo por toque: si la app lanza varias descargas
     // seguidas, bloquea las siguientes. Por eso los documentos se ofrecen con un botón cada uno.
     let _panelArchivos = [];
+    window._panelConFirma = true;
     function panelDescargas(titulo, archivos, htmlArriba, htmlAbajo) {
-        _panelArchivos.forEach(a => { try { URL.revokeObjectURL(a.url); } catch (e) {} });
-        _panelArchivos = archivos.map(a => ({ ...a, url: URL.createObjectURL(a.blob) }));
+        _panelArchivos.forEach(a => { try { URL.revokeObjectURL(a.url); if (a.urlFirmado) URL.revokeObjectURL(a.urlFirmado); } catch (e) {} });
+        _panelArchivos = archivos.map(a => ({ ...a, url: URL.createObjectURL(a.blob), urlFirmado: a.blobFirmado ? URL.createObjectURL(a.blobFirmado) : null }));
+        // 14/11/2026: documentos que admiten la firma de Martín → casilla "con firma" (marcada por defecto)
+        window._panelConFirma = true;
+        const hayFirmables = _panelArchivos.some(a => a.firma);
+        const hayFirmados = _panelArchivos.some(a => a.urlFirmado);
+        const cajaFirma = !hayFirmables ? '' : hayFirmados
+            ? `<label style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.45);border-radius:10px;padding:9px;margin-bottom:10px;font-size:0.86rem;font-weight:700;cursor:pointer;"><input type="checkbox" checked onchange="window._panelConFirma=this.checked" style="width:18px;height:18px;">✍️ Con firma de Martín</label>`
+            : `<div style="font-size:0.74rem;color:var(--texto2);text-align:center;margin-bottom:8px;">✍️ Sin firma guardada: salen sin firmar (súbela en Inicio → Gestión → Firma)</div>`;
+        htmlArriba = cajaFirma + (htmlArriba || '');
         const ico = n => /\.pdf$/i.test(n) ? '📄' : (/\.xlsx$/i.test(n) ? '📊' : '⬇');
         const boton = (a, i) => `
             <button id="panel-arch-${i}" onclick="panelDescargar(${i})" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--tarjeta2);border:1px solid var(--borde);border-radius:10px;padding:10px 12px;margin-bottom:6px;color:var(--texto);font-family:Rajdhani,sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;">
@@ -6942,13 +6957,165 @@
     }
     window.panelDescargar = function(i) {
         const a = _panelArchivos[i]; if (!a) return;
-        const x = document.createElement('a'); x.href = a.url; x.download = a.nombre;
+        const x = document.createElement('a'); x.href = (window._panelConFirma && a.urlFirmado) ? a.urlFirmado : a.url; x.download = a.nombre;
         document.body.appendChild(x); x.click(); document.body.removeChild(x);
         const est = document.querySelector(`#panel-arch-${i} .pa-est`);
         if (est) { est.textContent = '✓ DESCARGADO'; est.style.color = 'var(--verde)'; }
         if (typeof a.alDescargar === 'function') { try { a.alDescargar(); } catch (e) {} }
     };
     window.panelDescargarTodos = function() { _panelArchivos.map((a, i) => a.plegado ? -1 : i).filter(i => i >= 0).forEach((i, k) => setTimeout(() => panelDescargar(i), k * 700)); };
+    // ── 14/11/2026: FIRMA DE MARTÍN ──────────────────────────────────────────
+    // Se guarda una sola imagen (PNG con fondo transparente) en config/firma. Al descargar
+    // PyN, cesiones y solicitudes CITES se puede sacar el documento con la firma o sin ella.
+    window._firmaMartin = null;
+    onSnapshot(doc(db, 'config', 'firma'), snap => { window._firmaMartin = snap.exists() ? (snap.data().imagen || null) : null; try { renderPanelSara(); } catch (e) {} }, () => {});
+    // Hueco de firma de cada impreso (puntos PDF, origen abajo a la izquierda)
+    const FIRMA_HUECOS = {
+        pyn:    { x: 512, y: 63,  w: 118, h: 31,  paginas: 'primera' }, // "Fdo.:" (también 1ª hoja del PDF de SARA)
+        cesion: { x: 50,  y: 101, w: 150, h: 48,  paginas: 'todas' },   // "FIRMA ANTIGUO PROPIETARIO"
+        cites:  { x: 860, y: 178, w: 420, h: 150, paginas: 'primera' }  // casilla "Firma"
+    };
+    async function estamparFirma(blob, tipo) {
+        const hueco = FIRMA_HUECOS[tipo];
+        if (!window._firmaMartin || !hueco) return null;
+        const pdf = await PDFLib.PDFDocument.load(await blob.arrayBuffer());
+        const png = await pdf.embedPng(window._firmaMartin);
+        const esc = Math.min(hueco.w / png.width, hueco.h / png.height);
+        const w = png.width * esc, h = png.height * esc;
+        const paginas = hueco.paginas === 'todas' ? pdf.getPages() : [pdf.getPages()[0]];
+        paginas.forEach(pg => pg.drawImage(png, { x: hueco.x + (hueco.w - w) / 2, y: hueco.y, width: w, height: h }));
+        return new Blob([await pdf.save()], { type: 'application/pdf' });
+    }
+    // Prepara la versión firmada de los archivos marcados con "firma" (si hay firma guardada)
+    async function prepararFirmas(archivos) {
+        if (!window._firmaMartin) return archivos;
+        for (const a of archivos) {
+            if (!a.firma || a.blobFirmado) continue;
+            try { a.blobFirmado = await estamparFirma(a.blob, a.firma); } catch (e) { console.warn('No se pudo firmar ' + a.nombre, e); }
+        }
+        return archivos;
+    }
+    async function panelDescargasFirma(titulo, archivos, htmlArriba, htmlAbajo) {
+        await prepararFirmas(archivos);
+        panelDescargas(titulo, archivos, htmlArriba, htmlAbajo);
+    }
+
+    // Pantalla de la firma (Inicio → Gestión → ✍️ Firma). Pueden subirla Martín y Patricio.
+    window.abrirFirma = function() {
+        if (!usuarioActual) return;
+        const f = window._firmaMartin;
+        saraPanel('✍️ FIRMA DE MARTÍN', `
+            <div style="font-size:0.8rem;color:var(--texto2);text-align:center;margin-bottom:10px;line-height:1.5;">Se añade (si quieres) a la notificación PyN, los documentos de cesión y las solicitudes CITES. Al descargar sale una casilla <b>✍️ Con firma de Martín</b>.</div>
+            <div style="background:#fff;border-radius:10px;min-height:90px;display:flex;align-items:center;justify-content:center;padding:10px;margin-bottom:10px;">
+                ${f ? `<img src="${f}" style="max-width:100%;max-height:140px;">` : '<span style="color:#888;font-size:0.85rem;">Aún no hay firma guardada</span>'}
+            </div>
+            ${f ? `<div style="text-align:center;margin-bottom:12px;"><button class="btn-mini rojo" onclick="firmaBorrar()">🗑 BORRAR FIRMA</button></div>` : ''}
+            <div style="font-weight:700;font-size:0.84rem;text-align:center;margin:6px 0;">${f ? 'CAMBIARLA' : 'AÑADIRLA'}</div>
+            <label class="btn-mini verde" style="display:block;text-align:center;padding:10px;font-size:0.82rem;">📷 FOTO DE LA FIRMA (en papel blanco)<input type="file" accept="image/*" style="display:none;" onchange="firmaDesdeFoto(this)"></label>
+            <div style="font-size:0.72rem;color:var(--texto2);text-align:center;margin:4px 0 10px;">Firma con bolígrafo oscuro en un folio blanco y hazle la foto de cerca, con buena luz. La app quita el fondo sola.</div>
+            <div style="font-size:0.78rem;font-weight:700;text-align:center;margin-bottom:4px;">o firma aquí con el dedo:</div>
+            <canvas id="firma-lienzo" width="600" height="220" style="width:100%;background:#fff;border-radius:10px;touch-action:none;display:block;"></canvas>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+                <button class="btn-mini" style="flex:1;" onclick="firmaLimpiar()">↺ BORRAR TRAZO</button>
+                <button class="btn-mini verde" style="flex:1;" onclick="firmaGuardarLienzo()">✓ GUARDAR ESTA FIRMA</button>
+            </div>
+            <div id="firma-prev"></div>`);
+        firmaPrepararLienzo();
+    };
+    let _firmaTrazo = false;
+    function firmaPrepararLienzo() {
+        const c = document.getElementById('firma-lienzo'); if (!c) return;
+        const ctx = c.getContext('2d');
+        ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#141c4a';
+        _firmaTrazo = false;
+        let pintando = false;
+        const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; };
+        c.onpointerdown = e => { pintando = true; _firmaTrazo = true; c.setPointerCapture(e.pointerId); const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 0.1, y + 0.1); ctx.stroke(); };
+        c.onpointermove = e => { if (!pintando) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); };
+        c.onpointerup = c.onpointercancel = () => { pintando = false; };
+    }
+    window.firmaLimpiar = function() {
+        const c = document.getElementById('firma-lienzo'); if (!c) return;
+        c.getContext('2d').clearRect(0, 0, c.width, c.height); _firmaTrazo = false;
+    };
+    // Recorta al trazo y devuelve PNG (fondo transparente), máx. 800 px de ancho
+    function firmaRecortar(canvas) {
+        const ctx = canvas.getContext('2d');
+        const { width: W, height: H } = canvas;
+        const d = ctx.getImageData(0, 0, W, H).data;
+        let x0 = W, y0 = H, x1 = -1, y1 = -1;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+            if (d[(y * W + x) * 4 + 3] > 60) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0) return null;
+        const pad = 6; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
+        const cw = x1 - x0 + 1, ch = y1 - y0 + 1, esc = Math.min(1, 800 / cw);
+        const out = document.createElement('canvas');
+        out.width = Math.round(cw * esc); out.height = Math.round(ch * esc);
+        out.getContext('2d').drawImage(canvas, x0, y0, cw, ch, 0, 0, out.width, out.height);
+        return out.toDataURL('image/png');
+    }
+    // Foto → solo la tinta: compara cada punto con el blanco del papel de su zona (sombras incluidas)
+    function firmaQuitarFondo(img) {
+        const esc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+        const W = Math.round(img.naturalWidth * esc), H = Math.round(img.naturalHeight * esc);
+        const c = document.createElement('canvas'); c.width = W; c.height = H;
+        const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, W, H);
+        const im = ctx.getImageData(0, 0, W, H), d = im.data;
+        const lum = new Float32Array(W * H);
+        for (let i = 0; i < W * H; i++) lum[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+        const T = 40, tw = Math.ceil(W / T), th = Math.ceil(H / T), fondo = new Float32Array(tw * th);
+        for (let ty = 0; ty < th; ty++) for (let tx = 0; tx < tw; tx++) {
+            const v = [];
+            for (let y = ty * T; y < Math.min(H, ty * T + T); y++) for (let x = tx * T; x < Math.min(W, tx * T + T); x++) v.push(lum[y * W + x]);
+            v.sort((a, b) => a - b); fondo[ty * tw + tx] = v[Math.floor(v.length * 0.9)];
+        }
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+            const i = y * W + x, f = fondo[Math.floor(y / T) * tw + Math.floor(x / T)];
+            const dif = f - lum[i];
+            const a = Math.max(0, Math.min(1, (dif - 35) / 45));
+            d[i * 4] = 20; d[i * 4 + 1] = 28; d[i * 4 + 2] = 74; d[i * 4 + 3] = Math.round(a * 255);
+        }
+        ctx.putImageData(im, 0, 0);
+        return firmaRecortar(c);
+    }
+    async function firmaGuardar(dataUrl) {
+        if (!dataUrl) return alert('No se ve ninguna firma. Prueba otra vez.');
+        if (dataUrl.length > 900000) return alert('La imagen de la firma es demasiado grande. Haz la foto más de cerca, solo la firma.');
+        await setDoc(doc(db, 'config', 'firma'), { imagen: dataUrl, fecha: new Date().toLocaleDateString('es-ES'), subidaPor: usuarioActual.nombre || '' });
+        window._firmaMartin = dataUrl;
+        registrarAuditoria('edicion', 'miteco', 'Firma de Martín guardada');
+        window.abrirFirma();
+    }
+    window.firmaDesdeFoto = function(input) {
+        const file = input.files && input.files[0]; if (!file) return;
+        const img = new Image();
+        img.onload = () => {
+            const res = firmaQuitarFondo(img);
+            URL.revokeObjectURL(img.src);
+            if (!res) return alert('No se distingue la firma en la foto. Prueba con más luz y bolígrafo oscuro.');
+            document.getElementById('firma-prev').innerHTML = `
+                <div style="font-weight:700;font-size:0.84rem;text-align:center;margin:12px 0 6px;">¿Queda bien así?</div>
+                <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;"><img src="${res}" style="max-width:100%;max-height:140px;"></div>
+                <div style="display:flex;gap:6px;margin-top:6px;"><button class="btn-mini" style="flex:1;" onclick="abrirFirma()">✕ NO, OTRA</button><button class="btn-mini verde" style="flex:1;" onclick="firmaGuardarPrev()">✓ SÍ, GUARDAR</button></div>`;
+            window._firmaPrev = res;
+            document.getElementById('firma-prev').scrollIntoView({ behavior: 'smooth' });
+        };
+        img.onerror = () => alert('No se ha podido abrir la imagen.');
+        img.src = URL.createObjectURL(file);
+    };
+    window.firmaGuardarPrev = function() { firmaGuardar(window._firmaPrev).catch(e => alert('No se pudo guardar: ' + e.message)); };
+    window.firmaGuardarLienzo = function() {
+        const c = document.getElementById('firma-lienzo');
+        if (!c || !_firmaTrazo) return alert('Firma primero en el recuadro blanco.');
+        firmaGuardar(firmaRecortar(c)).catch(e => alert('No se pudo guardar: ' + e.message));
+    };
+    window.firmaBorrar = async function() {
+        if (!confirm('¿Borrar la firma guardada de Martín?\n\nLos documentos saldrán sin firmar hasta que se suba otra.')) return;
+        try { await deleteDoc(doc(db, 'config', 'firma')); window._firmaMartin = null; registrarAuditoria('borrado', 'miteco', 'Firma de Martín borrada'); window.abrirFirma(); }
+        catch (e) { alert('No se pudo borrar: ' + e.message); }
+    };
+
     // 14/11/2026: las cesiones en un solo PDF (una hoja por animal). Se monta desde la plantilla
     // copiando la misma hoja N veces, así el archivo pesa casi lo mismo que uno suelto.
     // Los PDF sueltos quedan en el desplegable "de uno en uno".
@@ -6965,7 +7132,7 @@
                 if (esRepro) dibujarCesionRepro(pg, font, datos.items[i], datos.comprador, datos.fecha);
                 else dibujarCesionCria(pg, font, datos.items[i], datos.comprador, datos.fecha);
             });
-            const unico = { nombre, blob: new Blob([await unido.save()], { type: 'application/pdf' }) };
+            const unico = { firma: 'cesion', nombre, blob: new Blob([await unido.save()], { type: 'application/pdf' }) };
             const resto = archivos.filter(a => !/\.pdf$/i.test(a.nombre));
             return [unico, ...resto, ...pdfs.map(a => ({ ...a, plegado: true }))];
         } catch (e) { console.warn('No se pudo montar el PDF único de cesiones:', e); return archivos; }
@@ -7602,7 +7769,7 @@
         const pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
         const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         dibujarCesionCria(pdfDoc.getPages()[0], font, d, comprador, fecha);
-        return { nombre: `Cesion_${d.especie}_chip${d.numero}_${fecha.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) };
+        return { firma: 'cesion', nombre: `Cesion_${d.especie}_chip${d.numero}_${fecha.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) };
     }
     function excelBajaCria(datos, comprador, fecha) {
         const filas = datos.map(d => {
@@ -7630,7 +7797,7 @@
         const pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
         const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         dibujarCesionRepro(pdfDoc.getPages()[0], font, p, comprador, fecha);
-        return { nombre: `Cesion_${p.especie}_${(p.marca || p.idEspecimen || p.nombre).replace(/[^\w-]/g,'')}_${fecha.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) };
+        return { firma: 'cesion', nombre: `Cesion_${p.especie}_${(p.marca || p.idEspecimen || p.nombre).replace(/[^\w-]/g,'')}_${fecha.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) };
     }
     function excelBajaRepro(datos, comprador, fecha) {
         const filas = datos.map(p => {
@@ -7674,7 +7841,7 @@
             const esp = [...new Set(items.map(x => x.especie))].join('-');
             archivosCesion.push(excelBajaCria(docsDatos.items, docsDatos.comprador, fechaHoy));
             const listaCes = await cesionPdfUnico(archivosCesion, `Cesiones_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.pdf`, templateBytes, docsDatos, false);
-            panelDescargas('📄 CESIÓN GENERADA', listaCes,
+            await panelDescargasFirma('📄 CESIÓN GENERADA', listaCes,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${items.length > 1 ? `Las ${items.length} cesiones en un solo PDF y el Excel de baja para MITECO. Si las prefieres sueltas, abre "de uno en uno" abajo:` : 'Documento de cesión y Excel de baja para MITECO. Descarga cada uno con su botón:'}</div>`);
             return { ok: true, bajasIds, docsDatos };
         } catch (err) { alert('Error al generar la cesión: ' + err.message); return false; }
@@ -8047,7 +8214,7 @@
             archivos.push(esRepro ? excelBajaRepro(datos.items, datos.comprador, fecha) : excelBajaCria(datos.items, datos.comprador, fecha));
             const n = datos.items.length;
             const lista = await cesionPdfUnico(archivos, `Cesiones_${esRepro ? 'reproductores' : (c.especie || '')}_${fecha.replace(/\//g,'-')}_${n}animales.pdf`, templateBytes, { ...datos, fecha }, esRepro);
-            panelDescargas('🖨 DOCUMENTOS DE LA CESIÓN', lista,
+            await panelDescargasFirma('🖨 DOCUMENTOS DE LA CESIÓN', lista,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${c.fecha} · ${n} ${esRepro ? 'reproductor(es) ' : ''}${c.especie} → ${c.comprador || 'sin comprador'}.${n > 1 ? ' Todo en un solo PDF o, abajo, de uno en uno:' : ''}</div>`);
         } catch (err) { alert('No se pudieron preparar los documentos: ' + err.message); }
     };
@@ -8218,7 +8385,7 @@
             archivosCesion.push(excelBajaRepro(docsDatos.items, docsDatos.comprador, fechaHoy));
             cesionCargarReproductores();
             const listaCes = await cesionPdfUnico(archivosCesion, `Cesiones_reproductores_${fechaHoy.replace(/\//g,'-')}_${reprosACeder.length}animales.pdf`, templateBytes, docsDatos, true);
-            panelDescargas('📄 CESIÓN GENERADA', listaCes,
+            await panelDescargasFirma('📄 CESIÓN GENERADA', listaCes,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${reprosACeder.length > 1 ? `Las ${reprosACeder.length} cesiones en un solo PDF y el Excel de baja para MITECO. Si las prefieres sueltas, abre "de uno en uno" abajo:` : 'Documento de cesión y Excel de baja para MITECO. Descarga cada uno con su botón:'}</div>`);
             return { ok: true, docsDatos };
 
@@ -8547,15 +8714,10 @@
             // Descargar
             const pdfBytes = await pdfDoc.save();
             if (opciones && opciones.soloBytes) return pdfBytes;
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href     = url;
-            a.download = `PyN_${pareja.nombre || parejaId}_${anioPyN}_${puestas.length}puesta${puestas.length !== 1 ? 's' : ''}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            // 14/11/2026: se ofrece en el panel de descargas (con o sin firma de Martín)
+            await panelDescargasFirma('📋 NOTIFICACIÓN PyN', [{ firma: 'pyn',
+                nombre: `PyN_${pareja.nombre || parejaId}_${anioPyN}_${puestas.length}puesta${puestas.length !== 1 ? 's' : ''}.pdf`,
+                blob: new Blob([pdfBytes], { type: 'application/pdf' }) }]);
             return true;
 
         } catch(err) {
@@ -9071,24 +9233,14 @@
             if (!resp.ok) throw new Error('No se pudo cargar Solicitud Cites.pdf — asegúrate de que está en el repositorio.');
             const pdfBytes = await resp.arrayBuffer();
 
-            // Generar y descargar un PDF por cada chip, con pequeño retardo entre descargas
-            for (let i = 0; i < chips.length; i++) {
-                const chip = chips[i];
+            // 14/11/2026: una solicitud por chip, ofrecidas en el panel de descargas (con o sin firma)
+            const archivos = [];
+            for (const chip of chips) {
                 const pdfFinal = await generarUnCITES(chip, fechaNacFmt, fechaSolicitud, pdfBytes);
-                const blob = new Blob([pdfFinal], { type: 'application/pdf' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                a.href     = url;
-                a.download = `CITES_${chip}_${fechaNacFmt}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
-                // Pequeña pausa entre descargas para no saturar el navegador
-                if (i < chips.length - 1) await new Promise(r => setTimeout(r, 800));
+                archivos.push({ firma: 'cites', nombre: `CITES_${chip}_${fechaNacFmt}.pdf`, blob: new Blob([pdfFinal], { type: 'application/pdf' }) });
             }
-
-            if (chips.length > 1) alert(`✅ ${chips.length} solicitudes CITES generadas — una por cada cría.`);
+            await panelDescargasFirma('🏛️ SOLICITUDES CITES', archivos,
+                `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${archivos.length} solicitud(es) CITES, una por cría. Descarga cada una con su botón:</div>`);
 
         } catch(err) {
             alert('Error al generar el CITES: ' + err.message);
