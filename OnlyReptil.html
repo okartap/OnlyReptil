@@ -207,6 +207,12 @@
         .pyn2-menu-prueba.abierto { display: block; }
         .pyn2-menu-prueba div { padding: 9px 10px; font-size: 0.8rem; border-radius: 7px; cursor: pointer; color: var(--texto); text-align: left; }
         .pyn2-menu-prueba div.rojo { color: var(--rojo); }
+        /* 14/11/2026: cesión unificada */
+        .cesion-resumen { background: rgba(90,156,104,0.1); border: 1px solid rgba(90,156,104,0.6); border-radius: 12px; padding: 10px 12px; text-align: center; font-size: 0.85rem; line-height: 1.6; margin-bottom: 10px; }
+        .cesion-esp { border-radius: 9px; padding: 8px 12px; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--borde); background: var(--tarjeta2); color: var(--texto2); cursor: pointer; }
+        .cesion-esp.on { background: var(--azul); border-color: var(--azul); color: #0d1220; }
+        .cesion-hist-f { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--borde); font-size: 0.78rem; text-align: left; }
+        .cesion-hist-f:last-child { border-bottom: none; }
         /* 14/11/2026: chips y buscador de papeles de MITECO */
         #pyn2-buscachip { margin-bottom: 10px; }
         #pyn2-buscachip-input { width: 100%; box-sizing: border-box; text-align: center; font-size: 0.9rem; padding: 10px; border-radius: 10px; }
@@ -686,7 +692,7 @@
         <div class="pyn2-tabs-grid" id="pyn2-tabs"></div>
         <!-- 14/11/2026: buscador de chip para los papeles que devuelve MITECO (solo en ⏳ ESPERANDO) -->
         <div id="pyn2-buscachip" style="display:none;">
-            <input type="text" id="pyn2-buscachip-input" inputmode="numeric" autocomplete="off" placeholder="🔍 Últimos dígitos del chip (papeles de MITECO)" oninput="pyn2BuscarChip()">
+            <input type="text" id="pyn2-buscachip-input" inputmode="numeric" autocomplete="off" placeholder="🔍 6 últimos dígitos del chip (papeles de MITECO)" oninput="pyn2BuscarChip()">
             <div id="pyn2-buscachip-res"></div>
         </div>
         <div id="pyn2-lista"></div>
@@ -984,12 +990,7 @@
 <!-- MÓDULO CESIÓN -->
 <div id="pantalla-cesion" class="seccion-app" style="border-top-color:var(--verde);">
     <div class="titulo-centrado" style="color:var(--verde);"><span class="btn-volver-header" onclick="irA('pantalla-inicio')">←</span>📄 DOCUMENTO DE CESIÓN</div>
-    <!-- 27/09/2026: las VENTAS de crías se hacen desde CAJA (＋ INGRESO) — aquí solo cesiones sin venta -->
-    <div style="background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.5);border-radius:12px;padding:10px 12px;font-size:0.8rem;line-height:1.45;margin-bottom:12px;text-align:left;">
-        ⚠️ <b style="color:#ffb547;">Para crías, esta pantalla es solo para cesiones SIN venta</b> (regalo, intercambio…).<br>
-        Si has <b style="color:#ffb547;">vendido</b> crías, hazlo desde <b>CAJA → ＋ INGRESO</b>: eliges la especie, marcas los chips vendidos y al guardar te ofrece el documento de cesión.
-        <div style="text-align:center;"><button class="btn-mini" onclick="irA('form-ingreso')">＋ IR A NUEVO INGRESO</button></div>
-    </div>
+    <!-- 14/11/2026: Cesión unificada — aquí se hacen las VENTAS y los REGALOS/intercambios (apunte automático en caja) -->
     <div id="cesion-pendientes"></div>
 
     <!-- PASO 1: Animal -->
@@ -1002,22 +1003,20 @@
         </div>
 
         <div id="cesion-cria-panel">
-            <div class="form-group">
-                <label>Nacimiento</label>
-                <select id="cesion-nacimiento" onchange="cesionSeleccionarNacimiento()">
-                    <option value="">— Selecciona nacimiento —</option>
-                </select>
-            </div>
-            <div id="cesion-chips-panel" style="display:none;margin-top:8px;">
-                <div style="display:flex;justify-content:center;align-items:center;gap:14px;margin-bottom:8px;">
-                    <div style="font-size:0.78rem;color:var(--verde);font-weight:700;" id="cesion-chips-disponibles-txt"></div>
+            <!-- 14/11/2026: sin selector de nacimiento — chips pendientes de ceder (con papeles de MITECO) por especie, ordenados por nº -->
+            <div id="cesion-esp-tabs" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px;"></div>
+            <div id="cesion-chips-panel" style="display:none;">
+                <input type="text" id="cesion-buscar" inputmode="numeric" autocomplete="off" placeholder="🔍 6 últimos dígitos del chip (opcional)" oninput="cesionRenderChips()" style="width:100%;box-sizing:border-box;text-align:center;margin-bottom:8px;">
+                <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
                     <div style="font-size:0.82rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(76,175,80,0.15);border:1px solid rgba(76,175,80,0.4);">
                         <span id="cesion-contador" style="color:var(--verde);">0</span>
-                        <span style="color:var(--texto2);font-size:0.72rem;"> seleccionados</span>
+                        <span style="color:var(--texto2);font-size:0.72rem;" id="cesion-chips-disponibles-txt"> seleccionados</span>
                     </div>
+                    <span onclick="cesionQuitarSeleccion()" style="font-size:0.7rem;color:var(--texto2);cursor:pointer;text-decoration:underline;">quitar selección</span>
                 </div>
-                <div id="cesion-chips-lista" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-height:200px;overflow-y:auto;padding:4px 0;"></div>
+                <div id="cesion-chips-lista" class="pyn2-chips-lista" style="max-height:300px;margin-top:0;"></div>
             </div>
+            <div id="cesion-sin-chips" style="display:none;font-size:0.8rem;color:var(--texto2);text-align:center;padding:8px;">No hay crías pendientes de ceder con los papeles de MITECO recibidos.</div>
         </div>
 
         <div id="cesion-reproductor-panel" style="display:none;">
@@ -1072,9 +1071,29 @@
         </div>
     </div>
 
-    <!-- BOTÓN GENERAR -->
-    <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="cesionGenerar()">📄 GENERAR DOCUMENTO DE CESIÓN</button>
+    <!-- PASO 3: Tipo (14/11/2026) -->
+    <div style="background:var(--tarjeta);border-radius:10px;padding:14px;border:1px solid var(--borde);margin-bottom:12px;text-align:center;">
+        <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--verde);font-weight:700;margin-bottom:10px;text-align:center;">3 · VENTA O REGALO</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button id="cesion-modo-venta" onclick="cesionModo('venta')" class="tab active" style="flex:1;">💶 VENTA</button>
+            <button id="cesion-modo-regalo" onclick="cesionModo('regalo')" class="tab" style="flex:1;">🎁 REGALO / INTERCAMBIO</button>
+        </div>
+        <div id="cesion-venta-campos">
+            <div style="display:flex;gap:8px;">
+                <div class="form-group" style="flex:1;"><label>Precio por tortuga (€)</label><input type="number" id="cesion-precio-ud" step="0.01" min="0" placeholder="0,00" oninput="cesionPrecio('ud')"></div>
+                <div class="form-group" style="flex:1;"><label>Total (€)</label><input type="number" id="cesion-precio-total" step="0.01" min="0" placeholder="0,00" oninput="cesionPrecio('total')"></div>
+            </div>
+            <div class="form-group"><label>Cobra</label><select id="cesion-socio" onchange="cesionResumen()"><option value="Patry">Patry</option><option value="Martin">Martín</option></select></div>
+        </div>
+        <div id="cesion-regalo-campos" style="display:none;font-size:0.78rem;color:var(--texto2);">Se apunta en caja con importe 0 € y se descuenta del stock.</div>
+    </div>
+
+    <div id="cesion-resumen" class="cesion-resumen"></div>
+    <button class="btn-save" style="background:var(--verde);color:#0a0a0a;" onclick="cesionConfirmar()">✓ CONFIRMAR Y GENERAR</button>
     <button class="btn-cancelar" onclick="irA('pantalla-inicio')">← VOLVER</button>
+
+    <!-- 14/11/2026: cesiones hechas, con DESHACER -->
+    <div id="cesion-historial" style="margin-top:14px;"></div>
 </div>
 
 <div id="pantalla-auditoria" class="seccion-app" style="border-top-color:var(--texto2);">
@@ -2358,6 +2377,9 @@
             let cant;
             if (especie === 'Otros') {
                 cant = parseInt(document.getElementById('i-cant').value) || 1;
+            } else if (true) {
+                // 14/11/2026: ventas de tortugas → CESIÓN (documentos + caja en un solo paso)
+                return alert('🐢 Las ventas de tortugas se hacen desde CESIÓN.\n\nAhí eliges los chips, el cliente y el precio, y se apunta en caja automáticamente.');
             } else {
                 // 27/09/2026 (Patry): en una venta de animales es OBLIGATORIO marcar los chips vendidos
                 const numsDisp = new Set(chipsDisponiblesCria(especie).map(x => x.c.numero));
@@ -2422,6 +2444,8 @@
 
     window.eliminarRegistro = async function(id) {
         const reg = historico.find(h => h.id === id);
+        // 14/11/2026: un apunte creado por una cesión se borra deshaciendo la cesión completa
+        if (reg && reg.idCesion && cesionesData.some(c => c.id === reg.idCesion && c.estado === 'hecha')) return cesionDeshacer(reg.idCesion);
         const chipsV = (reg && reg.chipsVendidos) || [];
         const chipsC = (reg && reg.chipsComprados) || [];
         let msg = "¿Eliminar este registro?";
@@ -4366,7 +4390,7 @@
         const res = document.getElementById('pyn2-buscachip-res');
         if (!inp || !res) return;
         const q = inp.value.replace(/\D/g, '');
-        if (q.length < 4) { if (!res.querySelector('.pyn2-bc-ok')) res.innerHTML = q.length ? '<div class="pyn2-bc-msg">Escribe al menos 4 dígitos</div>' : ''; return; }
+        if (q.length < 6) { if (!res.querySelector('.pyn2-bc-ok')) res.innerHTML = q.length ? '<div class="pyn2-bc-msg">Escribe los 6 últimos dígitos</div>' : ''; return; } // 14/11/2026: 6 dígitos (Patry)
         const encontradas = [];
         histBio.filter(b => b.tipo === 'puesta' && !b.esPrueba && !pyn2EsSecundaria(b)).forEach(p => {
             if (pyn2ChipsDePuesta(p).some(c => String(c).replace(/\D/g, '').includes(q))) encontradas.push(p);
@@ -7480,6 +7504,13 @@
         bloque.style.display = esAnimal ? 'block' : 'none';
         const gCant = document.getElementById('grupo-i-cant'); if (gCant) gCant.style.display = 'none';
         if (!esAnimal) return;
+        // 14/11/2026 (Patry): las ventas de tortugas se hacen desde CESIÓN (documentos + caja en un solo paso)
+        cont.innerHTML = `<div style="background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.5);border-radius:12px;padding:12px;text-align:center;font-size:0.82rem;line-height:1.5;">
+            🐢 Las <b>ventas de tortugas</b> se hacen ahora desde <b>CESIÓN</b>: eliges los chips, el cliente y el precio, y se generan los documentos y el apunte en caja a la vez.
+            ${usuarioActual && usuarioActual.rol === 'admin' ? `<div style="margin-top:8px;"><button class="btn-mini verde" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button></div>` : '<div style="margin-top:6px;color:var(--texto2);">Las registra Patricio.</div>'}
+        </div>`;
+        const nn = document.getElementById('i-venta-n'); if (nn) nn.textContent = 0;
+        return;
         const disp = chipsDisponiblesCria(especie);
         // quitar de la selección lo que ya no esté disponible (o sea de otra especie)
         const numsDisp = new Set(disp.map(x => x.c.numero));
@@ -7547,10 +7578,12 @@
                 txt(110, 160, 'LORCA'); txt(390, 160, fechaHoy);
                 archivosCesion.push({ nombre: `Cesion_${it.especie}_chip${it.c.numero}_${fechaHoy.replace(/\//g,'-')}.pdf`, blob: new Blob([await pdfDoc.save()], { type: 'application/pdf' }) });
             }
+            const bajasIds = []; // 14/11/2026: para poder deshacer la cesión
             for (const it of items) {
+                if (opciones.idCesion) await updateDoc(doc(db, 'chips', it.c.id), { idCesion: opciones.idCesion });
                 await updateDoc(doc(db, 'chips', it.c.id), { cedido: true, fechaCesion: it.c.fechaCesion || fechaHoy, compradorNombre: comprador.nombre || it.c.compradorNombre || 'Sin datos', docCesionGenerado: true, docCesionPendiente: false });
                 if (opciones.sinVenta) {
-                    await addDoc(collection(db, 'bajas'), { chip: it.c.numero, especie: it.especie, motivo: 'cesion', motivoTexto: 'Cesión sin venta', origen: 'cria', fecha: fechaHoy, fechaIso: fechaHoyIso, timestamp: Date.now(), registradoPor: usuarioActual.nombre });
+                    const rb = await addDoc(collection(db, 'bajas'), { chip: it.c.numero, especie: it.especie, motivo: 'cesion', motivoTexto: 'Cesión sin venta', origen: 'cria', fecha: fechaHoy, fechaIso: fechaHoyIso, timestamp: Date.now(), registradoPor: usuarioActual.nombre }); bajasIds.push(rb.id);
                 }
             }
             registrarAuditoria('nuevo', 'cesion', `Cesión${opciones.sinVenta ? ' sin venta' : ' (venta)'}: ${items.length} animal(es) · ${comprador.nombre || 'Sin comprador'} · ${items.map(x => x.c.numero).join(', ')}`);
@@ -7564,7 +7597,7 @@
             archivosCesion.push({ nombre: `MITECO_BAJA_CESION_${esp}_${fechaHoy.replace(/\//g,'-')}_${items.length}animales.xlsx`, blob: excelMiteco(filas) });
             panelDescargas('📄 CESIÓN GENERADA', archivosCesion,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${items.length} documento(s) de cesión y el Excel de baja para MITECO. Descarga cada uno con su botón:</div>`);
-            return true;
+            return { ok: true, bajasIds };
         } catch (err) { alert('Error al generar la cesión: ' + err.message); return false; }
     }
 
@@ -7650,45 +7683,267 @@
     let _cesionTipoAnimal = 'cria';
     let _cesionReprosDisponibles = [];
 
+    // ══════════════════════════════════════════════════════════════
+    // 14/11/2026 — CESIÓN UNIFICADA (acordado con Patry)
+    // · Crías: sin selector de nacimiento. Se elige la especie y salen los chips PENDIENTES DE
+    //   CEDER con los papeles de MITECO recibidos (y CITES si aplica), ordenados por nº de chip,
+    //   sin marcar. Los que no tienen papeles se ocultan.
+    // · Paso 3: 💶 VENTA (precio por tortuga ⇄ total, quién cobra) o 🎁 REGALO / INTERCAMBIO (0 €).
+    // · Al confirmar: documentos de cesión + Excel de baja + apunte AUTOMÁTICO en caja + registro
+    //   en la colección "cesiones" para poder DESHACER la cesión completa.
+    // · Stock (igual que antes): venta de crías → lo descuenta el apunte de caja (cant);
+    //   regalo de crías → lo descuentan las bajas 'cesion'; reproductores → caja con cant 0
+    //   (no tocan el stock de crías). Solo Patricio.
+    // ══════════════════════════════════════════════════════════════
+    window._cesionSel = new Set();
+    window._cesionEspecie = '';
+    window._cesionModo = 'venta';
+    window._cesionUltimoPrecio = 'ud';
+    let cesionesData = [];
+
+    // ¿Tiene ya los papeles de MITECO (y CITES si aplica) la puesta de este chip?
+    function chipConPapeles(numero, cache) {
+        const nac = histBio.find(b => b.tipo === 'nacimiento' && (b.chipsAsignados || []).includes(numero));
+        if (!nac) return true; // animales comprados: vienen con su documentación
+        let p = nac.idPuestaOrigen ? histBio.find(x => x.id === nac.idPuestaOrigen) : null;
+        if (!p && nac.idPuesta) p = histBio.find(x => x.tipo === 'puesta' && (x.idPuesta || x.detalle) === nac.idPuesta);
+        if (!p) return !!nac.papelesMitecoRecibidos;
+        if (!(p.id in cache)) { const e = pyn2EstadoPuesta(p); cache[p.id] = !!(e.pasoPapeles && e.citesInfo.listo); }
+        return cache[p.id];
+    }
+    function chipsPendientesCeder() {
+        const cache = {};
+        return chipsDisponiblesCria().filter(x => chipConPapeles(x.c.numero, cache))
+            .sort((a, b) => a.c.numero.localeCompare(b.c.numero, undefined, { numeric: true }));
+    }
+
     window.iniciarPantallaCesion = function() {
-        // Poblar selector de nacimientos con chips disponibles (usados y no cedidos)
-        const sel = document.getElementById('cesion-nacimiento');
-        if (!sel) return;
-
-        // 27/09/2026: mismas crías disponibles que en las ventas (chip usado, no cedido, no
-        // fallecido, no anulado, no en el plantel), agrupadas por nacimiento o por compra.
-        const disp = chipsDisponiblesCria();
-        const grupos = [];
-        disp.forEach(x => { let g = grupos.find(g => g.id === x.grupoId); if (!g) { g = { id: x.grupoId, label: `${x.especie} · ${x.grupoLabel}`, n: 0 }; grupos.push(g); } g.n++; });
-        sel.innerHTML = '<option value="">— Selecciona nacimiento —</option>' +
-            grupos.map(g => `<option value="${g.id}">${g.label} · ${g.n} disponible${g.n > 1 ? 's' : ''}</option>`).join('');
-        document.getElementById('cesion-chips-panel').style.display = 'none';
+        window._cesionSel = new Set();
+        const b = document.getElementById('cesion-buscar'); if (b) b.value = '';
+        const disp = chipsPendientesCeder();
+        const especies = [...new Set(disp.map(x => x.especie))];
+        if (!especies.includes(window._cesionEspecie)) window._cesionEspecie = especies[0] || '';
+        cesionRenderEspecies(disp);
+        cesionRenderChips();
         renderCesionPendientes();
-
-        // Poblar selector de clientes
+        // Clientes
         const selC = document.getElementById('cesion-cliente-select');
         if (selC) {
-            selC.innerHTML = '<option value="">— Selecciona cliente —</option>';
-            clientes.forEach(c => {
-                selC.innerHTML += `<option value="${c.id}">${c.nombre}${c.dni ? ' · ' + c.dni : ''}</option>`;
-            });
+            selC.innerHTML = '<option value="">— Selecciona cliente —</option>' + clientes.map(c => `<option value="${c.id}">${c.nombre}${c.dni ? ' · ' + c.dni : ''}</option>`).join('');
+            selC.onchange = cesionResumen;
         }
-
-        // Poblar selector de especie para reproductores
+        ['cesion-m-nombre'].forEach(id => { const el = document.getElementById(id); if (el) el.oninput = cesionResumen; });
+        // Especies para reproductores
         const selEsp = document.getElementById('cesion-repro-especie');
         if (selEsp) {
             const val = selEsp.value;
-            selEsp.innerHTML = '<option value="">— Todas las especies —</option>' +
-                getNombresEspecies().map(n => `<option value="${n}">${n}</option>`).join('');
+            selEsp.innerHTML = '<option value="">— Todas las especies —</option>' + getNombresEspecies().map(n => `<option value="${n}">${n}</option>`).join('');
             if (getNombresEspecies().includes(val)) selEsp.value = val;
         }
-
-        // Reset
-        _cesionNacimientoId = null;
-        _cesionChipsDisponibles = [];
+        const udIn = document.getElementById('cesion-precio-ud');
+        udIn.value = ''; delete udIn.dataset.manual;
+        document.getElementById('cesion-precio-total').value = '';
+        window._cesionUltimoPrecio = 'ud';
         cesionTipoAnimal('cria');
+        cesionAutoPrecio();
         cesionTabComprador('db');
+        cesionModo('venta');
+        renderCesionHistorial();
+    };
+
+    function cesionRenderEspecies(disp) {
+        disp = disp || chipsPendientesCeder();
+        const cont = document.getElementById('cesion-esp-tabs');
+        const especies = [...new Set(disp.map(x => x.especie))];
+        cont.innerHTML = especies.map(e => `<button class="cesion-esp ${e === window._cesionEspecie ? 'on' : ''}" onclick="cesionElegirEspecie('${e}')">${e.toUpperCase()} · ${disp.filter(x => x.especie === e).length}</button>`).join('');
+        document.getElementById('cesion-sin-chips').style.display = especies.length ? 'none' : 'block';
+        document.getElementById('cesion-chips-panel').style.display = especies.length ? 'block' : 'none';
     }
+    window.cesionElegirEspecie = function(e) {
+        if (e === window._cesionEspecie) return;
+        window._cesionEspecie = e;
+        window._cesionSel = new Set(); // no se mezclan especies en una cesión
+        cesionAutoPrecio();
+        cesionRenderEspecies();
+        cesionRenderChips();
+    };
+    window.cesionRenderChips = function() {
+        const lista = document.getElementById('cesion-chips-lista');
+        if (!lista) return;
+        const q = (document.getElementById('cesion-buscar').value || '').replace(/\D/g, '');
+        const todos = chipsPendientesCeder().filter(x => x.especie === window._cesionEspecie);
+        _cesionChipsDisponibles = todos;
+        // si algo seleccionado ya no está disponible, fuera
+        const nums = new Set(todos.map(x => x.c.numero));
+        [...window._cesionSel].forEach(n => { if (!nums.has(n)) window._cesionSel.delete(n); });
+        const vis = q.length >= 6 ? todos.filter(x => x.c.numero.replace(/\D/g, '').includes(q)) : todos;
+        lista.innerHTML = vis.map(x => {
+            const nac = histBio.find(b => b.id === x.grupoId);
+            const ref = nac ? (nac.idPuesta || nac.nombrePareja || '') : 'Compra';
+            return `<label class="pyn2-chip-f"><input type="checkbox" ${window._cesionSel.has(x.c.numero) ? 'checked' : ''} onchange="cesionToggleChip('${x.c.numero}', this.checked)">
+                <span class="pyn2-chip-n">${pyn2FmtChip(x.c.numero)}</span><span style="font-size:0.7rem;color:var(--texto2);min-width:95px;text-align:left;">${ref}</span></label>`;
+        }).join('') || `<div style="font-size:0.78rem;color:var(--texto2);text-align:center;padding:8px;">${q.length && q.length < 6 ? 'Escribe los 6 últimos dígitos' : 'Ningún chip coincide'}</div>`;
+        cesionActualizarContador();
+    };
+    window.cesionToggleChip = function(num, v) {
+        if (v) window._cesionSel.add(num); else window._cesionSel.delete(num);
+        cesionActualizarContador();
+    };
+    window.cesionQuitarSeleccion = function() { window._cesionSel = new Set(); cesionRenderChips(); };
+    window.cesionActualizarContador = function() {
+        const n = window._cesionSel.size;
+        const total = (_cesionChipsDisponibles || []).length;
+        const c = document.getElementById('cesion-contador');
+        if (c) { c.textContent = n; c.style.color = n > 0 ? 'var(--verde)' : 'var(--rojo)'; }
+        const t = document.getElementById('cesion-chips-disponibles-txt');
+        if (t) t.textContent = ` seleccionados de ${total}`;
+        cesionPrecio(window._cesionUltimoPrecio, true);
+    };
+    window.cesionGetChipsSeleccionados = function() {
+        return (_cesionChipsDisponibles || []).filter(x => window._cesionSel.has(x.c.numero));
+    };
+
+    function cesionNumAnimales() {
+        return _cesionTipoAnimal === 'reproductor' ? cesionReproGetSeleccionados().length : window._cesionSel.size;
+    }
+    function cesionAutoPrecio() {
+        // precio de referencia de la especie (solo crías), si no se ha escrito nada
+        const ud = document.getElementById('cesion-precio-ud');
+        const pr = getPreciosEspecie()[window._cesionEspecie];
+        if (_cesionTipoAnimal === 'cria' && pr && !ud.dataset.manual) { ud.value = (+pr).toFixed(2); window._cesionUltimoPrecio = 'ud'; }
+    }
+    // Precio por tortuga ⇄ total: el que escribes manda y el otro se calcula solo
+    window.cesionPrecio = function(campo, recalculo) {
+        const ud = document.getElementById('cesion-precio-ud'), tot = document.getElementById('cesion-precio-total');
+        if (!ud || !tot) return;
+        if (!recalculo) { window._cesionUltimoPrecio = campo; ud.dataset.manual = '1'; }
+        const n = cesionNumAnimales();
+        if (window._cesionUltimoPrecio === 'ud') {
+            const v = parseFloat(ud.value);
+            tot.value = (!isNaN(v) && n) ? (Math.round(v * n * 100) / 100).toFixed(2) : '';
+        } else {
+            const v = parseFloat(tot.value);
+            ud.value = (!isNaN(v) && n) ? (Math.round(v / n * 100) / 100).toFixed(2) : '';
+        }
+        cesionResumen();
+    };
+    window.cesionModo = function(m) {
+        window._cesionModo = m;
+        document.getElementById('cesion-modo-venta').classList.toggle('active', m === 'venta');
+        document.getElementById('cesion-modo-regalo').classList.toggle('active', m === 'regalo');
+        document.getElementById('cesion-venta-campos').style.display = m === 'venta' ? 'block' : 'none';
+        document.getElementById('cesion-regalo-campos').style.display = m === 'regalo' ? 'block' : 'none';
+        cesionResumen();
+    };
+    const fmtEur = v => (Number(v) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    window.cesionResumen = function() {
+        const r = document.getElementById('cesion-resumen');
+        if (!r) return;
+        const n = cesionNumAnimales();
+        if (!n) { r.innerHTML = '<span style="color:var(--texto2);">Selecciona los animales a ceder</span>'; return; }
+        const esRepro = _cesionTipoAnimal === 'reproductor';
+        const esp = esRepro ? [...new Set(cesionReproGetSeleccionados().map(p => p.especie))].join(', ') : window._cesionEspecie;
+        const comp = cesionLeerComprador().nombre || '<i>sin comprador</i>';
+        const linea2 = window._cesionModo === 'venta'
+            ? `💶 Venta <b>${fmtEur(document.getElementById('cesion-precio-total').value)}</b>${n > 1 ? ` (${fmtEur(document.getElementById('cesion-precio-ud').value)}/ud)` : ''} · cobra <b>${document.getElementById('cesion-socio').value === 'Martin' ? 'Martín' : 'Patry'}</b>`
+            : '🎁 Regalo / intercambio · <b>0,00 €</b>';
+        r.innerHTML = `Ceder <b>${n} ${esRepro ? 'reproductor' + (n > 1 ? 'es' : '') : esp}</b>${esRepro ? ` (${esp})` : ''} a <b>${comp}</b><br>${linea2}<br><span style="font-size:0.72rem;color:var(--texto2);">Documentos de cesión + Excel de baja MITECO + apunte en caja</span>`;
+    };
+
+    window.cesionConfirmar = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede hacer cesiones y ventas de animales.');
+        const esRepro = _cesionTipoAnimal === 'reproductor';
+        const items = esRepro ? [] : cesionGetChipsSeleccionados();
+        const repros = esRepro ? cesionReproGetSeleccionados() : [];
+        const n = esRepro ? repros.length : items.length;
+        if (!n) return alert(esRepro ? 'Selecciona al menos un reproductor.' : 'Marca al menos un chip.');
+        const venta = window._cesionModo === 'venta';
+        const total = Math.round((parseFloat(document.getElementById('cesion-precio-total').value) || 0) * 100) / 100;
+        const socio = document.getElementById('cesion-socio').value;
+        if (venta && !(total > 0)) return alert('Indica el precio de la venta (por tortuga o total).');
+        const comprador = cesionLeerComprador();
+        const especie = esRepro ? [...new Set(repros.map(p => p.especie))].join('-') : window._cesionEspecie;
+        const resumen = `${n} ${esRepro ? 'reproductor(es) ' + especie : especie} → ${comprador.nombre || 'sin comprador'}\n` +
+            (venta ? `💶 VENTA: ${fmtEur(total)}${n > 1 ? ' (' + fmtEur(total / n) + '/ud)' : ''} · cobra ${socio === 'Martin' ? 'Martín' : 'Patry'}` : '🎁 REGALO / INTERCAMBIO: 0 €');
+        if (!confirm(`¿Confirmar la cesión?\n\n${resumen}\n\nSe generarán los documentos de cesión y el Excel de baja, los animales quedarán cedidos y se apuntará en caja.`)) return;
+        const hoy = new Date();
+        const fechaEs = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+        const fechaIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+        let refCes;
+        try {
+            refCes = await addDoc(collection(db, 'cesiones'), { estado: 'en_curso', timestamp: Date.now(), fecha: fechaEs });
+            let res;
+            if (esRepro) res = await generarDocumentoCesionReproductor(repros, comprador, { idCesion: refCes.id, motivo: venta ? 'venta' : 'regalo' });
+            else res = await generarDocsCesion(items, comprador, { sinVenta: !venta, idCesion: refCes.id });
+            if (!res) { await deleteDoc(refCes); return; } // cancelada o error antes de marcar nada
+            const cliente = comprador.nombre || 'Sin cliente';
+            const cant = esRepro ? 0 : n; // reproductores: no tocan el stock de crías
+            const detalle = venta
+                ? `${esRepro ? 'Reproductor ' : ''}${especie} x${n} · ${cliente}`
+                : `🎁 Regalo/intercambio · ${esRepro ? 'reproductor ' : ''}${especie} x${n} · ${cliente}`;
+            const mov = { tipo: 'ingreso', socio: venta ? socio : 'Patry', monto: venta ? total : 0, especie: esRepro ? especie : especie,
+                cant: venta ? cant : 0, cliente, detalle, fecha: fechaEs, fechaIso, timestamp: isoATimestamp(fechaIso), idCesion: refCes.id };
+            if (!venta) mov.regalo = true;
+            if (esRepro) mov.reproductor = true;
+            if (!esRepro && venta) mov.chipsVendidos = items.map(x => x.c.numero);
+            const refCaja = await addDoc(collection(db, 'caja'), mov);
+            await setDoc(refCes, {
+                estado: 'hecha', tipo: venta ? 'venta' : 'regalo', animal: esRepro ? 'reproductor' : 'cria', especie, cantidad: n,
+                importe: venta ? total : 0, socio: venta ? socio : '', comprador: comprador.nombre || '', idCaja: refCaja.id,
+                chips: items.map(x => x.c.numero), parentalIds: repros.map(p => p.id), bajasIds: (res && res.bajasIds) || [],
+                fecha: fechaEs, fechaIso, timestamp: Date.now(), usuario: usuarioActual.nombre || ''
+            });
+            registrarAuditoria('nuevo', 'cesion', `${venta ? 'Venta' : 'Regalo/intercambio'} con cesión: ${resumen.replace(/\n/g, ' · ')}`);
+            iniciarPantallaCesion();
+        } catch (err) {
+            alert('Error al completar la cesión: ' + err.message + '\n\nRevisa en "Cesiones hechas" si ha quedado a medias y usa DESHACER.');
+        }
+    };
+
+    // Cesiones hechas (últimas 15) con DESHACER
+    function renderCesionHistorial() {
+        const cont = document.getElementById('cesion-historial');
+        if (!cont) return;
+        const lista = cesionesData.filter(c => c.estado === 'hecha').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 15);
+        if (!lista.length) { cont.innerHTML = ''; return; }
+        cont.innerHTML = `<div style="background:var(--tarjeta);border:1px solid var(--borde);border-radius:12px;padding:10px 12px;">
+            <div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--texto2);font-weight:700;text-align:center;margin-bottom:6px;">CESIONES HECHAS</div>
+            ${lista.map(c => `<div class="cesion-hist-f">
+                <span><b>${c.fecha}</b> · ${c.cantidad} ${c.animal === 'reproductor' ? 'reproductor' + (c.cantidad > 1 ? 'es' : '') + ' ' : ''}${c.especie} · ${c.comprador || 'sin comprador'}<br>
+                <span style="color:var(--texto2);">${c.tipo === 'venta' ? '💶 ' + fmtEur(c.importe) + ' · ' + (c.socio === 'Martin' ? 'Martín' : 'Patry') : '🎁 Regalo / intercambio'}</span></span>
+                <button class="btn-mini rojo" onclick="cesionDeshacer('${c.id}')">↺ DESHACER</button>
+            </div>`).join('')}
+        </div>`;
+    }
+    window.renderCesionHistorial = renderCesionHistorial;
+
+    window.cesionDeshacer = async function(idCes, desdeCaja) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede deshacer cesiones.');
+        const c = cesionesData.find(x => x.id === idCes);
+        if (!c) return alert('No encuentro esa cesión.');
+        if (!confirm(`¿DESHACER la cesión del ${c.fecha}?\n\n${c.cantidad} ${c.animal === 'reproductor' ? 'reproductor(es) ' : ''}${c.especie} → ${c.comprador || 'sin comprador'} · ${c.tipo === 'venta' ? fmtEur(c.importe) : 'regalo'}\n\n` +
+            `• Se borra el apunte de caja\n• ${c.animal === 'reproductor' ? 'Los reproductores vuelven al plantel' : 'Los chips vuelven a "pendientes de ceder"'}\n• Se recupera el stock\n\n` +
+            `⚠️ Los documentos y el Excel de baja que ya descargaste NO valen: tíralos. Si ya presentaste la baja a MITECO, eso hay que corregirlo allí.`)) return;
+        try {
+            if (c.idCaja && historico.some(h => h.id === c.idCaja)) await deleteDoc(doc(db, 'caja', c.idCaja));
+            for (const num of (c.chips || [])) {
+                const ch = chipsData.find(x => x.numero === num);
+                if (ch) await updateDoc(doc(db, 'chips', ch.id), { cedido: false, vendido: false, idVenta: null, idCesion: null, fechaCesion: null, compradorNombre: null, docCesionPendiente: false, docCesionGenerado: false });
+            }
+            for (const id of (c.bajasIds || [])) { try { await deleteDoc(doc(db, 'bajas', id)); } catch (e) {} }
+            for (const id of (c.parentalIds || [])) await updateDoc(doc(db, 'parentales', id), { bajaMotivo: null, fechaBaja: null, compradorNombre: null, idCesion: null });
+            await updateDoc(doc(db, 'cesiones', idCes), { estado: 'deshecha', fechaDeshecha: new Date().toLocaleDateString('es-ES'), deshechaPor: usuarioActual.nombre || '' });
+            registrarAuditoria('borrado', 'cesion', `Cesión deshecha (${c.fecha}): ${c.cantidad} ${c.especie} · ${c.comprador || 'sin comprador'} · ${c.tipo === 'venta' ? fmtEur(c.importe) : 'regalo'}`);
+            alert('✅ Cesión deshecha.');
+            const pc = document.getElementById('pantalla-cesion'); if (pc && pc.style.display !== 'none') iniciarPantallaCesion();
+        } catch (err) { alert('Error al deshacer: ' + err.message); }
+    };
+
+    onSnapshot(collection(db, 'cesiones'), snap => {
+        cesionesData = [];
+        snap.forEach(d => cesionesData.push({ id: d.id, ...d.data() }));
+        renderCesionHistorial();
+    }, () => {});
 
     window.cesionTipoAnimal = function(tipo) {
         _cesionTipoAnimal = tipo;
@@ -7697,6 +7952,11 @@
         document.getElementById('cesion-cria-panel').style.display = tipo === 'cria' ? 'block' : 'none';
         document.getElementById('cesion-reproductor-panel').style.display = tipo === 'reproductor' ? 'block' : 'none';
         if (tipo === 'reproductor') cesionCargarReproductores();
+        // 14/11/2026: al cambiar cría/reproductor se recalcula el precio y el resumen
+        const ud = document.getElementById('cesion-precio-ud');
+        if (ud) { ud.value = ''; delete ud.dataset.manual; document.getElementById('cesion-precio-total').value = ''; window._cesionUltimoPrecio = 'ud'; }
+        if (tipo === 'cria') cesionAutoPrecio();
+        if (typeof cesionPrecio === 'function') cesionPrecio(window._cesionUltimoPrecio, true);
     }
 
     window.cesionCargarReproductores = function() {
@@ -7727,6 +7987,7 @@
         const contador = document.getElementById('cesion-repro-contador');
         contador.textContent = sel;
         contador.style.color = sel > 0 ? 'var(--verde)' : 'var(--rojo)';
+        cesionPrecio(window._cesionUltimoPrecio, true); // 14/11/2026
     }
 
     window.cesionReproGetSeleccionados = function() {
@@ -7734,56 +7995,6 @@
         return Array.from(checks)
             .filter(c => c.checked)
             .map(c => _cesionReprosDisponibles[parseInt(c.getAttribute('data-idx'))]);
-    }
-
-    window.cesionSeleccionarNacimiento = function() {
-        const nid = document.getElementById('cesion-nacimiento').value;
-        _cesionNacimientoId = nid;
-
-        if (!nid) {
-            document.getElementById('cesion-chips-panel').style.display = 'none';
-            return;
-        }
-
-        // 27/09/2026: items {c, especie, anyo} del grupo elegido (nacimiento o compra)
-        _cesionChipsDisponibles = chipsDisponiblesCria().filter(x => x.grupoId === nid);
-
-        const n = _cesionChipsDisponibles.length;
-        document.getElementById('cesion-chips-disponibles-txt').textContent =
-            `${n} chip${n!==1?'s':''} disponible${n!==1?'s':''}  — marca los que vas a ceder`;
-
-        // Renderizar checkboxes — todos marcados por defecto
-        const lista = document.getElementById('cesion-chips-lista');
-        lista.innerHTML = _cesionChipsDisponibles.map((x, i) => {
-            const c = x.c;
-            const cf = c.numero && c.numero.length === 15
-                ? c.numero.replace(/(\d{3})(\d{3})(\d{3})(\d{3})(\d{3})/, '$1.$2.$3.$4.$5')
-                : (c.numero || c.id);
-            return `<label style="display:flex;align-items:center;gap:5px;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:0.75rem;font-family:Rajdhani,sans-serif;font-weight:600;">
-                <input type="checkbox" data-idx="${i}" checked onchange="cesionActualizarContador()" style="cursor:pointer;">
-                ${cf}
-            </label>`;
-        }).join('');
-
-        document.getElementById('cesion-chips-panel').style.display = 'block';
-        cesionActualizarContador();
-    }
-
-    window.cesionActualizarContador = function() {
-        const checks = document.querySelectorAll('#cesion-chips-lista input[type=checkbox]');
-        const sel = Array.from(checks).filter(c => c.checked).length;
-        const total = _cesionChipsDisponibles.length;
-        const contador = document.getElementById('cesion-contador');
-        contador.textContent = sel;
-        // Color: verde si >0, rojo si 0
-        contador.style.color = sel > 0 ? 'var(--verde)' : 'var(--rojo)';
-    }
-
-    window.cesionGetChipsSeleccionados = function() {
-        const checks = document.querySelectorAll('#cesion-chips-lista input[type=checkbox]');
-        return Array.from(checks)
-            .filter(c => c.checked)
-            .map(c => _cesionChipsDisponibles[parseInt(c.getAttribute('data-idx'))]);
     }
 
     window.cesionTabComprador = function(tab) {
@@ -7818,20 +8029,15 @@
         return comprador;
     }
 
-    // Botón único "GENERAR DOCUMENTO DE CESIÓN": según el tipo elegido arriba
-    // (Cría / Reproductor), llama a la función correspondiente.
-    window.cesionGenerar = function() {
-        if (_cesionTipoAnimal === 'reproductor') return generarDocumentoCesionReproductor();
-        return generarDocumentoCesion();
-    }
+    // 14/11/2026: el botón es ahora "✓ CONFIRMAR Y GENERAR" → cesionConfirmar()
 
-    window.generarDocumentoCesionReproductor = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede generar documentos de cesión.');
+    window.generarDocumentoCesionReproductor = async function(reprosParam, compradorParam, opciones) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') { alert('⛔ Solo Patricio puede generar documentos de cesión.'); return false; }
+        opciones = opciones || {};
+        const reprosACeder = reprosParam || cesionReproGetSeleccionados();
+        if (reprosACeder.length === 0) { alert('Selecciona al menos un reproductor para ceder'); return false; }
 
-        const reprosACeder = cesionReproGetSeleccionados();
-        if (reprosACeder.length === 0) return alert('Selecciona al menos un reproductor para ceder');
-
-        const comprador = cesionLeerComprador();
+        const comprador = compradorParam || cesionLeerComprador();
         const anyoActualNum = new Date().getFullYear();
 
         try {
@@ -7847,15 +8053,15 @@
             for (const p of reprosACeder) {
                 if (!p.anyoNacimiento) {
                     const val = prompt(`Año de nacimiento de "${p.nombre}" (${p.especie}):`);
-                    if (val === null) return alert('Cesión cancelada.');
+                    if (val === null) { alert('Cesión cancelada.'); return false; }
                     const n = parseInt(val, 10);
-                    if (!val || val.length !== 4 || isNaN(n) || n > anyoActualNum) return alert(`Año no válido para "${p.nombre}": "${val}"`);
+                    if (!val || val.length !== 4 || isNaN(n) || n > anyoActualNum) { alert(`Año no válido para "${p.nombre}": "${val}"`); return false; }
                     p.anyoNacimiento = val;
                     await updateDoc(doc(db, 'parentales', p.id), { anyoNacimiento: val });
                 }
                 if (!p.cites) {
                     const val = prompt(`Nº de certificado CITES de "${p.nombre}" (${p.especie}):`);
-                    if (val === null) return alert('Cesión cancelada.');
+                    if (val === null) { alert('Cesión cancelada.'); return false; }
                     p.cites = val.trim();
                     if (p.cites) await updateDoc(doc(db, 'parentales', p.id), { cites: p.cites });
                 }
@@ -7898,7 +8104,7 @@
             // Marcar reproductores como retirados del plantel (deja de aparecer como
             // disponible para emparejamientos, igual que un chip cedido en crías)
             for (const p of reprosACeder) {
-                await updateDoc(doc(db, 'parentales', p.id), { bajaMotivo: 'venta', fechaBaja: fechaHoy, compradorNombre: comprador.nombre || 'Sin datos' });
+                await updateDoc(doc(db, 'parentales', p.id), { bajaMotivo: opciones.motivo || 'venta', fechaBaja: fechaHoy, compradorNombre: comprador.nombre || 'Sin datos', idCesion: opciones.idCesion || null });
             }
             registrarAuditoria('nuevo', 'cesion', `Cesión de reproductor(es): ${reprosACeder.map(p=>p.nombre).join(', ')} · ${comprador.nombre || 'Sin comprador'}`);
 
@@ -7923,22 +8129,12 @@
             cesionCargarReproductores();
             panelDescargas('📄 CESIÓN GENERADA', archivosCesion,
                 `<div style="font-size:0.8rem;color:var(--texto2);margin-bottom:10px;text-align:left;">${reprosACeder.length} documento(s) de cesión y el Excel de baja para MITECO. Descarga cada uno con su botón:</div>`);
+            return { ok: true };
 
         } catch(err) {
             alert('Error al generar PDF: ' + err.message);
+            return false;
         }
-    };
-
-    // 27/09/2026: cesión de CRÍAS desde esta pantalla = cesión SIN venta (regalo, intercambio…).
-    // Usa el generador único y descuenta el stock (bajas 'cesion'), porque no hay cobro en caja.
-    window.generarDocumentoCesion = async function() {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return alert('⛔ Solo Patricio puede generar documentos de cesión.');
-        if (!_cesionNacimientoId) return alert('Selecciona un nacimiento');
-        const items = cesionGetChipsSeleccionados();
-        if (items.length === 0) return alert('Selecciona al menos un chip para ceder');
-        if (!confirm(`Vas a ceder ${items.length} cría(s) SIN VENTA (regalo, intercambio…).\nSe descontarán del stock.\n\nSi es una VENTA, cancela y hazla desde CAJA → ＋ INGRESO.\n\n¿Continuar?`)) return;
-        const ok = await generarDocsCesion(items, cesionLeerComprador(), { sinVenta: true });
-        if (ok) iniciarPantallaCesion();
     };
 
     // ── MÓDULO CITES POR NACIMIENTO ───────────────────────────────
