@@ -7912,7 +7912,9 @@
     function excelBajaCria(datos, comprador, fecha) {
         const filas = datos.map(d => {
             const m = MITECO_ESPECIES[d.especie] || { genero: (d.especie||'').toUpperCase(), especie: (d.especie||'').toUpperCase(), apendice: 'II', anexo: 'B' };
-            return [MITECO_CRIADOR, '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '', 'D', 'C', '', '',
+            // 14/11/2026: el código id. CITES de MITECO (243LA00xxxx) va en "Identificador Cría"
+            // (mismo formato que el id. de espécimen de los reproductores)
+            return [MITECO_CRIADOR, d.cites || '', m.genero, m.especie, '', m.apendice, m.anexo, '', '', '', '', 'D', 'C', '', '',
                 'MICROCHIP Nº: ' + fmtChip(d.numero), '', '', '', '', '', '', 'B', fecha, 'CE', '', '', fecha, '', '', comprador.nombre || ''];
         });
         const esp = [...new Set(datos.map(x => x.especie))].join('-');
