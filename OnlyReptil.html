@@ -385,6 +385,9 @@
         .nav-item { text-align: center; font-size: 0.65rem; color: var(--texto2); cursor: pointer; font-weight: 700; letter-spacing: 1px; padding: 4px 16px; border-radius: 8px; transition: color 0.15s; }
         .nav-item.activo { color: var(--verde); }
         .nav-item span { display: block; font-size: 1.2rem; margin-bottom: 2px; }
+        .nav-item.nav-pyn2 { color: var(--azul); font-size: 0.72rem; }
+        .nav-item.nav-pyn2 span { font-size: 1.45rem; }
+        .nav-item.nav-pyn2.activo { color: var(--verde); }
 
         /* PyN NUEVO (prueba) */
         .btn-mini { display: inline-block; margin-top: 4px; background: rgba(100,181,246,0.14); color: var(--azul); border: 1px solid rgba(100,181,246,0.3); border-radius: 7px; padding: 6px 12px; font-size: 0.72rem; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.3px; cursor: pointer; }
@@ -461,7 +464,7 @@
         <!-- 11/09/2026: quitados los iconos a petición de Patry ("me sobran"), solo texto -->
         <div class="acciones-row">
             <!-- 29/09/2026: PUESTA se registra ahora desde PyN (botón ＋ NUEVA PUESTA) -->
-            <div class="accion" style="color:var(--azul);" onclick="navA('pantalla-pyn2')"><span class="lbl">PyN</span></div>
+            <!-- 14/11/2026 (Patry): PyN pasa a la barra de abajo, en el centro -->
             <div class="accion" style="color:var(--verde);" onclick="irA('form-ingreso')"><span class="lbl">INGRESO</span></div>
             <div class="accion" style="color:var(--rojo);" onclick="irA('form-gasto')"><span class="lbl">GASTO</span></div>
         </div>
@@ -1479,6 +1482,7 @@
     <div class="nav-item activo" id="nav-inicio"  onclick="navA('pantalla-inicio')"><span>🏠</span>INICIO</div>
     <div class="nav-item" id="nav-pyn"    onclick="navA('pantalla-pyn')" style="display:none;"><span>🥚</span>PyN</div><!-- desconectado 11/09/2026, ver nota en grid de Inicio -->
     <div class="nav-item" id="nav-miteco" onclick="navA('pantalla-miteco')" style="display:none;"><span>🏛️</span>MITECO</div><!-- desconectado 11/09/2026, ver nota en grid de Inicio -->
+    <div class="nav-item nav-pyn2" id="nav-pyn2" onclick="navA('pantalla-pyn2')"><span>🥚</span>PyN</div><!-- 14/11/2026: PyN en el centro de la barra (lo más importante de la app) -->
     <div class="nav-item" id="nav-caja"   onclick="navA('pantalla-caja')"><span>💰</span>CAJA</div>
 </nav>
 
@@ -1659,6 +1663,9 @@
         if(id === 'pantalla-miteco') { switchTabMiteco('miteco'); renderMiteco(); }
         if(id === 'pantalla-cesion') { iniciarPantallaCesion(); }
         if(id === 'pantalla-pyn2') { if (!window._pyn2ScrollAPuestaId) { window._pyn2Filtro = 'puesta'; window._pyn2Abierta = null; } const mp=document.getElementById('pyn2-menu-prueba'); if(mp) mp.classList.remove('abierto'); renderPynNuevo(); } // 27/09/2026: al entrar, pestaña PUESTA
+        // 14/11/2026: la barra de abajo marca la sección en la que estás aunque se llegue por otro botón
+        const navMap = {'pantalla-inicio':'nav-inicio','pantalla-pyn2':'nav-pyn2','pantalla-caja':'nav-caja'};
+        if (navMap[id]) ['nav-inicio','nav-pyn2','nav-caja'].forEach(n => { const el = document.getElementById(n); if (el) el.classList.toggle('activo', n === navMap[id]); });
     }
     window.toggleEspecies = function() {
         const pantalla = document.getElementById('pantalla-especies');
@@ -1674,8 +1681,8 @@
     };
 
     window.navA = function(id) {
-        ['nav-inicio','nav-pyn','nav-caja','nav-miteco'].forEach(n => document.getElementById(n).classList.remove('activo'));
-        const map = {'pantalla-inicio':'nav-inicio','pantalla-pyn':'nav-pyn','pantalla-caja':'nav-caja','pantalla-miteco':'nav-miteco'};
+        ['nav-inicio','nav-pyn','nav-pyn2','nav-caja','nav-miteco'].forEach(n => document.getElementById(n).classList.remove('activo'));
+        const map = {'pantalla-inicio':'nav-inicio','pantalla-pyn':'nav-pyn','pantalla-pyn2':'nav-pyn2','pantalla-caja':'nav-caja','pantalla-miteco':'nav-miteco'};
         if(map[id]) document.getElementById(map[id]).classList.add('activo');
         window.irA(id);
     }
