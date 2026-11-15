@@ -3596,9 +3596,10 @@
                     .filter(c => !c.bajaMuerte && !c.cedido && !enPlantelC.has(c.numero));
                 const nPend = chipsPuesta.filter(c => c.citesPendienteMiteco).length;
                 const nCeder = chipsPuesta.length - nPend;
-                const quedanTxt = ` · <b>${nCeder}</b> por ceder${nPend ? ` · <span style="color:var(--naranja);">${nPend} sin certificado</span>` : ''}`;
+                // 15/11/2026 (Patry, opción B): dos líneas en un solo bloque (la franja es flex)
+                const quedanTxt = `<span style="flex:1;min-width:0;"><span style="display:block;">Lista para cesión</span><span style="display:block;font-size:0.92em;font-weight:500;margin-top:1px;"><b>${nCeder}</b> por ceder${nPend ? ` · <span style="color:var(--naranja);">${nPend} sin certificado</span>` : ''}</span></span>`;
                 pasos.push(pyn2Paso('hecho', 'Lista para cesión', `${nCeder} por ceder${nPend ? ` · ${nPend} esperando certificado de MITECO` : ''}`, `<button class="btn-mini verde" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
-                if (!siguiente) siguiente = { txt: 'Lista para cesión' + quedanTxt, tipo: 'verde' };
+                if (!siguiente) siguiente = { txt: quedanTxt, tipo: 'verde' };
             } else {
                 pasos.push(pyn2Paso('pend', 'Lista para cesión'));
             }
