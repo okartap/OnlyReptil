@@ -3306,7 +3306,7 @@
         { id: 'miteco',      ic: '📤', label: 'MITECO' },
         { id: 'esperando',   ic: '⏳', label: 'ESPERANDO' },
         { id: 'cesion',      ic: '✅', label: 'CESIÓN' },
-        { id: 'todas',       ic: '🗂️', label: 'TODAS' }, // 27/09/2026: TODAS la última (petición de Patry)
+        { id: 'todas',       ic: '🗂️', label: 'HISTORIAL' }, // 15/11/2026 (Patry, opción A): solo puestas TERMINADAS, por año y fecha de papeles
     ];
     function pyn2Fase(estado) {
         if (estado.cerradaSinCrias) return 'cerrada'; // 24/09/2026: fuera de las pestañas activas (solo en TODAS)
@@ -3686,6 +3686,58 @@
     // (se borra después) para no reengancharse en visitas normales a PyN.
     window._pyn2ScrollAPuestaId = null;
 
+    // ── 15/11/2026 (Patry, opción A): pestaña 🗂️ HISTORIAL ──
+    // Solo puestas TERMINADAS (todas las crías cedidas o cerrada sin crías), agrupadas por año
+    // y, dentro, de la más nueva a la más antigua por fecha de RECIBIR PAPELES de MITECO
+    // (si no hay papeles, por fecha de puesta). Fila compacta; al tocarla se abre la tarjeta completa.
+    // fechas "3/11/2026" (sin ceros) → "2026-11-03", para que ordenen bien
+    function pyn2IsoPad(f) { const x = pyn2ToIso(f); if (!x) return ''; const [y, m, d] = x.split('-'); return `${y}-${String(m || '').padStart(2, '0')}-${String(d || '').padStart(2, '0')}`; }
+    function pyn2ResumenHistorial(p, estado) {
+        const nacidas = estado.todosNacs.reduce((t, n) => t + (parseInt(n.cant) || 0), 0);
+        const chips = [...new Set(estado.todosNacs.flatMap(n => n.chipsAsignados || []).map(String))];
+        const datos = chips.map(c => chipsData.find(x => x.numero === c)).filter(Boolean);
+        const muertas = datos.filter(c => c.bajaMuerte).length;
+        const cedidas = datos.filter(c => c.cedido && !c.bajaMuerte);
+        const clientes = new Set(cedidas.map(c => (c.compradorNombre || '').trim()).filter(Boolean));
+        const enPlantel = new Set(parentalesData.filter(x => x.marca).map(x => limpiarNumChip(x.marca)));
+        const plantel = chips.filter(c => enPlantel.has(c)).length;
+        const fPap = estado.todosNacs.map(n => n.fechaPapelesMiteco).filter(Boolean).sort((a, b) => pyn2IsoPad(b).localeCompare(pyn2IsoPad(a)))[0] || '';
+        const clave = pyn2IsoPad(fPap || p.fecha) || '';
+        return { nacidas, muertas, cedidas: cedidas.length, clientes: clientes.size, plantel, fPap, clave, anio: clave.slice(0, 4) || '—' };
+    }
+    function pyn2RenderHistorial(filas) {
+        const items = filas.map(f => ({ ...f, r: pyn2ResumenHistorial(f.p, f.estado) }))
+            .sort((a, b) => b.r.clave.localeCompare(a.r.clave));
+        const porAnio = {};
+        items.forEach(it => (porAnio[it.r.anio] = porAnio[it.r.anio] || []).push(it));
+        return Object.keys(porAnio).sort((a, b) => b.localeCompare(a)).map(anio => {
+            const grupo = porAnio[anio];
+            const crias = grupo.reduce((t, it) => t + it.r.nacidas, 0);
+            const cab = `<div style="font-size:0.78rem;font-weight:700;color:var(--azul);letter-spacing:1px;text-align:center;margin:14px 0 8px;">${anio} · ${grupo.length} puesta${grupo.length !== 1 ? 's' : ''} · ${fmtMiles(crias, 0)} cría${crias !== 1 ? 's' : ''}</div>`;
+            return cab + grupo.map(({ p, estado, r }) => {
+                if (window._pyn2Abierta === p.id) return pyn2RenderPuestaCard(p, estado);
+                const nombre = p.idPuesta || p.detalle || '—';
+                const pareja = (parejasData.find(x => x.id === p.idPareja) || {}).nombre || p.nombrePareja || '';
+                const sub = estado.cerradaSinCrias ? 'Sin crías · cerrada' : (r.fPap ? `Papeles ${r.fPap}` : `Puesta ${p.fecha || '—'}`);
+                const detalle = estado.cerradaSinCrias ? '' : [
+                    `<span style="color:var(--verde);">${r.cedidas} cedida${r.cedidas !== 1 ? 's' : ''}${r.clientes ? ` · ${r.clientes} cliente${r.clientes !== 1 ? 's' : ''}` : ''}</span>`,
+                    r.plantel ? `${r.plantel} al plantel` : '',
+                    r.muertas ? `<span style="color:var(--rojo);">${r.muertas} baja${r.muertas !== 1 ? 's' : ''}</span>` : ''
+                ].filter(Boolean).join(' · ');
+                return `<div id="pyn2-card-${p.id}" class="pyn2-card" style="margin-bottom:6px;"><div class="pyn2-cab" onclick="pyn2ToggleCard('${p.id}')" style="padding:10px 14px;">
+                    <div style="flex:1;min-width:0;">
+                        <div class="pyn2-idp" style="font-size:0.95rem;">${nombre}</div>
+                        <div class="pyn2-sub">${pareja ? pareja + ' · ' : ''}${sub}</div>
+                    </div>
+                    <div style="text-align:right;font-size:0.78rem;line-height:1.5;flex-shrink:0;">
+                        <div style="color:var(--texto);font-weight:700;">${r.nacidas} nacida${r.nacidas !== 1 ? 's' : ''}</div>
+                        <div>${detalle || '<span style="color:var(--texto2);">—</span>'}</div>
+                    </div>
+                </div></div>`;
+            }).join('');
+        }).join('');
+    }
+
     function renderPynNuevo() {
         const tabsEl = document.getElementById('pyn2-tabs');
         const cont = document.getElementById('pyn2-lista');
@@ -3701,8 +3753,9 @@
         if (puestaScrollId) {
             window._pyn2Abierta = puestaScrollId; // 27/09/2026: se abre directamente esa tarjeta
             const fila = filas.find(f => f.p.id === puestaScrollId);
-            if (fila && filtro !== 'todas' && filtro !== fila.fase) {
-                filtro = fila.fase;
+            const faseTab = fila && (fila.fase === 'cedida' || fila.fase === 'cerrada') ? 'todas' : (fila && fila.fase);
+            if (fila && filtro !== faseTab) {
+                filtro = faseTab;
                 window._pyn2Filtro = filtro;
             }
         }
@@ -3710,28 +3763,31 @@
         if (tabsEl) {
             const activa = PYN2_FASES.find(f => f.id === filtro) || PYN2_FASES.find(f => f.id === 'puesta');
             tabsEl.innerHTML = `<div class="pyn2-tabs-iconos">` + PYN2_FASES.map(f => {
-                const n = f.id === 'todas' ? filas.length : filas.filter(x => x.fase === f.id).length;
+                const n = f.id === 'todas' ? filas.filter(x => x.fase === 'cedida' || x.fase === 'cerrada').length : filas.filter(x => x.fase === f.id).length;
                 return `<div class="pyn2-ti ${f.id === filtro ? 'activa' : ''}" onclick="setPyn2Filtro('${f.id}')"><div class="ic">${f.ic}</div><div class="n">${n}</div></div>`;
             }).join('') + `</div><div class="pyn2-tab-nombre">${activa.label}</div>`;
         }
 
-        let filtradas = filtro === 'todas' ? filas : filas.filter(f => f.fase === filtro);
+        let filtradas = filtro === 'todas' ? filas.filter(f => f.fase === 'cedida' || f.fase === 'cerrada') : filas.filter(f => f.fase === filtro);
         const btPrueba = document.getElementById('pyn2-bt-prueba');
         if (btPrueba) btPrueba.style.display = histBio.some(b => b.esPrueba) ? '' : 'none';
         const bc = document.getElementById('pyn2-buscachip');
         if (bc) bc.style.display = filtro === 'esperando' ? 'block' : 'none';
 
         if (filtradas.length === 0) {
-            const msgs = { todas: 'Sin puestas registradas aún', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin puestas pendientes de Excel o de presentar en la red SARA', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
+            const msgs = { todas: 'Aún no hay puestas terminadas', puesta: 'Sin puestas esperando eclosión', nacimiento: 'Sin nacimientos pendientes de certificado', veterinario: 'Sin certificados pendientes de firma del veterinario', miteco: 'Sin puestas pendientes de Excel o de presentar en la red SARA', esperando: 'Sin puestas esperando papeles de MITECO', cesion: 'Sin puestas listas para cesión' };
             cont.innerHTML = `<p class="msg-vacio">${msgs[filtro] || 'Sin puestas'}</p>`;
             return;
         }
 
-        // Orden por fecha de puesta, la más antigua primero — para no saltarse
-        // ninguna aunque sea de una pareja distinta a la que se miró antes.
-        filtradas.sort((a,b) => pyn2ToIso(a.p.fecha).localeCompare(pyn2ToIso(b.p.fecha)));
-
-        cont.innerHTML = filtradas.map(({p, estado}) => pyn2RenderPuestaCard(p, estado)).join('');
+        if (filtro === 'todas') {
+            cont.innerHTML = pyn2RenderHistorial(filtradas);
+        } else {
+            // Orden por fecha de puesta, la más antigua primero — para no saltarse
+            // ninguna aunque sea de una pareja distinta a la que se miró antes.
+            filtradas.sort((a,b) => pyn2ToIso(a.p.fecha).localeCompare(pyn2ToIso(b.p.fecha)));
+            cont.innerHTML = filtradas.map(({p, estado}) => pyn2RenderPuestaCard(p, estado)).join('');
+        }
 
         // Scroll + resalte a la puesta que se acababa de trabajar (una sola vez)
         if (puestaScrollId) {
