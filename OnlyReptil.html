@@ -3589,8 +3589,16 @@
 
             // 9. Lista para cesión
             if (estado.completa) {
-                pasos.push(pyn2Paso('hecho', 'Lista para cesión', '', `<button class="btn-mini verde" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
-                if (!siguiente) siguiente = { txt: 'Lista para cesión', tipo: 'verde' };
+                // 15/11/2026 (Patry): cuántas crías de la puesta quedan por ceder (y cuántas esperan certificado)
+                const enPlantelC = new Set(parentalesData.filter(x => x.marca).map(x => limpiarNumChip(x.marca)));
+                const chipsPuesta = [...new Set(estado.todosNacs.flatMap(n => n.chipsAsignados || []).map(String))]
+                    .map(c => chipsData.find(x => x.numero === c) || { numero: c })
+                    .filter(c => !c.bajaMuerte && !c.cedido && !enPlantelC.has(c.numero));
+                const nPend = chipsPuesta.filter(c => c.citesPendienteMiteco).length;
+                const nCeder = chipsPuesta.length - nPend;
+                const quedanTxt = ` · <b>${nCeder}</b> por ceder${nPend ? ` · <span style="color:var(--naranja);">${nPend} sin certificado</span>` : ''}`;
+                pasos.push(pyn2Paso('hecho', 'Lista para cesión', `${nCeder} por ceder${nPend ? ` · ${nPend} esperando certificado de MITECO` : ''}`, `<button class="btn-mini verde" onclick="irA('pantalla-cesion')">📄 IR A CESIÓN</button>`));
+                if (!siguiente) siguiente = { txt: 'Lista para cesión' + quedanTxt, tipo: 'verde' };
             } else {
                 pasos.push(pyn2Paso('pend', 'Lista para cesión'));
             }
